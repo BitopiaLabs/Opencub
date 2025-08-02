@@ -1,5 +1,5 @@
 export interface Message {
-  role: 'user' | 'assistant' | 'system' | 'tool';
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
@@ -16,18 +16,18 @@ export interface ToolCall {
 
 export interface ToolResult {
   tool_call_id: string;
-  role: 'tool';
+  role: "tool";
   name: string;
   content: string;
 }
 
 export interface Tool {
-  type: 'function';
+  type: "function";
   function: {
     name: string;
     description: string;
     parameters: {
-      type: 'object';
+      type: "object";
       properties: Record<string, any>;
       required: string[];
     };
@@ -36,13 +36,36 @@ export interface Tool {
 
 export type ToolHandler = (input: any) => Promise<string>;
 
-export interface OllamaConfig {
-  model: string;
-  maxTokens: number;
+export interface LLMClient {
+  getCurrentModel(): string;
+  setModel(model: string): void;
+  getContextSize(): number;
+  getAvailableModels(): Promise<string[]>;
+  chat(messages: Message[], tools: Tool[]): Promise<any>;
+  chatStream(messages: Message[], tools: Tool[]): AsyncIterable<any>;
+  clearContext(): Promise<void>;
+}
+
+export type ProviderType = "ollama" | "openrouter";
+
+export interface AppConfig {
+  openRouterApiKey?: string;
+  openRouterModels?: string[];
 }
 
 export interface Colors {
-  user: string;
-  assistant: string;
+  white: string;
+  primary: string;
   tool: string;
+  secondary: string;
+  success: string;
+  error: string;
+  blue: string;
+  orange: string;
+}
+
+export interface Command {
+  name: string;
+  description: string;
+  handler: (args: string[]) => void;
 }
