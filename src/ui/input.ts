@@ -1,8 +1,10 @@
-import inquirer from "inquirer";
+import * as p from "@clack/prompts";
 import { commandRegistry } from "../core/commands.js";
-import { primaryColor, successColor, errorColor } from "./colors.js";
+import { successColor, errorColor, primaryColor, blueColor } from "./colors.js";
 import { formatToolCall } from "./tool-formatter.js";
 import type { ToolCall } from "../types/index.js";
+import { promptHistory } from "../core/prompt-history.js";
+import { borderedContent } from "./bordered-content.js";
 
 const examplePrompts = [
   'Try "fix typecheck errors"',
@@ -49,54 +51,58 @@ function getCommandCompletions(input: string): string[] {
 
 export async function getUserInput(): Promise<string | null> {
   try {
-    // Add bottom margin for main input
-    process.stdout.write('\n\n\n\n\n\u001b[5A');
-    
-    const answers = await inquirer.prompt({
-      type: "input",
-      name: "userInput",
-      message: "",
-      default: getRandomPrompt(),
+    // Load history on first use
+    if (promptHistory.getHistory().length === 0) {
+      await promptHistory.loadHistory();
+    }
+
+    const userInput = await p.text({
+      message: primaryColor("What would you like me to help with?"),
+      placeholder: getRandomPrompt(),
     });
 
-    let inputValue = (answers.userInput || "").trim();
+    if (p.isCancel(userInput)) {
+      p.cancel("Operation cancelled");
+      return null;
+    }
+
+    let inputValue = userInput.trim();
+
+    // Add to history if it's not empty and not a command
+    if (inputValue && !inputValue.startsWith("/")) {
+      promptHistory.addPrompt(inputValue);
+    }
 
     // If user starts typing a command, show completions and let them choose
     if (inputValue.startsWith("/") && inputValue.length > 1) {
       const completions = getCommandCompletions(inputValue);
       if (completions.length > 1) {
-        console.log();
-        console.log(`\n💡 Available commands matching "${inputValue}":`);
-        console.log();
-        
-        // Add bottom margin for command selection input
-        process.stdout.write('\n\n\n\n\n\u001b[5A');
-        
-        const commandChoice = await inquirer.prompt({
-          type: "list",
-          name: "selectedCommand",
-          message: "Select a command:",
-          choices: [
-            { name: `Continue with: ${inputValue}`, value: inputValue },
-            ...completions.map((cmd) => ({ name: cmd, value: cmd })),
+        const selectedCommand = await p.select({
+          message: blueColor(`Available commands matching "${inputValue}":`),
+          options: [
+            { label: `Continue with: ${inputValue}`, value: inputValue },
+            ...completions.map((cmd) => ({ label: cmd, value: cmd })),
           ],
         });
-        inputValue = commandChoice.selectedCommand;
+
+        if (p.isCancel(selectedCommand)) {
+          p.cancel("Operation cancelled");
+          return null;
+        }
+
+        inputValue = selectedCommand;
       } else if (completions.length === 1 && completions[0] !== inputValue) {
-        console.log();
-        console.log(`💡 Did you mean: ${completions[0]}?`);
-        console.log();
-        
-        // Add bottom margin for command confirmation input
-        process.stdout.write('\n\n\n\n\n\u001b[5A');
-        
-        const confirm = await inquirer.prompt({
-          type: "confirm",
-          name: "useCompletion",
-          message: `Use "${completions[0]}" instead?`,
-          default: true,
+        const useCompletion = await p.confirm({
+          message: blueColor(`Did you mean "${completions[0]}"?`),
+          initialValue: true,
         });
-        if (confirm.useCompletion) {
+
+        if (p.isCancel(useCompletion)) {
+          p.cancel("Operation cancelled");
+          return null;
+        }
+
+        if (useCompletion && completions[0]) {
           inputValue = completions[0];
         }
       }
@@ -104,35 +110,31 @@ export async function getUserInput(): Promise<string | null> {
 
     return inputValue;
   } catch (error) {
-    console.log(primaryColor("\nGoodbye!"));
+    p.cancel("Goodbye!");
     return null;
   }
 }
 
 export async function promptToolApproval(toolCall: ToolCall): Promise<boolean> {
-  // Add bottom margin for tool approval input
-  process.stdout.write('\n\n\n\n\n\u001b[5A');
-  
-  // Display the formatted tool call
-  console.log();
-  console.log(await formatToolCall(toolCall));
-  console.log();
-  
-  const { action } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "action",
-      message: "Execute this tool?",
-      choices: [
-        { name: `${successColor("✓ Yes, execute")}`, value: "execute" },
-        {
-          name: `${errorColor("⨯ No, tell agent what to do differently")}`,
-          value: "cancel",
-        },
-      ],
-      default: "execute",
-    },
-  ]);
+  // Display formatted tool call - use message to avoid extra dots
+  const formattedTool = await formatToolCall(toolCall);
+  console.log("\n" + formattedTool + "\n");
+
+  const action = await p.select({
+    message: "Execute this tool?",
+    options: [
+      { label: `${successColor("✓ Yes, execute")}`, value: "execute" },
+      {
+        label: `${errorColor("⨯ No, tell agent what to do differently")}`,
+        value: "cancel",
+      },
+    ],
+  });
+
+  if (p.isCancel(action)) {
+    p.cancel("Operation cancelled");
+    return false;
+  }
 
   return action === "execute";
 }

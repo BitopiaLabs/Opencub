@@ -1,5 +1,5 @@
 import type { Message, Tool, LLMClient } from "../types/index.js";
-import { errorColor } from "../ui/colors.js";
+import * as p from "@clack/prompts";
 
 export class OpenRouterClient implements LLMClient {
   private apiKey: string;
@@ -105,7 +105,7 @@ export class OpenRouterClient implements LLMClient {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "X-Title": "NanoCoder",
+          "X-Title": "Nanocoder",
         },
         body: JSON.stringify(requestBody),
       }
@@ -124,7 +124,7 @@ export class OpenRouterClient implements LLMClient {
         // If we can't parse the error response, use the basic message
       }
 
-      console.log(errorColor(`\n❌ ${errorMessage}\n`));
+      p.log.error(errorMessage);
       return null; // Return null to indicate error
     }
 
@@ -179,7 +179,7 @@ export class OpenRouterClient implements LLMClient {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
-          "X-Title": "NanoCoder",
+          "X-Title": "Nanocoder",
         },
         body: JSON.stringify(requestBody),
       }
@@ -198,13 +198,13 @@ export class OpenRouterClient implements LLMClient {
         // If we can't parse the error response, use the basic message
       }
 
-      console.log(errorColor(`\n⨯ ${errorMessage}\n`));
+      p.log.error(errorMessage);
       return; // Gracefully exit the generator without yielding any chunks
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      console.log(errorColor(`\n⨯ Failed to get response reader\n`));
+      p.log.error("Failed to get response reader");
       return;
     }
 
@@ -241,7 +241,7 @@ export class OpenRouterClient implements LLMClient {
 
                 yield {
                   message: {
-                    content: accumulatedContent,
+                    content: "", // Don't re-yield accumulated content, it's already been yielded during streaming
                     tool_calls: processedToolCalls,
                   },
                   done: true,
@@ -257,10 +257,11 @@ export class OpenRouterClient implements LLMClient {
 
               // Accumulate content
               if (chunk.choices?.[0]?.delta?.content) {
-                accumulatedContent += chunk.choices[0].delta.content;
+                const deltaContent = chunk.choices[0].delta.content;
+                accumulatedContent += deltaContent;
                 yield {
                   message: {
-                    content: chunk.choices[0].delta.content,
+                    content: deltaContent,
                   },
                   done: false,
                 };

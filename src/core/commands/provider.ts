@@ -1,7 +1,7 @@
 import { Command } from "../../types/index.js";
-import inquirer from "inquirer";
-import { successColor, errorColor } from "../../ui/colors.js";
+import * as p from "@clack/prompts";
 import { getCurrentChatSession } from "../chat.js";
+import { primaryColor, successColor } from "../../ui/colors.js";
 
 export const providerCommand: Command = {
   name: "provider",
@@ -9,7 +9,7 @@ export const providerCommand: Command = {
   handler: async (_args: string[]) => {
     const chatSession = getCurrentChatSession();
     if (!chatSession) {
-      console.log(errorColor("No active chat session found."));
+      p.log.error("No active chat session found.");
       return;
     }
 
@@ -22,36 +22,34 @@ export const providerCommand: Command = {
         value: provider,
       }));
 
-      console.log();
-      
-      // Add bottom margin for provider selection input
-      process.stdout.write('\n\n\n\n\n\u001b[5A');
-      
-      const answer = await inquirer.prompt({
-        type: "list",
-        name: "selectedProvider",
+      const selectedProvider = await p.select({
         message: "Select a provider:",
-        choices: providerChoices,
-        default: currentProvider,
+        options: providerChoices.map((choice) => ({
+          label: choice.name,
+          value: choice.value,
+        })),
       });
-      console.log();
 
-      if (answer.selectedProvider !== currentProvider) {
-        await chatSession.setProvider(answer.selectedProvider);
-        console.log(
-          successColor(`✓ Provider changed to: ${answer.selectedProvider}`)
-        );
-        console.log(
-          successColor(`✓ Current model: ${chatSession.getCurrentModel()}`)
-        );
-        console.log(successColor("✓ Chat history cleared"));
-      } else {
-        console.log("Provider unchanged.");
+      if (p.isCancel(selectedProvider)) {
+        p.cancel("Operation cancelled");
+        return;
       }
-      console.log();
+
+      if (selectedProvider !== currentProvider) {
+        await chatSession.setProvider(selectedProvider);
+        p.log.success(
+          successColor(
+            `Provider changed to: ${primaryColor(
+              selectedProvider
+            )}\nCurrent model: ${primaryColor(chatSession.getCurrentModel())}`
+          )
+        );
+        p.log.warning("Chat history cleared");
+      } else {
+        p.log.info("Provider unchanged.");
+      }
     } catch (error) {
-      console.log(errorColor(`Error switching provider: ${error}`));
+      p.log.error(`Error switching provider: ${error}`);
     }
-    console.log();
   },
 };

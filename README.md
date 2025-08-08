@@ -2,6 +2,8 @@
 
 A local-first CLI coding agent that brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter. Built with privacy and control in mind, Nanocoder supports multiple AI providers with tool support for file operations and command execution.
 
+![Screenshot](./.github/assets/example.png)
+
 ## Installation
 
 ### For Users (Recommended)
@@ -88,6 +90,7 @@ The CLI supports several built-in commands:
 - `/clear` - Clear chat history
 - `/model` - Switch between available models
 - `/provider` - Switch between AI providers (ollama/openrouter)
+- `/history` - Select from recent prompt history
 - `/exit` - Exit the application
 
 ## Features
