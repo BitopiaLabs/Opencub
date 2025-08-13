@@ -97,6 +97,7 @@ Configure any OpenAI-compatible API endpoint (e.g., LM Studio, Ollama Web API, v
 ```
 
 Common OpenAI-compatible providers:
+
 - **LM Studio**: `"baseUrl": "http://localhost:1234"`
 - **Ollama Web API**: `"baseUrl": "http://localhost:11434"`
 - **vLLM**: `"baseUrl": "http://localhost:8000"`
@@ -114,7 +115,10 @@ Nanocoder supports connecting to MCP servers to extend its capabilities with add
       {
         "name": "filesystem",
         "command": "npx",
-        "args": ["@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"]
+        "args": [
+          "@modelcontextprotocol/server-filesystem",
+          "/path/to/allowed/directory"
+        ]
       },
       {
         "name": "github",
@@ -138,11 +142,13 @@ Nanocoder supports connecting to MCP servers to extend its capabilities with add
 ```
 
 When MCP servers are configured, Nanocoder will:
+
 - Automatically connect to all configured servers on startup
 - Make all server tools available to the AI model
 - Show connected servers and their tools with the `/mcp` command
 
 Popular MCP servers:
+
 - **Filesystem**: Enhanced file operations
 - **GitHub**: Repository management
 - **Brave Search**: Web search capabilities
@@ -150,6 +156,26 @@ Popular MCP servers:
 - [View more MCP servers](https://github.com/modelcontextprotocol/servers)
 
 > **Note**: The `agents.config.json` file should be placed in the directory where you run Nanocoder, allowing for project-by-project configuration with different models or API keys per repository.
+
+### User Preferences
+
+Nanocoder automatically saves your preferences to remember your choices across sessions. Preferences are stored in `~/.nanocoder-preferences.json` in your home directory.
+
+**What gets saved automatically:**
+- **Last provider used**: The AI provider you last selected (Ollama, OpenRouter, or OpenAI-compatible)
+- **Last model per provider**: Your preferred model for each provider
+- **Session continuity**: Automatically switches back to your preferred provider/model when restarting
+
+**How it works:**
+- When you switch providers with `/provider`, your choice is saved
+- When you switch models with `/model`, the selection is saved for that specific provider
+- Next time you start Nanocoder, it will use your last provider and model
+- Each provider remembers its own preferred model independently
+
+**Manual management:**
+- View current preferences: The file is human-readable JSON
+- Reset preferences: Delete `~/.nanocoder-preferences.json` to start fresh
+- No manual editing needed: Use the `/provider` and `/model` commands instead
 
 ### Commands
 
@@ -162,7 +188,7 @@ Popular MCP servers:
 - `/mcp` - Show connected MCP servers and their tools
 - `/history` - Select from recent prompt history
 - `/debug` - Toggle logging levels (silent/normal/verbose)
-- `/commands` - List all custom commands
+- `/custom-commands` - List all custom commands
 - `/exit` - Exit the application
 
 #### Custom Commands
@@ -170,6 +196,7 @@ Popular MCP servers:
 Nanocoder supports custom commands defined as markdown files in the `.nanocoder/commands` directory. This allows you to create reusable prompts with parameters and organize them by category.
 
 **Example custom command** (`.nanocoder/commands/test.md`):
+
 ```markdown
 ---
 description: "Generate comprehensive unit tests for the specified component"
@@ -181,6 +208,7 @@ parameters:
 ---
 
 Generate comprehensive unit tests for {{component}}. Include:
+
 - Happy path scenarios
 - Edge cases and error handling
 - Mock dependencies where appropriate
@@ -190,6 +218,7 @@ Generate comprehensive unit tests for {{component}}. Include:
 **Usage**: `/test component="UserService"`
 
 **Features**:
+
 - YAML frontmatter for metadata (description, aliases, parameters)
 - Template variable substitution with `{{parameter}}` syntax
 - Namespace support through directories (e.g., `/refactor:dry`)
@@ -197,6 +226,7 @@ Generate comprehensive unit tests for {{component}}. Include:
 - Parameter validation and prompting
 
 **Pre-installed Commands**:
+
 - `/test` - Generate comprehensive unit tests for components
 - `/review` - Perform thorough code reviews with suggestions
 - `/refactor:dry` - Apply DRY (Don't Repeat Yourself) principle
@@ -205,19 +235,22 @@ Generate comprehensive unit tests for {{component}}. Include:
 ## Features
 
 ### 🔌 Multi-Provider Support
+
 - **Ollama**: Local inference with privacy and no API costs
 - **OpenRouter**: Access to premium models (Claude, GPT-4, etc.)
 - **OpenAI-Compatible APIs**: Support for LM Studio, vLLM, LocalAI, and any OpenAI-spec API
 - **Smart fallback**: Automatically switches to available providers if one fails
 - **Per-provider preferences**: Remembers your preferred model for each provider
 
-### 🛠️ Advanced Tool System  
+### 🛠️ Advanced Tool System
+
 - **Built-in tools**: File operations, bash command execution
 - **MCP (Model Context Protocol) servers**: Extend capabilities with any MCP-compatible tool
 - **Dynamic tool loading**: Tools are loaded on-demand from configured MCP servers
 - **Tool approval**: Optional confirmation before executing potentially destructive operations
 
 ### 📝 Custom Command System
+
 - **Markdown-based commands**: Define reusable prompts in `.nanocoder/commands/`
 - **Template variables**: Use `{{parameter}}` syntax for dynamic content
 - **Namespace organization**: Organize commands in folders (e.g., `refactor/dry.md`)
@@ -225,6 +258,7 @@ Generate comprehensive unit tests for {{component}}. Include:
 - **Rich metadata**: YAML frontmatter for descriptions, aliases, and parameters
 
 ### 🎯 Enhanced User Experience
+
 - **Smart autocomplete**: Tab completion for commands with real-time suggestions
 - **Prompt history**: Access and reuse previous prompts with `/history`
 - **Configurable logging**: Silent, normal, or verbose output levels
@@ -233,6 +267,7 @@ Generate comprehensive unit tests for {{component}}. Include:
 - **Real-time indicators**: Shows token usage, timing, and processing status
 
 ### ⚙️ Developer Features
+
 - **TypeScript-first**: Full type safety and IntelliSense support
 - **Extensible architecture**: Plugin-style system for adding new capabilities
 - **Project-specific config**: Different settings per project via `agents.config.json`

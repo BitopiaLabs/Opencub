@@ -5,5 +5,4 @@ export * from "./model.js";
 export * from "./provider.js";
 export * from "./mcp.js";
 export * from "./debug.js";
-export * from "./commands-list.js";
-export * from "./history.js";
+export * from "./custom-commands.js";
