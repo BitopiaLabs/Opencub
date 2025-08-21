@@ -22,8 +22,7 @@ A local-first CLI coding agent that brings the power of agentic coding tools lik
   - [Custom Command System](#-custom-command-system)
   - [Enhanced User Experience](#-enhanced-user-experience)
   - [Developer Features](#️-developer-features)
-- [Contributing](#contributing)
-- [License](#license)
+- [Community](#community)
 
 ## Installation
 
@@ -299,44 +298,25 @@ Generate comprehensive unit tests for {{component}}. Include:
 - **Debug tools**: Built-in debugging commands and verbose logging
 - **Error resilience**: Graceful handling of provider failures and network issues
 
-## Contributing
+## Community
 
-We're a small team building Nanocoder and would love your help! Whether you're interested in:
+We're a small team building Nanocoder and would love your help! Whether you're interested in contributing code, documentation, or just being part of our community, there are several ways to get involved.
+
+**If you want to contribute:**
+
+- Read our detailed [CONTRIBUTING.md](CONTRIBUTING.md) guide for information on development setup, coding standards, and how to submit your changes.
+
+**If you want to be part of our community:**
+
+- Join our Discord server to connect with other users, ask questions, share ideas, and get help: [Join our Discord server](https://discord.gg/ktPDV6rekE)
+
+Whether you're interested in:
 
 - Adding support for new AI providers
 - Improving tool functionality
 - Enhancing the user experience
 - Writing documentation
 - Reporting bugs or suggesting features
+- Just learning about local-first AI coding tools
 
-All contributions are welcome! Please feel free to:
-
-1. Open an issue to discuss your idea
-2. Fork the repository and create a pull request
-3. Join discussions in existing issues
-
-For development setup, see the [For Development](#for-development) section above.
-
-## License
-
-MIT License
-
-Copyright (c) 2025 Mote Software Ltd
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+All contributions and community participation are welcome!

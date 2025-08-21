@@ -103,6 +103,7 @@ Before contributing, please:
 We follow conventional commits:
 
 - `feat:` - New features
+- `mod:` – Smaller modifications to existing features
 - `fix:` - Bug fixes
 - `docs:` - Documentation changes
 - `refactor:` - Code refactoring
@@ -243,6 +244,7 @@ For feature requests:
 ### Getting Help
 
 - **GitHub Issues**: For bugs, features, and questions
+- **Discord Server**: Join our community Discord server for real-time discussions, help, and collaboration: [Join our Discord server](https://discord.gg/ktPDV6rekE)
 
 ### Code of Conduct
 
