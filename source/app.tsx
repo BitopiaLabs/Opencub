@@ -1,6 +1,7 @@
-import {Box} from 'ink';
+import {Box, Text} from 'ink';
 import WelcomeMessage from './components/welcome-message.js';
 import {useEffect, useState} from 'react';
+import React from 'react';
 import {LLMClient, Message, ProviderType} from './types/core.js';
 import {ToolManager} from './tools/tool-manager.js';
 import {CustomCommandLoader} from './custom-commands/loader.js';
@@ -10,13 +11,33 @@ import {
 	loadPreferences,
 	updateLastUsed,
 } from './config/preferences.js';
-import {setToolRegistryGetter} from './message-handler.js';
+import type {UserPreferences, MCPInitResult} from './types/index.js';
+import {
+	setToolRegistryGetter,
+	setToolManagerGetter,
+} from './message-handler.js';
 import {commandRegistry} from './commands.js';
 import {shouldLog} from './config/logging.js';
-import {appConfig} from './config/index.js';
+import {appConfig, colors} from './config/index.js';
 import {createLLMClient} from './client-factory.js';
-import Chat from './components/chat.js';
+import UserInput from './components/user-input.js';
 import Status from './components/status.js';
+import ChatQueue from './components/chat-queue.js';
+import InfoMessage from './components/info-message.js';
+import ErrorMessage from './components/error-message.js';
+import ModelSelector from './components/model-selector.js';
+import ProviderSelector from './components/provider-selector.js';
+import {
+	helpCommand,
+	exitCommand,
+	clearCommand,
+	modelCommand,
+	providerCommand,
+	commandsCommand,
+	debugCommand,
+	mcpCommand,
+} from './commands/index.js';
+import SuccessMessage from './components/success-message.js';
 
 export default function App() {
 	const [client, setClient] = useState<LLMClient | null>(null);
@@ -41,204 +62,318 @@ export default function App() {
 	>(new Map());
 
 	const [startChat, setStartChat] = useState<boolean>(false);
+	const [mcpInitialized, setMcpInitialized] = useState<boolean>(false);
+
+	// Model selection mode
+	const [isModelSelectionMode, setIsModelSelectionMode] =
+		useState<boolean>(false);
+
+	// Provider selection mode
+	const [isProviderSelectionMode, setIsProviderSelectionMode] =
+		useState<boolean>(false);
+
+	// Chat queue for components
+	const [chatComponents, setChatComponents] = useState<React.ReactNode[]>([]);
+
+	// Helper function to add components to the chat queue
+	const addToChatQueue = (component: React.ReactNode) => {
+		setChatComponents(prev => [...prev, component]);
+	};
+
+	// Helper function to enter model selection mode
+	const enterModelSelectionMode = () => {
+		setIsModelSelectionMode(true);
+	};
+
+	// Helper function to enter provider selection mode
+	const enterProviderSelectionMode = () => {
+		setIsProviderSelectionMode(true);
+	};
+
+	// Handle model selection
+	const handleModelSelect = async (selectedModel: string) => {
+		if (client && selectedModel !== currentModel) {
+			client.setModel(selectedModel);
+			setCurrentModel(selectedModel);
+
+			// Update preferences
+			updateLastUsed(currentProvider, selectedModel);
+
+			// Add success message to chat queue
+			addToChatQueue(
+				<SuccessMessage
+					key={`model-changed-${Date.now()}`}
+					message={`Model changed to: ${selectedModel}`}
+				/>,
+			);
+		}
+		setIsModelSelectionMode(false);
+	};
+
+	// Handle model selection cancel
+	const handleModelSelectionCancel = () => {
+		setIsModelSelectionMode(false);
+	};
+
+	// Handle provider selection
+	const handleProviderSelect = async (selectedProvider: ProviderType) => {
+		if (selectedProvider !== currentProvider) {
+			try {
+				// Create new client for the selected provider
+				const {client: newClient, actualProvider} = await createLLMClient(
+					selectedProvider,
+				);
+				setClient(newClient);
+				setCurrentProvider(actualProvider);
+
+				// Set the model from the new client
+				const newModel = newClient.getCurrentModel();
+				setCurrentModel(newModel);
+
+				// Update preferences - use the actualProvider (which is what was successfully created)
+				updateLastUsed(actualProvider, newModel);
+
+				// Add success message to chat queue
+				addToChatQueue(
+					<SuccessMessage
+						key={`provider-changed-${Date.now()}`}
+						message={`Provider changed to: ${actualProvider}, model: ${newModel}`}
+					/>,
+				);
+			} catch (error) {
+				// Add error message if provider change fails
+				addToChatQueue(
+					<InfoMessage
+						key={`provider-error-${Date.now()}`}
+						message={`Failed to change provider: ${error}`}
+					/>,
+				);
+			}
+		}
+		setIsProviderSelectionMode(false);
+	};
+
+	// Handle provider selection cancel
+	const handleProviderSelectionCancel = () => {
+		setIsProviderSelectionMode(false);
+	};
 
 	useEffect(() => {
-		setClient(null);
-		setCurrentModel('');
-		setToolManager(new ToolManager());
-		setCustomCommandLoader(new CustomCommandLoader());
-		setCustomCommandExecutor(new CustomCommandExecutor());
+		const initializeApp = async () => {
+			setClient(null);
+			setCurrentModel('');
 
-		// Load preferences to set initial provider
-		const preferences = loadPreferences();
-		if (preferences.lastProvider) {
-			setCurrentProvider(preferences.lastProvider);
-		}
+			const newToolManager = new ToolManager();
+			const newCustomCommandLoader = new CustomCommandLoader();
+			const newCustomCommandExecutor = new CustomCommandExecutor();
 
-		// Set up the tool registry getter for the message handler
-		setToolRegistryGetter(() => toolManager!.getToolRegistry());
+			setToolManager(newToolManager);
+			setCustomCommandLoader(newCustomCommandLoader);
+			setCustomCommandExecutor(newCustomCommandExecutor);
 
-		commandRegistry.register([
-			// helpCommand,
-			// exitCommand,
-			// clearCommand,
-			// modelCommand,
-			// providerCommand,
-			// mcpCommand,
-			// debugCommand,
-			// commandsCommand,
-		]);
-		start();
-		setStartChat(true);
+			// Load preferences - we'll pass them directly to avoid state timing issues
+			const preferences = loadPreferences();
+
+			// Add info message to chat queue when preferences are loaded
+			addToChatQueue(
+				<InfoMessage
+					key="preferences-loaded"
+					message="User preferences loaded..."
+				/>,
+			);
+
+			// Set up the tool registry getter for the message handler
+			setToolRegistryGetter(() => newToolManager.getToolRegistry());
+
+			// Set up the tool manager getter for commands that need it
+			setToolManagerGetter(() => newToolManager);
+
+			commandRegistry.register([
+				helpCommand,
+				exitCommand,
+				clearCommand,
+				modelCommand,
+				providerCommand,
+				commandsCommand,
+				debugCommand,
+				mcpCommand,
+			]);
+
+			// Now start with the properly initialized objects (excluding MCP)
+			await start(newToolManager, newCustomCommandLoader, preferences);
+			setStartChat(true);
+
+			// Initialize MCP servers after UI is shown
+			await initializeMCPServers(newToolManager);
+		};
+
+		initializeApp();
 	}, []);
 
-	async function start(): Promise<void> {
-		// Initialize client on startup
-		try {
-			const {client, actualProvider} = await createLLMClient(currentProvider);
-			setClient(client);
-			setCurrentProvider(actualProvider);
+	// Handle message submission
+	const handleMessageSubmit = async (message: string) => {
+		if (message.startsWith('/')) {
+			const commandName = message.slice(1).split(' ')[0];
 
-			// Try to use the last used model for this provider
-			const lastUsedModel = getLastUsedModel(currentProvider);
+			// Check for custom command first
+			const customCommand =
+				customCommandCache.get(commandName) ||
+				customCommandLoader?.getCommand(commandName);
 
-			if (lastUsedModel) {
-				const availableModels = await client.getAvailableModels();
-				if (availableModels.includes(lastUsedModel)) {
-					client.setModel(lastUsedModel);
-					setCurrentModel(lastUsedModel);
-				} else {
-					setCurrentModel(client.getCurrentModel());
-				}
+			if (customCommand) {
+				// Execute custom command with any arguments
+				const args = message
+					.slice(commandName.length + 1)
+					.trim()
+					.split(/\s+/)
+					.filter(arg => arg);
+				await customCommandExecutor?.execute(customCommand, args);
 			} else {
-				setCurrentModel(client.getCurrentModel());
-			}
+				// Handle special commands that need app state access
+				if (commandName === 'model') {
+					enterModelSelectionMode();
+					return;
+				}
 
-			// Save the preference
-			updateLastUsed(currentProvider, currentModel);
+				if (commandName === 'provider') {
+					enterProviderSelectionMode();
+					return;
+				}
 
-			// Display current provider and model (always show this)
-			console.log(`Using provider: ${currentProvider}, model: ${currentModel}`);
-
-			// Load custom commands
-			await customCommandLoader?.loadCommands();
-			const customCommands = customCommandLoader?.getAllCommands() || [];
-
-			// Populate command cache for better performance
-			customCommandCache.clear();
-			for (const command of customCommands) {
-				customCommandCache.set(command.name, command);
-				// Also cache aliases for quick lookup
-				if (command.metadata?.aliases) {
-					for (const alias of command.metadata.aliases) {
-						customCommandCache.set(alias, command);
+				// Execute built-in command
+				const result = await commandRegistry.execute(message.slice(1)); // Remove the leading '/'
+				if (result) {
+					// Check if result is JSX (React element)
+					if (React.isValidElement(result)) {
+						addToChatQueue(result);
+					} else if (typeof result === 'string' && result.trim()) {
+						console.log(result);
 					}
 				}
 			}
+		} else {
+			// Regular message - for now just log it
+			console.log('=== COMPLETE MESSAGE ===');
+			console.log('Length:', message.length);
+			console.log('JSON:', JSON.stringify(message));
+			console.log('=========================');
+		}
+	};
 
-			if (customCommands.length > 0 && shouldLog('info')) {
-				console.log(
-					`Loaded ${customCommands.length} custom commands from .nanocoder/commands`,
-				);
-			}
+	// Initialize LLM client and model
+	const initializeClient = async (preferredProvider?: ProviderType) => {
+		const {client, actualProvider} = await createLLMClient(preferredProvider);
+		setClient(client);
+		setCurrentProvider(actualProvider);
 
-			// Initialize MCP servers if configured
-			if (appConfig.mcpServers && appConfig.mcpServers.length > 0) {
-				if (shouldLog('info')) {
-					console.log('Connecting to MCP servers...');
-				}
-				await toolManager?.initializeMCP(appConfig.mcpServers);
+		// Try to use the last used model for this provider
+		const lastUsedModel = getLastUsedModel(actualProvider);
+
+		let finalModel: string;
+		if (lastUsedModel) {
+			const availableModels = await client.getAvailableModels();
+			if (availableModels.includes(lastUsedModel)) {
+				client.setModel(lastUsedModel);
+				finalModel = lastUsedModel;
+			} else {
+				finalModel = client.getCurrentModel();
 			}
-		} catch (error) {
-			console.error(`Failed to initialize ${currentProvider} provider:`, error);
-			process.exit(1);
+		} else {
+			finalModel = client.getCurrentModel();
 		}
 
-		// while (true) {
-		// 	const userInput = await getUserInput();
+		setCurrentModel(finalModel);
 
-		// 	if (userInput === null) {
-		// 		break;
-		// 	}
+		// Save the preference - use actualProvider and the model that was actually set
+		updateLastUsed(actualProvider, finalModel);
+	};
 
-		// 	// Handle commands
-		// 	if (isCommandInput(userInput)) {
-		// 		const parsed = parseInput(userInput);
-		// 		if (parsed.fullCommand) {
-		// 			// Check for custom command first
-		// 			const customCommand =
-		// 				customCommandCache.get(parsed.fullCommand) ||
-		// 				customCommandLoader?.getCommand(parsed.fullCommand);
-		// 			if (customCommand) {
-		// 				// Execute custom command with any arguments
-		// 				const args = userInput
-		// 					.slice(parsed.fullCommand.length + 1)
-		// 					.trim()
-		// 					.split(/\s+/)
-		// 					.filter(arg => arg);
-		// 				await customCommandExecutor?.execute(customCommand, args);
-		// 				continue;
-		// 			}
+	// Load and cache custom commands
+	const loadCustomCommands = async (loader: CustomCommandLoader) => {
+		await loader.loadCommands();
+		const customCommands = loader.getAllCommands() || [];
 
-		// 			// Otherwise try built-in command
-		// 			const result = await commandRegistry.execute(parsed.fullCommand);
-		// 			if (result && result.trim()) {
-		// 				// Check if the result is a prompt to execute
-		// 				if (result.startsWith('EXECUTE_PROMPT:')) {
-		// 					const promptToExecute = result.replace('EXECUTE_PROMPT:', '');
-		// 					// Add the selected prompt as a user message and process it
-		// 					messages.push({role: 'user', content: promptToExecute});
-		// 					setMessages([...messages]);
-		// 					// Continue to process this as a regular user input
-		// 					const response = await processStreamResponse();
+		// Populate command cache for better performance
+		customCommandCache.clear();
+		for (const command of customCommands) {
+			customCommandCache.set(command.name, command);
+			// Also cache aliases for quick lookup
+			if (command.metadata?.aliases) {
+				for (const alias of command.metadata.aliases) {
+					customCommandCache.set(alias, command);
+				}
+			}
+		}
 
-		// 					if (!response) {
-		// 						continue;
-		// 					}
+		if (customCommands.length > 0 && shouldLog('info')) {
+			console.log(
+				`Loaded ${customCommands.length} custom commands from .nanocoder/commands`,
+			);
+		}
+	};
 
-		// 					const {fullContent, toolCalls} = response;
-		// 					messages.push({
-		// 						role: 'assistant',
-		// 						content: fullContent,
-		// 						tool_calls: toolCalls,
-		// 					});
-		// 					setMessages([...messages]);
+	// Initialize MCP servers if configured
+	const initializeMCPServers = async (toolManager: ToolManager) => {
+		if (appConfig.mcpServers && appConfig.mcpServers.length > 0) {
+			// Add connecting message to chat queue
+			addToChatQueue(
+				<InfoMessage
+					key={`mcp-connecting-${Date.now()}`}
+					message={`Connecting to ${appConfig.mcpServers.length} MCP server${
+						appConfig.mcpServers.length > 1 ? 's' : ''
+					}...`}
+				/>,
+			);
 
-		// 					if (fullContent) {
-		// 						displayAssistantMessage(fullContent, currentModel);
-		// 					}
+			// Define progress callback to show live updates
+			const onProgress = (result: MCPInitResult) => {
+				if (result.success) {
+					addToChatQueue(
+						<SuccessMessage
+							key={`mcp-success-${result.serverName}-${Date.now()}`}
+							message={`Connected to MCP server "${result.serverName}" with ${result.toolCount} tools`}
+						/>,
+					);
+				} else {
+					addToChatQueue(
+						<ErrorMessage
+							key={`mcp-error-${result.serverName}-${Date.now()}`}
+							message={`Failed to connect to MCP server "${result.serverName}": ${result.error}`}
+						/>,
+					);
+				}
+			};
 
-		// 					if (toolCalls && toolCalls.length > 0) {
-		// 						const toolResult = await executeToolCalls(toolCalls);
-		// 						messages.push(...toolResult.results);
-		// 						if (toolResult.executed) {
-		// 							await continueConversation();
-		// 						}
-		// 					}
-		// 				} else {
-		// 					console.log(result);
-		// 				}
-		// 			}
-		// 			continue;
-		// 		}
-		// 	}
+			try {
+				await toolManager.initializeMCP(appConfig.mcpServers, onProgress);
+			} catch (error) {
+				addToChatQueue(
+					<ErrorMessage
+						key={`mcp-fatal-error-${Date.now()}`}
+						message={`Failed to initialize MCP servers: ${error}`}
+					/>,
+				);
+			}
+			// Mark MCP as initialized whether successful or not
+			setMcpInitialized(true);
+		} else {
+			// No MCP servers configured, mark as initialized immediately
+			setMcpInitialized(true);
+		}
+	};
 
-		// 	messages.push({role: 'user', content: userInput});
-		// 	setMessages([...messages]);
-
-		// 	const response = await processStreamResponse();
-
-		// 	// If there was an error, just continue to next input (keep user message in history)
-		// 	if (!response) {
-		// 		continue;
-		// 	}
-
-		// 	const {fullContent, toolCalls} = response;
-
-		// 	messages.push({
-		// 		role: 'assistant',
-		// 		content: fullContent,
-		// 		tool_calls: toolCalls,
-		// 	});
-		// 	setMessages([...messages]);
-
-		// 	if (fullContent) {
-		// 		displayAssistantMessage(fullContent, currentModel);
-		// 	}
-
-		// 	if (toolCalls && toolCalls.length > 0) {
-		// 		const result = await executeToolCalls(toolCalls);
-
-		// 		// Add tool results to message history
-		// 		messages.push(...result.results);
-		// 		setMessages([...messages]);
-
-		// 		// If tools were executed, continue the AI conversation
-		// 		if (result.executed) {
-		// 			await continueConversation();
-		// 		}
-		// 	}
-		// }
+	async function start(
+		newToolManager: ToolManager,
+		newCustomCommandLoader: CustomCommandLoader,
+		preferences: UserPreferences,
+	): Promise<void> {
+		try {
+			await initializeClient(preferences.lastProvider);
+			await loadCustomCommands(newCustomCommandLoader);
+		} catch (error) {
+			console.error(`Failed to initialize provider:`, error);
+			process.exit(1);
+		}
 	}
 
 	return (
@@ -247,13 +382,37 @@ export default function App() {
 
 			{startChat && (
 				<>
-					<Status provider={currentProvider} model={currentModel} />
-					<Chat onSubmit={(message) => {
-						console.log('=== COMPLETE MESSAGE ===');
-						console.log('Length:', message.length);
-						console.log('JSON:', JSON.stringify(message));
-						console.log('=========================');
-					}} />
+					<ChatQueue
+						staticComponents={[
+							<Status
+								key="status"
+								provider={currentProvider}
+								model={currentModel}
+							/>,
+						]}
+						queuedComponents={chatComponents}
+					/>
+					{isModelSelectionMode ? (
+						<ModelSelector
+							client={client}
+							currentModel={currentModel}
+							onModelSelect={handleModelSelect}
+							onCancel={handleModelSelectionCancel}
+						/>
+					) : isProviderSelectionMode ? (
+						<ProviderSelector
+							currentProvider={currentProvider}
+							onProviderSelect={handleProviderSelect}
+							onCancel={handleProviderSelectionCancel}
+						/>
+					) : mcpInitialized ? (
+						<UserInput
+							customCommands={Array.from(customCommandCache.keys())}
+							onSubmit={handleMessageSubmit}
+						/>
+					) : (
+						<Text color={colors.secondary}>Loading...</Text>
+					)}
 				</>
 			)}
 		</Box>

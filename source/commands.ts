@@ -1,4 +1,6 @@
 import {Command} from './types/index.js';
+import React from 'react';
+import ErrorMessage from './components/error-message.js';
 
 export class CommandRegistry {
 	private commands = new Map<string, Command>();
@@ -25,21 +27,24 @@ export class CommandRegistry {
 			.sort();
 	}
 
-	async execute(input: string): Promise<void | string> {
+	async execute(input: string): Promise<void | string | React.ReactNode> {
 		const parts = input.trim().split(/\s+/);
 		const commandName = parts[0];
 		if (!commandName) {
-			return 'Invalid command. Type /help for available commands.';
+			return React.createElement(ErrorMessage, {
+				key: `error-${Date.now()}`,
+				message: 'Invalid command. Type /help for available commands.',
+			});
 		}
 
 		const args = parts.slice(1);
 
 		const command = this.get(commandName);
 		if (!command) {
-			console.error(
-				`Unknown command: ${commandName}. Type /help for available commands.`,
-			);
-			return;
+			return React.createElement(ErrorMessage, {
+				key: `error-${Date.now()}`,
+				message: `Unknown command: ${commandName}. Type /help for available commands.`,
+			});
 		}
 
 		return await command.handler(args);
