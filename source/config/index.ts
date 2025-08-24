@@ -2,6 +2,7 @@ import type {AppConfig, Colors} from '../types/index.js';
 import {existsSync, readFileSync} from 'fs';
 import {join, dirname} from 'path';
 import {fileURLToPath} from 'url';
+import {logError} from '../utils/message-queue.js';
 
 // Function to load app configuration from agents.config.json if it exists
 function loadAppConfig(): AppConfig {
@@ -19,7 +20,7 @@ function loadAppConfig(): AppConfig {
 				};
 			}
 		} catch (error) {
-			console.warn('Failed to parse agents.config.json:', error);
+			logError(`Failed to parse agents.config.json: ${error}`);
 		}
 	}
 
@@ -39,11 +40,16 @@ export const colors: Colors = {
 	black: '#1a1b26',
 	primary: '#bb9af7',
 	tool: '#7dcfff',
-	success: '#9ece6a',
+	success: '#7AF778',
 	error: '#f7768e',
 	secondary: '#565f89',
 	blue: '#7aa2f7',
 	orange: '#ff9e64',
+	// Diff highlight colors (Tokyo Night theme)
+	diffAdded: '#1e2f1e',      // Dark green background for added lines
+	diffRemoved: '#2f1e1e',    // Dark red background for removed lines
+	diffAddedText: '#9ece6a',   // Green text for added content
+	diffRemovedText: '#f7768e', // Red text for removed content
 };
 
 // Get the package root directory (where this module is installed)
