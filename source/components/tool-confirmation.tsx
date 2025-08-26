@@ -22,7 +22,9 @@ export default function ToolConfirmation({
 	onConfirm,
 	onCancel,
 }: ToolConfirmationProps) {
-	const [formatterPreview, setFormatterPreview] = React.useState<React.ReactElement | string | null>(null);
+	const [formatterPreview, setFormatterPreview] = React.useState<
+		React.ReactElement | string | null
+	>(null);
 	const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
 
 	// Load formatter preview
@@ -37,7 +39,9 @@ export default function ToolConfirmation({
 				} catch (error) {
 					console.error('Error loading formatter preview:', error);
 					setFormatterPreview(
-						<Text color={colors.error}>Error loading preview: {String(error)}</Text>
+						<Text color={colors.error}>
+							Error loading preview: {String(error)}
+						</Text>,
 					);
 				} finally {
 					setIsLoadingPreview(false);
@@ -64,33 +68,22 @@ export default function ToolConfirmation({
 		onConfirm(item.value);
 	};
 
-
 	return (
-		<TitledBox
-			borderStyle="round"
-			titles={['Tool Execution Confirmation']}
-			titleStyles={titleStyles.pill}
-			width={75}
-			borderColor={colors.tool}
-			paddingX={2}
-			paddingY={1}
-			marginBottom={1}
-		>
+		<Box width={75} marginBottom={1}>
 			<Box flexDirection="column">
-				<Text color={colors.white}>Tool: {toolCall.function.name}</Text>
-
 				{/* Formatter preview */}
 				{isLoadingPreview && (
 					<Box marginBottom={1}>
 						<Text color={colors.secondary}>Loading preview...</Text>
 					</Box>
 				)}
-				
+
 				{formatterPreview && !isLoadingPreview && (
 					<Box marginBottom={1} flexDirection="column">
-						<Text color={colors.secondary}>Preview:</Text>
-						<Box marginTop={1}>
-							{React.isValidElement(formatterPreview) ? formatterPreview : (
+						<Box>
+							{React.isValidElement(formatterPreview) ? (
+								formatterPreview
+							) : (
 								<Text color={colors.white}>{String(formatterPreview)}</Text>
 							)}
 						</Box>
@@ -107,6 +100,6 @@ export default function ToolConfirmation({
 					<Text color={colors.secondary}>Press Escape to cancel</Text>
 				</Box>
 			</Box>
-		</TitledBox>
+		</Box>
 	);
 }
