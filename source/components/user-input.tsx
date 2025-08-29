@@ -49,7 +49,6 @@ function useInputState() {
 }
 
 function useUIState() {
-	const [cursorVisible, setCursorVisible] = useState(true);
 	const [showClearMessage, setShowClearMessage] = useState(false);
 	const [showFullContent, setShowFullContent] = useState(false);
 	const [showCompletions, setShowCompletions] = useState(false);
@@ -63,12 +62,10 @@ function useUIState() {
 	}, []);
 
 	return {
-		cursorVisible,
 		showClearMessage,
 		showFullContent,
 		showCompletions,
 		completions,
-		setCursorVisible,
 		setShowClearMessage,
 		setShowFullContent,
 		setShowCompletions,
@@ -79,7 +76,7 @@ function useUIState() {
 
 export default function UserInput({
 	onSubmit,
-	placeholder = 'Type `/` and then press Tab for command suggestions. Use ↑/↓ for history.',
+	placeholder = 'Type `/` and then press Tab for command suggestions or `!` to execute bash commands. Use ↑/↓ for history.',
 	customCommands = [],
 	disabled = false,
 	onCancel,
@@ -100,12 +97,10 @@ export default function UserInput({
 	} = inputState;
 
 	const {
-		cursorVisible,
 		showClearMessage,
 		showFullContent,
 		showCompletions,
 		completions,
-		setCursorVisible,
 		setShowClearMessage,
 		setShowFullContent,
 		setShowCompletions,
@@ -118,21 +113,8 @@ export default function UserInput({
 		promptHistory.loadHistory();
 	}, []);
 
-	// Blinking cursor effect
-	useEffect(() => {
-		if (!isFocused || disabled) return;
-
-		const interval = setInterval(() => {
-			setCursorVisible(prev => !prev);
-		}, 500);
-
-		return () => clearInterval(interval);
-	}, [isFocused, disabled, setCursorVisible]);
 
 	// Helper functions
-	const resetCursorBlink = useCallback(() => {
-		setCursorVisible(true);
-	}, [setCursorVisible]);
 
 	const getExpandKey = () => 'Ctrl+B';
 
@@ -240,7 +222,6 @@ export default function UserInput({
 			return;
 		}
 
-		resetCursorBlink();
 
 		// Handle special keys
 		if (key.escape) {
@@ -335,7 +316,7 @@ export default function UserInput({
 	};
 
 	return (
-		<Box flexDirection="column" paddingY={1} width={100} marginTop={1}>
+		<Box flexDirection="column" paddingY={1} width="100%" marginTop={1}>
 			<Box flexDirection="column">
 				<Text color={disabled ? colors.secondary : colors.primary} bold>
 					{disabled
@@ -353,7 +334,7 @@ export default function UserInput({
 					}
 				>
 					{'>'} {disabled ? '...' : renderDisplayContent()}
-					{!disabled && input && isFocused && cursorVisible && (
+					{!disabled && input && isFocused && (
 						<Text backgroundColor={colors.white} color={colors.black}>
 							{' '}
 						</Text>
