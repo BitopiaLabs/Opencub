@@ -23,6 +23,7 @@ export class ToolManager {
 		this.toolRegistry = {...staticToolRegistry};
 		this.toolFormatters = {...staticToolFormatters};
 		this.allTools = [...staticTools];
+		
 	}
 
 	async initializeMCP(
@@ -113,4 +114,5 @@ export class ToolManager {
 	getServerTools(serverName: string): any[] {
 		return this.mcpClient?.getServerTools(serverName) || [];
 	}
+
 }

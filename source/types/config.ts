@@ -1,22 +1,23 @@
 import type { ProviderType } from "./core.js";
 
+// LangChain provider configurations
+export interface LangChainProviderConfig {
+  name: string;
+  type: "openai" | "anthropic" | "openai-compatible" | string;
+  models: string[];
+  config: Record<string, any>;
+}
+
 export interface AppConfig {
-  openRouter?: {
-    apiKey: string;
-    models: string[];
-  };
-  openAICompatible?: {
-    baseUrl: string;
-    apiKey?: string;
-    models?: string[];
-  };
-  llamaCpp?: {
+  // Providers array structure - all OpenAI compatible
+  providers?: {
+    name: string;
     baseUrl?: string;
     apiKey?: string;
-    models?: string[];
-    timeout?: number;
-    maxRetries?: number;
-  };
+    models: string[];
+    [key: string]: any; // Allow additional provider-specific config
+  }[];
+  
   mcpServers?: {
     name: string;
     command: string;
@@ -31,6 +32,7 @@ export interface UserPreferences {
   providerModels?: {
     [key in ProviderType]?: string;
   };
+  lastUpdateCheck?: number;
 }
 
 export type LogLevel = "silent" | "normal" | "verbose";

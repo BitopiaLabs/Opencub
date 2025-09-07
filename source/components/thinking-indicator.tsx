@@ -1,17 +1,9 @@
 import {memo, useState, useEffect, useRef} from 'react';
 import {Box, Text} from 'ink';
-import Spinner from 'ink-spinner';
 import {colors} from '../config/index.js';
-
-interface ThinkingIndicatorProps {
-	tokenCount: number;
-	contextSize: number;
-	totalTokensUsed: number;
-	tokensPerSecond?: number;
-}
+import type {ThinkingIndicatorProps} from '../types/index.js';
 
 export default memo(function ThinkingIndicator({
-	tokenCount,
 	contextSize,
 	totalTokensUsed,
 	tokensPerSecond,
@@ -43,18 +35,19 @@ export default memo(function ThinkingIndicator({
 	const displayPercentage = Math.min(percentage, 100);
 
 	// Format tokens per second display
-	const tokensPerSecondDisplay = tokensPerSecond !== undefined && tokensPerSecond > 0 
-		? ` • ${tokensPerSecond} tok/s` 
-		: '';
+	const tokensPerSecondDisplay =
+		tokensPerSecond !== undefined && tokensPerSecond > 0
+			? ` • ${tokensPerSecond} tok/s`
+			: '';
 
 	return (
 		<Box flexDirection="column" marginBottom={1}>
 			<Box flexWrap="wrap">
-				<Spinner type="dots2" />
+				<Text>🔄</Text>
 				<Text color={colors.secondary}> Thinking... </Text>
 				<Text color={colors.white}>
-					{tokenCount} tokens • {elapsedSeconds}s{tokensPerSecondDisplay} • {displayPercentage}%
-					context used
+					{elapsedSeconds}s{tokensPerSecondDisplay}
+					{contextSize > 0 ? ` • ${displayPercentage}% context used` : ''}
 				</Text>
 			</Box>
 			<Box marginTop={1}>
