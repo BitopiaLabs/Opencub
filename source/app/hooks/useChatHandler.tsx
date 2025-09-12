@@ -2,6 +2,7 @@ import {LLMClient, Message, ToolCall, ToolResult} from '../../types/core.js';
 import {ToolManager} from '../../tools/tool-manager.js';
 import {toolDefinitions} from '../../tools/index.js';
 import {readFileSync, existsSync} from 'fs';
+import {join} from 'path';
 import {promptPath} from '../../config/index.js';
 import {
 	parseToolCallsFromContent,
@@ -254,7 +255,7 @@ export function useChatHandler({
 
 			// Update thinking stats in real-time
 			if (!chunk.done) {
-				const systemTokens = Math.ceil(300 / 4);
+				const systemTokens = Math.ceil(systemMessage.content.length / 4); // Use actual system prompt length
 				const conversationTokens = getMessageTokens 
 					? messages.reduce((total, msg) => total + getMessageTokens(msg), 0)
 					: messages.reduce((total, msg) => total + Math.ceil((msg.content?.length || 0) / 4), 0);
@@ -435,7 +436,7 @@ export function useChatHandler({
 
 				// Update thinking stats in real-time (similar to initial response)
 				if (!chunk.done) {
-					const systemTokens = Math.ceil(300 / 4);
+					const systemTokens = Math.ceil(systemMessage.content.length / 4); // Use actual system prompt length
 					const conversationTokens = getMessageTokens 
 						? messages.reduce((total, msg) => total + getMessageTokens(msg), 0)
 						: messages.reduce((total, msg) => total + Math.ceil((msg.content?.length || 0) / 4), 0);
@@ -614,16 +615,11 @@ export function useChatHandler({
 		setIsThinking(true);
 
 		// Initialize per-message stats with existing conversation context
-		const systemTokens = Math.ceil(300 / 4); // Estimate system prompt tokens
+// const systemTokens = Math.ceil(systemPrompt.length / 4); // Comment out, will calculate later
 		const existingConversationTokens = getMessageTokens 
 			? updatedMessages.reduce((total, msg) => total + getMessageTokens(msg), 0)
 			: updatedMessages.reduce((total, msg) => total + Math.ceil((msg.content?.length || 0) / 4), 0);
 		
-		setThinkingStats({
-			tokenCount: 0,
-			contextSize: client.getContextSize(),
-			totalTokensUsed: systemTokens + existingConversationTokens,
-		});
 
 		try {
 			// Load system prompt from prompt.md file
@@ -638,6 +634,19 @@ export function useChatHandler({
 				}
 			}
 
+			// Check for AGENTS.md in current working directory and append it
+			const agentsPath = join(process.cwd(), 'AGENTS.md');
+			if (existsSync(agentsPath)) {
+				try {
+					const agentsContent = readFileSync(agentsPath, 'utf-8');
+					systemPrompt += '\n\n## Project Context\n\nThe following information about this project should guide your responses:\n\n' + agentsContent;
+				} catch (error) {
+					console.warn(
+						`Failed to load AGENTS.md from ${agentsPath}: ${error}`,
+					);
+				}
+			}
+
 			// Create stream request
 			const systemMessage: Message = {
 				role: 'system',
@@ -645,6 +654,15 @@ export function useChatHandler({
 			};
 
 			// Use the new conversation loop
+			// Initialize per-message stats with actual system prompt tokens
+			const systemTokens = Math.ceil(systemMessage.content.length / 4);
+			setThinkingStats({
+				tokenCount: 0,
+				contextSize: client.getContextSize(),
+				totalTokensUsed: systemTokens + existingConversationTokens,
+			});
+
+		// Use the new conversation loop
 			await processAssistantResponseWithTokenTracking(
 				systemMessage,
 				updatedMessages,
