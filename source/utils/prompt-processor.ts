@@ -1,12 +1,16 @@
 import {readFileSync, existsSync} from 'fs';
-import {join} from 'path';
+import {join, dirname} from 'path';
 import {promptPath} from '../config/index.js';
 import type {Tool} from '../types/index.js';
+import {XMLToolCallParser} from '../tools/xml-parser.js';
 
 /**
  * Process the main prompt template by injecting dynamic tool documentation
  */
-export function processPromptTemplate(tools: Tool[]): string {
+export function processPromptTemplate(
+	tools: Tool[],
+	isNonToolCallingModel = false,
+): string {
 	let systemPrompt = 'You are a helpful AI assistant.'; // fallback
 
 	// Load base prompt
@@ -19,7 +23,16 @@ export function processPromptTemplate(tools: Tool[]): string {
 	}
 
 	// Inject dynamic tool documentation
-	systemPrompt = injectToolDocumentation(systemPrompt, tools);
+	systemPrompt = injectToolDocumentation(
+		systemPrompt,
+		tools,
+		isNonToolCallingModel,
+	);
+
+	// Add model-specific enhancements for non-tool-calling models
+	if (isNonToolCallingModel) {
+		systemPrompt = addNonToolCallingModelEnhancements(systemPrompt);
+	}
 
 	// Check for AGENTS.md in current working directory and append it
 	const agentsPath = join(process.cwd(), 'AGENTS.md');
@@ -38,7 +51,11 @@ export function processPromptTemplate(tools: Tool[]): string {
 /**
  * Inject dynamic tool documentation into the prompt template
  */
-function injectToolDocumentation(prompt: string, tools: Tool[]): string {
+function injectToolDocumentation(
+	prompt: string,
+	tools: Tool[],
+	isNonToolCallingModel = false,
+): string {
 	if (tools.length === 0) {
 		return prompt.replace(
 			/<!-- DYNAMIC_TOOLS_SECTION_START -->[\s\S]*?<!-- DYNAMIC_TOOLS_SECTION_END -->/,
@@ -47,7 +64,7 @@ function injectToolDocumentation(prompt: string, tools: Tool[]): string {
 	}
 
 	// Generate tool documentation
-	const toolDocs = generateToolDocumentation(tools);
+	const toolDocs = generateToolDocumentation(tools, isNonToolCallingModel);
 
 	// Replace the dynamic section
 	return prompt.replace(
@@ -59,7 +76,10 @@ function injectToolDocumentation(prompt: string, tools: Tool[]): string {
 /**
  * Generate formatted documentation for all available tools
  */
-function generateToolDocumentation(tools: Tool[]): string {
+function generateToolDocumentation(
+	tools: Tool[],
+	isNonToolCallingModel = false,
+): string {
 	const sections = ['## Available Tools\n'];
 
 	// Group tools by category (built-in vs MCP)
@@ -80,11 +100,28 @@ function generateToolDocumentation(tools: Tool[]): string {
 		});
 	}
 
-	sections.push('\n### Tool Usage Guidelines\n');
-	sections.push('- Use tools to gather information and perform actions');
-	sections.push('- Always continue your task after tool execution');
-	sections.push("- Don't repeat the same tool call unnecessarily");
-	sections.push('- Use tool results to inform your next actions');
+	// Add concise XML format examples for non-tool-calling models
+	if (isNonToolCallingModel && tools.length > 0) {
+		sections.push('\n### XML Format Examples\n');
+		
+		// Show a few key tool examples in XML format
+		const exampleTools = tools.slice(0, 3); // Just show first 3 tools as examples
+		exampleTools.forEach(tool => {
+			const params = tool.function.parameters?.properties || {};
+			const paramNames = Object.keys(params).slice(0, 2); // Show max 2 params per example
+			
+			sections.push(`**${tool.function.name}**:`);
+			sections.push('```xml');
+			sections.push(`<${tool.function.name}>`);
+			paramNames.forEach(paramName => {
+				sections.push(`<${paramName}>value</${paramName}>`);
+			});
+			sections.push(`</${tool.function.name}>`);
+			sections.push('```\n');
+		});
+	}
+
+	// Usage guidelines are handled by the enhancement file
 
 	return sections.join('\n');
 }
@@ -114,4 +151,31 @@ function formatToolDocumentation(tool: Tool): string {
 	}
 
 	return doc;
+}
+
+/**
+ * Add specialized instructions for non-tool-calling models
+ */
+function addNonToolCallingModelEnhancements(systemPrompt: string): string {
+	const enhancementsPath = join(
+		dirname(promptPath),
+		'app',
+		'prompts',
+		'non-tool-calling-enhancement.md',
+	);
+
+	if (existsSync(enhancementsPath)) {
+		try {
+			const enhancements = readFileSync(enhancementsPath, 'utf-8');
+			return systemPrompt + '\n\n' + enhancements;
+		} catch (error) {
+			console.warn(`Failed to load non-tool-calling enhancements: ${error}`);
+		}
+	}
+
+	// Simple fallback if file doesn't exist
+	return (
+		systemPrompt +
+		'\n\n**Note**: This model requires XML format for tool calls.'
+	);
 }
