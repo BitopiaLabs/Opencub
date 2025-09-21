@@ -348,15 +348,8 @@ export function useChatHandler({
 		};
 		setMessages([...messages, assistantMsg]);
 
-		// Update conversation state with assistant message and detect model type
+		// Update conversation state with assistant message
 		conversationStateManager.current.updateAssistantMessage(assistantMsg);
-		
-		// Update model type detection based on response
-		const state = conversationStateManager.current.getState();
-		if (state && state.isNonToolCallingModel !== !assistantMsg.tool_calls) {
-			// Update the state with correct model type detection
-			state.isNonToolCallingModel = !assistantMsg.tool_calls;
-		}
 
 		// Handle tool calls if present - this continues the loop
 		if (validToolCalls && validToolCalls.length > 0) {
@@ -388,7 +381,10 @@ export function useChatHandler({
 						directResults.push(result);
 
 						// Update conversation state with tool execution
-						conversationStateManager.current.updateAfterToolExecution(toolCall, result.content);
+						conversationStateManager.current.updateAfterToolExecution(
+							toolCall,
+							result.content,
+						);
 
 						// Display the tool result immediately
 						await displayToolResult(toolCall, result);
@@ -405,7 +401,10 @@ export function useChatHandler({
 						directResults.push(errorResult);
 
 						// Update conversation state with error
-						conversationStateManager.current.updateAfterToolExecution(toolCall, errorResult.content);
+						conversationStateManager.current.updateAfterToolExecution(
+							toolCall,
+							errorResult.content,
+						);
 
 						// Display the error result
 						await displayToolResult(toolCall, errorResult);
@@ -417,9 +416,13 @@ export function useChatHandler({
 					// Get task context for better continuation
 					const taskContext = getTaskContext(messages);
 					const conversationState = conversationStateManager.current.getState();
-					
+
 					// Format tool results appropriately for the model type
-					const toolMessages = formatToolResultsForModel(directResults, assistantMsg, taskContext, conversationState);
+					const toolMessages = formatToolResultsForModel(
+						directResults,
+						taskContext,
+						conversationState,
+					);
 
 					const updatedMessagesWithTools = [
 						...messages,
@@ -557,15 +560,8 @@ export function useChatHandler({
 			};
 			setMessages([...messages, assistantMsg]);
 
-			// Update conversation state with assistant message and detect model type
+			// Update conversation state with assistant message
 			conversationStateManager.current.updateAssistantMessage(assistantMsg);
-			
-			// Update model type detection based on response
-			const state = conversationStateManager.current.getState();
-			if (state && state.isNonToolCallingModel !== !assistantMsg.tool_calls) {
-				// Update the state with correct model type detection
-				state.isNonToolCallingModel = !assistantMsg.tool_calls;
-			}
 
 			// Handle tool calls if present - this continues the loop
 			if (validToolCalls && validToolCalls.length > 0) {
@@ -596,7 +592,10 @@ export function useChatHandler({
 							directResults.push(result);
 
 							// Update conversation state with tool execution
-							conversationStateManager.current.updateAfterToolExecution(toolCall, result.content);
+							conversationStateManager.current.updateAfterToolExecution(
+								toolCall,
+								result.content,
+							);
 
 							// Display the tool result immediately
 							await displayToolResult(toolCall, result);
@@ -613,7 +612,10 @@ export function useChatHandler({
 							directResults.push(errorResult);
 
 							// Update conversation state with error
-							conversationStateManager.current.updateAfterToolExecution(toolCall, errorResult.content);
+							conversationStateManager.current.updateAfterToolExecution(
+								toolCall,
+								errorResult.content,
+							);
 
 							// Display the error result
 							await displayToolResult(toolCall, errorResult);
@@ -624,10 +626,15 @@ export function useChatHandler({
 					if (directResults.length > 0) {
 						// Get task context for better continuation
 						const taskContext = getTaskContext(messages);
-						const conversationState = conversationStateManager.current.getState();
-						
+						const conversationState =
+							conversationStateManager.current.getState();
+
 						// Format tool results appropriately for the model type
-						const toolMessages = formatToolResultsForModel(directResults, assistantMsg, taskContext, conversationState);
+						const toolMessages = formatToolResultsForModel(
+							directResults,
+							taskContext,
+							conversationState,
+						);
 
 						const updatedMessagesWithTools = [
 							...messages,
@@ -701,9 +708,7 @@ export function useChatHandler({
 
 		// Initialize conversation state if this is a new conversation
 		if (messages.length === 0) {
-			// Detect if this is a non-tool-calling model - we'll determine this after the first response
-			// For now, assume it might be non-tool-calling and we'll update later
-			conversationStateManager.current.initializeState(message, true);
+			conversationStateManager.current.initializeState(message);
 		}
 
 		// Create abort controller for cancellation
@@ -725,9 +730,7 @@ export function useChatHandler({
 		try {
 			// Load and process system prompt with dynamic tool documentation
 			const availableTools = toolManager ? toolManager.getAllTools() : [];
-			const conversationState = conversationStateManager.current.getState();
-			const isNonToolCallingModel = conversationState?.isNonToolCallingModel ?? true; // Default to enhanced prompts
-			const systemPrompt = processPromptTemplate(availableTools, isNonToolCallingModel);
+			const systemPrompt = processPromptTemplate(availableTools);
 
 			// Create stream request
 			const systemMessage: Message = {

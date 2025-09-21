@@ -1,4 +1,4 @@
-import type { ToolCall } from '../types/index.js';
+import type {ToolCall} from '../types/index.js';
 
 export interface ParsedToolCall {
 	toolName: string;
@@ -20,14 +20,22 @@ export class XMLToolCallParser {
 		const toolCalls: ParsedToolCall[] = [];
 		let match;
 
+		// Handle content that might be wrapped in markdown code blocks
+		let processedContent = content;
+		const codeBlockMatch = content.match(/```(?:\w+)?\s*\n?([\s\S]*?)\n?```/);
+		if (codeBlockMatch && codeBlockMatch[1]) {
+			processedContent = codeBlockMatch[1].trim();
+		}
+
 		// Find all tool call blocks
-		while ((match = this.TOOL_CALL_REGEX.exec(content)) !== null) {
+		this.TOOL_CALL_REGEX.lastIndex = 0; // Reset regex state
+		while ((match = this.TOOL_CALL_REGEX.exec(processedContent)) !== null) {
 			const [, toolName, innerXml] = match;
 			const parameters = this.parseParameters(innerXml);
-			
+
 			toolCalls.push({
 				toolName,
-				parameters
+				parameters,
 			});
 		}
 
@@ -46,7 +54,7 @@ export class XMLToolCallParser {
 
 		while ((match = this.PARAMETER_REGEX.exec(innerXml)) !== null) {
 			const [, paramName, paramValue] = match;
-			
+
 			// Try to parse as JSON for complex objects/arrays
 			try {
 				parameters[paramName] = JSON.parse(paramValue);
@@ -67,8 +75,8 @@ export class XMLToolCallParser {
 			id: `xml_call_${index}`,
 			function: {
 				name: call.toolName,
-				arguments: call.parameters
-			}
+				arguments: call.parameters,
+			},
 		}));
 	}
 
@@ -76,54 +84,52 @@ export class XMLToolCallParser {
 	 * Removes XML tool call blocks from content, leaving only the text
 	 */
 	static removeToolCallsFromContent(content: string): string {
-		return content.replace(this.TOOL_CALL_REGEX, '').trim();
+		let cleanedContent = content;
+
+		// Remove all markdown code blocks that contain XML tool calls (using global flag)
+		cleanedContent = cleanedContent.replace(
+			/```(?:\w+)?\s*\n?([\s\S]*?)\n?```/g,
+			(match, blockContent) => {
+				if (blockContent) {
+					// Reset regex and check if this block contains XML tool calls
+					this.TOOL_CALL_REGEX.lastIndex = 0;
+					if (this.TOOL_CALL_REGEX.test(blockContent)) {
+						// This code block contains XML tool calls, remove it entirely
+						return '';
+					}
+				}
+				// Keep blocks that don't contain XML tool calls
+				return match;
+			},
+		);
+
+		// Remove XML tool calls that aren't in code blocks
+		this.TOOL_CALL_REGEX.lastIndex = 0;
+		cleanedContent = cleanedContent.replace(this.TOOL_CALL_REGEX, '').trim();
+
+		// Remove any <tool_call> wrapper tags that may be left behind
+		cleanedContent = cleanedContent.replace(/<\/?tool_call>/g, '').trim();
+
+		// Clean up extra whitespace and empty lines
+		cleanedContent = cleanedContent.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+
+		return cleanedContent;
 	}
 
 	/**
 	 * Checks if content contains XML-formatted tool calls
 	 */
 	static hasToolCalls(content: string): boolean {
+		// Handle content that might be wrapped in markdown code blocks
+		let processedContent = content;
+		const codeBlockMatch = content.match(/```(?:\w+)?\s*\n?([\s\S]*?)\n?```/);
+		if (codeBlockMatch && codeBlockMatch[1]) {
+			processedContent = codeBlockMatch[1].trim();
+		}
+
 		this.TOOL_CALL_REGEX.lastIndex = 0;
-		return this.TOOL_CALL_REGEX.test(content);
-	}
+		const result = this.TOOL_CALL_REGEX.test(processedContent);
 
-	/**
-	 * Generates XML format instructions for tool calls
-	 */
-	static generateToolCallInstructions(availableTools: Array<{name: string; description: string; parameters: any}>): string {
-		const toolDescriptions = availableTools.map(tool => {
-			const params = tool.parameters?.properties || {};
-			const required = tool.parameters?.required || [];
-			
-			const paramDescriptions = Object.entries(params).map(([name, schema]: [string, any]) => {
-				const isRequired = required.includes(name);
-				const type = schema.type || 'string';
-				const description = schema.description || '';
-				return `  <${name}>${isRequired ? '[REQUIRED]' : '[OPTIONAL]'} ${type} - ${description}</${name}>`;
-			}).join('\n');
-
-			return `<${tool.name}>\n${paramDescriptions}\n</${tool.name}>`;
-		}).join('\n\n');
-
-		return `When you need to use tools, format your tool calls using XML tags like this:
-
-Available tools:
-${toolDescriptions}
-
-Example usage:
-<read_file>
-<file_path>/path/to/file.txt</file_path>
-</read_file>
-
-<bash_execute>
-<command>ls -la</command>
-</bash_execute>
-
-Important:
-- Use only one tool at a time per message
-- Wait for the tool result before proceeding
-- Parameter values should be plain text (not JSON unless specifically required)
-- Close all XML tags properly
-- Tool names and parameter names are case-sensitive`;
+		return result;
 	}
 }
