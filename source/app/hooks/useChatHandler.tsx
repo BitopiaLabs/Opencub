@@ -6,7 +6,6 @@ import {
 	parseToolCallsFromContent,
 	cleanContentFromToolCalls,
 } from '../../tool-calling/index.js';
-import {formatToolResultsForModel} from '../utils/toolResultFormatter.js';
 import {ConversationStateManager} from '../utils/conversationState.js';
 import UserMessage from '../../components/user-message.js';
 import AssistantMessage from '../../components/assistant-message.js';
@@ -227,32 +226,6 @@ export function useChatHandler({
 		}
 	};
 
-	// Extract task context from user messages for continuation prompts
-	const getTaskContext = (messages: Message[]): string | undefined => {
-		// Find the most recent user message that looks like a task request
-		for (let i = messages.length - 1; i >= 0; i--) {
-			const message = messages[i];
-			if (
-				message.role === 'user' &&
-				message.content &&
-				message.content.trim().length > 10
-			) {
-				// Skip very short messages or common responses
-				const content = message.content.toLowerCase();
-				if (
-					!content.includes('ok') &&
-					!content.includes('yes') &&
-					!content.includes('no') &&
-					!content.includes('thanks') &&
-					content.length > 20
-				) {
-					return message.content;
-				}
-			}
-		}
-		return undefined;
-	};
-
 	// Process assistant response with token tracking (for initial user messages)
 	const processAssistantResponseWithTokenTracking = async (
 		systemMessage: Message,
@@ -338,13 +311,10 @@ export function useChatHandler({
 		const validToolCalls = filterValidToolCalls(allToolCalls);
 
 		// Add assistant message to conversation history
-		// Note: We don't include tool_calls in the conversation history for content-parsed tools
-		// to prevent the model from seeing its own tool call attempts and repeating them
 		const assistantMsg: Message = {
 			role: 'assistant',
 			content: cleanedContent,
-			// Only include tool_calls if they came from native tool calling (toolCalls from LangGraph)
-			tool_calls: toolCalls && toolCalls.length > 0 ? toolCalls : undefined,
+			tool_calls: validToolCalls.length > 0 ? validToolCalls : undefined,
 		};
 		setMessages([...messages, assistantMsg]);
 
@@ -353,11 +323,59 @@ export function useChatHandler({
 
 		// Handle tool calls if present - this continues the loop
 		if (validToolCalls && validToolCalls.length > 0) {
+			// First, validate tools and separate valid from unknown
+			const knownToolCalls: ToolCall[] = [];
+			const unknownToolErrors: ToolResult[] = [];
+
+			for (const toolCall of validToolCalls) {
+				if (!toolManager?.hasTool(toolCall.function.name)) {
+					// Create error result for unknown tool
+					const errorResult: ToolResult = {
+						tool_call_id: toolCall.id,
+						role: 'tool' as const,
+						name: toolCall.function.name,
+						content: `Error: Unknown tool: ${toolCall.function.name}`,
+					};
+					unknownToolErrors.push(errorResult);
+
+					// Display the error result
+					await displayToolResult(toolCall, errorResult);
+				} else {
+					// Tool exists, add to valid list
+					knownToolCalls.push(toolCall);
+				}
+			}
+
+			// If there were unknown tools, continue conversation with all errors
+			if (unknownToolErrors.length > 0) {
+				const toolMessages = unknownToolErrors.map(result => ({
+					role: 'tool' as const,
+					content: result.content || '',
+					tool_call_id: result.tool_call_id,
+					name: result.name,
+				}));
+
+				const updatedMessagesWithError = [
+					...messages,
+					assistantMsg,
+					...toolMessages,
+				];
+
+				setMessages(updatedMessagesWithError);
+
+				// Continue the main conversation loop with error messages as context
+				await processAssistantResponse(systemMessage, updatedMessagesWithError);
+				return;
+			}
+
+			// If we get here, all tools are valid - proceed with normal flow
+			// Use knownToolCalls for the rest of the processing
+
 			// Separate tools that need confirmation vs those that don't
 			const toolsNeedingConfirmation: ToolCall[] = [];
 			const toolsToExecuteDirectly: ToolCall[] = [];
 
-			for (const toolCall of validToolCalls) {
+			for (const toolCall of knownToolCalls) {
 				const toolDef = toolDefinitions.find(
 					def => def.config.function.name === toolCall.function.name,
 				);
@@ -377,6 +395,11 @@ export function useChatHandler({
 
 				for (const toolCall of toolsToExecuteDirectly) {
 					try {
+						// Double-check tool exists before execution (safety net)
+						if (!toolManager?.hasTool(toolCall.function.name)) {
+							throw new Error(`Unknown tool: ${toolCall.function.name}`);
+						}
+
 						const result = await processToolUse(toolCall);
 						directResults.push(result);
 
@@ -413,16 +436,13 @@ export function useChatHandler({
 
 				// If we have results, continue the conversation with them
 				if (directResults.length > 0) {
-					// Get task context for better continuation
-					const taskContext = getTaskContext(messages);
-					const conversationState = conversationStateManager.current.getState();
-
-					// Format tool results appropriately for the model type
-					const toolMessages = formatToolResultsForModel(
-						directResults,
-						taskContext,
-						conversationState,
-					);
+					// Format tool results as standard tool messages
+					const toolMessages = directResults.map(result => ({
+						role: 'tool' as const,
+						content: result.content || '',
+						tool_call_id: result.tool_call_id,
+						name: result.name,
+					}));
 
 					const updatedMessagesWithTools = [
 						...messages,
@@ -624,17 +644,13 @@ export function useChatHandler({
 
 					// If we have results, continue the conversation with them
 					if (directResults.length > 0) {
-						// Get task context for better continuation
-						const taskContext = getTaskContext(messages);
-						const conversationState =
-							conversationStateManager.current.getState();
-
-						// Format tool results appropriately for the model type
-						const toolMessages = formatToolResultsForModel(
-							directResults,
-							taskContext,
-							conversationState,
-						);
+						// Format tool results as standard tool messages
+						const toolMessages = directResults.map(result => ({
+							role: 'tool' as const,
+							content: result.content || '',
+							tool_call_id: result.tool_call_id,
+							name: result.name,
+						}));
 
 						const updatedMessagesWithTools = [
 							...messages,

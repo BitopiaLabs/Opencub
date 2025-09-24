@@ -1,6 +1,5 @@
 import {Message, LLMClient, ProviderType} from '../../types/core.js';
 import {processToolUse, getToolManager} from '../../message-handler.js';
-import {formatToolResultsForModel} from '../utils/toolResultFormatter.js';
 import {ConversationContext} from './useAppState.js';
 import InfoMessage from '../../components/info-message.js';
 import ErrorMessage from '../../components/error-message.js';
@@ -113,31 +112,6 @@ export function useToolHandler({
 		}
 	};
 
-	// Extract task context from user messages for continuation prompts
-	const getTaskContext = (messages: Message[]): string | undefined => {
-		// Find the most recent user message that looks like a task request
-		for (let i = messages.length - 1; i >= 0; i--) {
-			const message = messages[i];
-			if (
-				message.role === 'user' &&
-				message.content &&
-				message.content.trim().length > 10
-			) {
-				// Skip very short messages or common responses
-				const content = message.content.toLowerCase();
-				if (
-					!content.includes('ok') &&
-					!content.includes('yes') &&
-					!content.includes('no') &&
-					!content.includes('thanks') &&
-					content.length > 20
-				) {
-					return message.content;
-				}
-			}
-		}
-		return undefined;
-	};
 
 	// Continue conversation with tool results - maintains the proper loop
 	const continueConversationWithToolResults = async (toolResults?: any[]) => {
@@ -152,23 +126,20 @@ export function useToolHandler({
 		const {updatedMessages, assistantMsg, systemMessage} =
 			currentConversationContext;
 
-		// Get task context for better continuation
-		const taskContext = getTaskContext(updatedMessages);
-
-		// Format tool results appropriately for the model type (no conversation state available here)
-		const toolMessages = formatToolResultsForModel(resultsToUse, taskContext);
+		// Format tool results as standard tool messages
+		const toolMessages = resultsToUse.map(result => ({
+			role: 'tool' as const,
+			content: result.content || '',
+			tool_call_id: result.tool_call_id,
+			name: result.name,
+		}));
 
 		// Update conversation history with tool results
-		// Note: assistantMsg is already included in updatedMessages, just add tool results
-		// Important: Remove tool_calls from assistantMsg to prevent model from seeing and repeating them
-		const cleanedAssistantMsg: Message = {
-			...assistantMsg,
-			tool_calls: undefined, // Remove tool_calls to prevent repetition
-		};
-		
+		// The assistantMsg is NOT included in updatedMessages (updatedMessages is the state before adding assistantMsg)
+		// We need to add both the assistant message and the tool results
 		const updatedMessagesWithTools = [
 			...updatedMessages,
-			cleanedAssistantMsg,
+			assistantMsg, // Add the assistant message with tool_calls intact for proper tool_call_id matching
 			...toolMessages,
 		];
 		setMessages(updatedMessagesWithTools);
@@ -208,6 +179,22 @@ export function useToolHandler({
 	// Execute the current tool asynchronously
 	const executeCurrentTool = async () => {
 		const currentTool = pendingToolCalls[currentToolIndex];
+
+		// Check if this is an MCP tool and show appropriate messaging
+		const toolManager = getToolManager();
+		if (toolManager) {
+			const mcpInfo = toolManager.getMCPToolInfo(currentTool.function.name);
+			if (mcpInfo.isMCPTool) {
+				addToChatQueue(
+					<InfoMessage
+						key={`mcp-tool-executing-${componentKeyCounter}-${Date.now()}`}
+						message={`Executing MCP tool "${currentTool.function.name}" from server "${mcpInfo.serverName}"`}
+						hideBox={true}
+					/>,
+				);
+			}
+		}
+
 		try {
 			const result = await processToolUse(currentTool);
 

@@ -50,7 +50,7 @@ Firstly, we would love for you to be involved. You can get started contributing 
 Install globally and use anywhere:
 
 ```bash
-npm install -g @motesoftware/nanocoder
+npm install -g @nanocollective/nanocoder
 ```
 
 Then run in any directory:
@@ -247,6 +247,9 @@ Nanocoder automatically saves your preferences to remember your choices across s
 - `/debug` - Toggle logging levels (silent/normal/verbose)
 - `/custom-commands` - List all custom commands
 - `/exit` - Exit the application
+- `/export` - Export current session to markdown file
+- `/theme` - Select a theme for the Nanocoder CLI
+- `/update` - Update Nanocoder to the latest version
 - `!command` - Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM)
 
 #### Custom Commands
@@ -324,6 +327,7 @@ Generate comprehensive unit tests for {{component}}. Include:
 - **Colorized output**: Syntax highlighting and structured display
 - **Session persistence**: Maintains context and preferences across sessions
 - **Real-time indicators**: Shows token usage, timing, and processing status
+- **First-time directory security disclaimer**: Prompts on first run and stores a per-project trust decision to prevent accidental exposure of local code or secrets.
 
 ### ⚙️ Developer Features
 

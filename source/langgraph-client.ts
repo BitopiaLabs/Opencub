@@ -15,7 +15,6 @@ import type {
 import {logError} from './utils/message-queue.js';
 import {XMLToolCallParser} from './tool-calling/xml-parser.js';
 
-
 /**
  * Converts our Message format to LangChain BaseMessage format
  */
@@ -90,9 +89,7 @@ export class LangGraphClient implements LLMClient {
 		const client = new LangGraphClient(providerConfig);
 
 		// Fetch OpenRouter model info if this is OpenRouter
-		if (providerConfig.name === 'openrouter') {
-			await client.fetchOpenRouterModelInfo();
-		}
+		await client.fetchModelInfo();
 
 		return client;
 	}
@@ -100,16 +97,17 @@ export class LangGraphClient implements LLMClient {
 	private createChatModel(): ChatOpenAI {
 		const {config} = this.providerConfig;
 
-		return new ChatOpenAI({
+		const chatConfig = {
 			modelName: this.currentModel,
 			openAIApiKey: config.apiKey || 'dummy-key',
 			configuration: {
 				baseURL: config.baseURL,
 			},
 			...config,
-		});
-	}
+		};
 
+		return new ChatOpenAI(chatConfig);
+	}
 
 	setModel(model: string): void {
 		this.currentModel = model;
@@ -150,19 +148,54 @@ export class LangGraphClient implements LLMClient {
 	async chat(messages: Message[], tools: Tool[]): Promise<any> {
 		try {
 			const langchainMessages = messages.map(convertToLangChainMessage);
+			let result: AIMessage;
 
-			// Always use base model - no native tool calling detection
-			const result = (await this.chatModel.invoke(langchainMessages)) as AIMessage;
+			// Try to bind tools if available - fallback to XML parsing
+			if (tools.length > 0) {
+				try {
+					// Convert our tools to LangChain format
+					const langchainTools = tools.map(tool => ({
+						type: 'function' as const,
+						function: {
+							name: tool.function.name,
+							description: tool.function.description,
+							parameters: tool.function.parameters,
+						},
+					}));
+
+					// Try binding tools to the model
+					const modelWithTools = this.chatModel.bindTools(langchainTools);
+					result = (await modelWithTools.invoke(
+						langchainMessages,
+					)) as AIMessage;
+				} catch (bindError) {
+					// Tool binding failed, fall back to base model
+					result = (await this.chatModel.invoke(
+						langchainMessages,
+					)) as AIMessage;
+				}
+			} else {
+				// No tools, use base model
+				result = (await this.chatModel.invoke(langchainMessages)) as AIMessage;
+			}
+
 			let convertedMessage = convertFromLangChainMessage(result);
 
-			// Always try to parse XML tool calls from content
-			if (tools.length > 0 && convertedMessage.content) {
+			// If no native tool calls but tools are available, try XML parsing
+			if (
+				tools.length > 0 &&
+				(!convertedMessage.tool_calls ||
+					convertedMessage.tool_calls.length === 0) &&
+				convertedMessage.content
+			) {
 				const content = convertedMessage.content as string;
 
 				if (XMLToolCallParser.hasToolCalls(content)) {
 					const parsedToolCalls = XMLToolCallParser.parseToolCalls(content);
-					const toolCalls = XMLToolCallParser.convertToToolCalls(parsedToolCalls);
-					const cleanedContent = XMLToolCallParser.removeToolCallsFromContent(content);
+					const toolCalls =
+						XMLToolCallParser.convertToToolCalls(parsedToolCalls);
+					const cleanedContent =
+						XMLToolCallParser.removeToolCallsFromContent(content);
 
 					convertedMessage = {
 						...convertedMessage,
@@ -238,12 +271,8 @@ export class LangGraphClient implements LLMClient {
 		// No internal state to clear in unified approach
 	}
 
-
-	private async fetchOpenRouterModelInfo(): Promise<void> {
-		if (
-			this.providerConfig.name !== 'openrouter' ||
-			!this.providerConfig.config.apiKey
-		) {
+	private async fetchModelInfo(): Promise<void> {
+		if (this.providerConfig.name.toLowerCase() !== 'openrouter') {
 			return;
 		}
 
