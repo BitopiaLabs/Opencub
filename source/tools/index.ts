@@ -5,8 +5,6 @@ import {replaceLinesTool} from './replace-lines.js';
 import {deleteLinesTool} from './delete-lines.js';
 import {readManyFilesTool} from './read-many-files.js';
 import {executeBashTool} from './execute-bash.js';
-import {webSearchTool} from './web-search.js';
-import {fetchUrlTool} from './fetch-url.js';
 import React from 'react';
 import type {ToolHandler, Tool, ToolDefinition} from '../types/index.js';
 
@@ -18,8 +16,6 @@ export const toolDefinitions: ToolDefinition[] = [
 	deleteLinesTool,
 	readManyFilesTool,
 	executeBashTool,
-	webSearchTool,
-	fetchUrlTool,
 ];
 
 export const toolRegistry: Record<string, ToolHandler> = Object.fromEntries(
