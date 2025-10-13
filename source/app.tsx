@@ -63,7 +63,6 @@ export default function App() {
 		toolManager: appState.toolManager,
 		messages: appState.messages,
 		setMessages: appState.updateMessages,
-		getMessageTokens: appState.getMessageTokens,
 		currentModel: appState.currentModel,
 		setIsThinking: appState.setIsThinking,
 		setIsCancelling: appState.setIsCancelling,
@@ -368,10 +367,7 @@ export default function App() {
 									developmentMode={appState.developmentMode}
 								/>
 							) : appState.mcpInitialized && !appState.client ? (
-								<Text color={themeContextValue.colors.secondary}>
-									⚠️ No LLM provider available. Chat is disabled. Please fix
-									your provider configuration and restart.
-								</Text>
+								<></>
 							) : (
 								<Text color={themeContextValue.colors.secondary}>
 									<Spinner type="dots2" /> Loading...
