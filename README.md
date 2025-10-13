@@ -266,11 +266,11 @@ Popular MCP servers:
 - **Memory**: Persistent context storage
 - [View more MCP servers](https://github.com/modelcontextprotocol/servers)
 
-> **Note**: The `agents.config.json` file should be placed in the directory where you run Nanocoder, allowing for project-by-project configuration with different models or API keys per repository.
+> **Note**: The default save palace for configuration is `~/config/nanocoder/`. Placing a `agents.config.json` where you run Nanocoder, will **override** the default for project-by-project configuration with different models or API keys per repository.
 
 ### User Preferences
 
-Nanocoder automatically saves your preferences to remember your choices across sessions. Preferences are stored in `~/.nanocoder-preferences.json` in your home directory.
+Nanocoder automatically saves your preferences to remember your choices across sessions. Preferences are stored in `~/config/nanocoder/nanocoder-preferences.json`. placing a `nanocoder-preferences.json` where you run Nanocoder, will **override** the default for project-by-project configuration
 
 **What gets saved automatically:**
 
@@ -300,6 +300,7 @@ Nanocoder automatically saves your preferences to remember your choices across s
 - `/clear` - Clear chat history
 - `/model` - Switch between available models
 - `/provider` - Switch between configured AI providers
+- `/status` - Display current status (CWD, provider, model, theme, available updates, AGENTS setup)
 - `/recommendations` - Get AI model recommendations based on your system capabilities (RAM, GPU, network)
 - `/mcp` - Show connected MCP servers and their tools
 - `/debug` - Toggle logging levels (silent/normal/verbose)
