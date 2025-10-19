@@ -1,16 +1,17 @@
-import {LLMClient, Message, ToolCall, ToolResult} from '../../types/core.js';
-import {ToolManager} from '../../tools/tool-manager.js';
-import {toolDefinitions} from '../../tools/index.js';
-import {processPromptTemplate} from '../../utils/prompt-processor.js';
+import {LLMClient, Message, ToolCall, ToolResult} from '@/types/core';
+import {ToolManager} from '@/tools/tool-manager';
+import {toolDefinitions} from '@/tools/index';
+import {processPromptTemplate} from '@/utils/prompt-processor';
 import {
 	parseToolCallsFromContent,
 	cleanContentFromToolCalls,
-} from '../../tool-calling/index.js';
-import {ConversationStateManager} from '../utils/conversationState.js';
-import UserMessage from '../../components/user-message.js';
-import AssistantMessage from '../../components/assistant-message.js';
-import ErrorMessage from '../../components/error-message.js';
-import ToolMessage from '../../components/tool-message.js';
+} from '@/tool-calling/index';
+import {ConversationStateManager} from '@/app/utils/conversationState';
+import {promptHistory} from '@/prompt-history';
+import UserMessage from '@/components/user-message';
+import AssistantMessage from '@/components/assistant-message';
+import ErrorMessage from '@/components/error-message';
+import ToolMessage from '@/components/tool-message';
 import React from 'react';
 
 // Helper function to filter out invalid tool calls and deduplicate by ID and function
@@ -338,7 +339,7 @@ export function useChatHandler({
 				// Execute non-confirmation tools directly
 				if (toolsToExecuteDirectly.length > 0) {
 					// Import processToolUse here to avoid circular dependencies
-					const {processToolUse} = await import('../../message-handler.js');
+					const {processToolUse} = await import('@/message-handler');
 					const directResults: ToolResult[] = [];
 
 					for (const toolCall of toolsToExecuteDirectly) {
@@ -493,9 +494,18 @@ export function useChatHandler({
 	const handleChatMessage = async (message: string) => {
 		if (!client || !toolManager) return;
 
-		// Add user message to chat
+		// For display purposes, try to get the placeholder version from history
+		// This preserves the nice placeholder display in chat history
+		const history = promptHistory.getHistory();
+		const lastEntry = history[history.length - 1];
+		const displayMessage = lastEntry?.displayValue || message;
+
+		// Add user message to chat using display version (with placeholders)
 		addToChatQueue(
-			<UserMessage key={`user-${componentKeyCounter}`} message={message} />,
+			<UserMessage
+				key={`user-${componentKeyCounter}`}
+				message={displayMessage}
+			/>,
 		);
 
 		// Add user message to conversation history

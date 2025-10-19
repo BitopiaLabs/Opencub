@@ -1,10 +1,79 @@
 import {readFileSync, existsSync} from 'fs';
 import {join} from 'path';
+import {platform, homedir, release} from 'os';
 import {promptPath} from '../config/index.js';
 import type {Tool} from '../types/index.js';
+import type {InputState} from '../types/hooks.js';
+import {PlaceholderType} from '../types/hooks.js';
 
 /**
- * Process the main prompt template by injecting dynamic tool documentation
+ * Get the default shell for the current platform
+ */
+function getDefaultShell(): string {
+	const shellEnv = process.env.SHELL;
+	if (shellEnv) {
+		return shellEnv;
+	}
+
+	switch (platform()) {
+		case 'win32':
+			return process.env.COMSPEC || 'cmd.exe';
+		case 'darwin':
+			return '/bin/zsh';
+		default:
+			return '/bin/bash';
+	}
+}
+
+/**
+ * Get a human-readable OS name
+ */
+function getOSName(): string {
+	const plat = platform();
+	switch (plat) {
+		case 'darwin':
+			return 'macOS';
+		case 'win32':
+			return 'Windows';
+		case 'linux':
+			return 'Linux';
+		default:
+			return plat;
+	}
+}
+
+/**
+ * Generate system information string
+ */
+function generateSystemInfo(): string {
+	const now = new Date();
+	const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+	const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+
+	return `Operating System: ${getOSName()}
+OS Version: ${release()}
+Platform: ${platform()}
+Default Shell: ${getDefaultShell()}
+Home Directory: ${homedir()}
+Current Working Directory: ${process.cwd()}
+Current Date: ${dateStr}
+Current Time: ${timeStr}`;
+}
+
+/**
+ * Inject system information into the prompt template
+ */
+function injectSystemInfo(prompt: string): string {
+	const systemInfo = generateSystemInfo();
+
+	return prompt.replace(
+		/<!-- DYNAMIC_SYSTEM_INFO_START -->[\s\S]*?<!-- DYNAMIC_SYSTEM_INFO_END -->/,
+		systemInfo,
+	);
+}
+
+/**
+ * Process the main prompt template by injecting dynamic tool documentation and system info
  */
 export function processPromptTemplate(tools: Tool[]): string {
 	let systemPrompt = 'You are a helpful AI assistant.'; // fallback
@@ -17,6 +86,9 @@ export function processPromptTemplate(tools: Tool[]): string {
 			console.warn(`Failed to load system prompt from ${promptPath}: ${error}`);
 		}
 	}
+
+	// Inject system information
+	systemPrompt = injectSystemInfo(systemPrompt);
 
 	// Inject dynamic tool documentation
 	systemPrompt = injectToolDocumentation(systemPrompt, tools);
@@ -127,4 +199,72 @@ function formatToolDocumentation(tool: Tool): string {
 	}
 
 	return doc;
+}
+
+/**
+ * Assemble the final prompt by replacing all placeholders with their full content
+ * This function is called before sending the prompt to the AI
+ */
+export function assemblePrompt(inputState: InputState): string {
+	let assembledPrompt = inputState.displayValue;
+
+	// Replace each placeholder with its full content
+	Object.entries(inputState.placeholderContent).forEach(
+		([placeholderId, placeholderContent]) => {
+			// Each placeholder type can have its own replacement logic
+			let replacementContent = placeholderContent.content || '';
+
+			// Type-specific content assembly (extensible for future types)
+			switch (placeholderContent.type) {
+				case PlaceholderType.PASTE:
+					// For paste, use content directly
+					replacementContent = placeholderContent.content;
+					break;
+				case PlaceholderType.FILE:
+					// For file, could add file headers or other formatting
+					replacementContent = placeholderContent.content;
+					break;
+				default:
+					// TypeScript will ensure this is unreachable with proper enum usage
+					const _exhaustive: never = placeholderContent;
+					// Fallback for safety, though this should never be reached
+					replacementContent =
+						(placeholderContent as any).displayText ||
+						(placeholderContent as any).content ||
+						'';
+			}
+
+			// Use the displayText to find and replace the placeholder
+			const displayText = placeholderContent.displayText;
+			if (displayText) {
+				assembledPrompt = assembledPrompt.replace(
+					displayText,
+					replacementContent,
+				);
+			} else {
+				// Fallback for legacy paste format
+				const placeholderPattern = `\\[Paste #${placeholderId}: \\d+ chars\\]`;
+				const regex = new RegExp(placeholderPattern, 'g');
+				assembledPrompt = assembledPrompt.replace(regex, replacementContent);
+			}
+		},
+	);
+
+	return assembledPrompt;
+}
+
+/**
+ * Extract all placeholder IDs from a display value
+ * Useful for atomic deletion and validation
+ */
+export function extractPlaceholderIds(displayValue: string): string[] {
+	const placeholderRegex = /\[Paste #(\d+): \d+ chars\]/g;
+	const matches = [];
+	let match;
+
+	while ((match = placeholderRegex.exec(displayValue)) !== null) {
+		matches.push(match[1]); // The captured paste ID
+	}
+
+	return matches;
 }

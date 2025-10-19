@@ -1,7 +1,7 @@
 {
 	"name": "@nanocollective/nanocoder",
 	"main": "dist/cli.js",
-	"version": "1.13.6",
+	"version": "1.13.8",
 	"description": "A local-first CLI coding agent that brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter",
 	"keywords": [
 		"cli",
@@ -31,10 +31,12 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "tsc && chmod +x dist/cli.js",
+		"build": "tsc && tsc-alias && chmod +x dist/cli.js",
 		"dev": "tsc --watch",
 		"start": "node dist/cli.js",
-		"test": "prettier --check . && xo && ava",
+		"test:all": "prettier --check . && ava",
+		"test:ava": "ava",
+		"format": "prettier --write .",
 		"prepublishOnly": "npm run build"
 	},
 	"files": [
@@ -62,19 +64,19 @@
 		"marked-terminal": "^7.3.0",
 		"meow": "^11.0.0",
 		"nanostores": "^1.0.1",
-		"ollama": "^0.5.17",
 		"react": "^19.0.0",
 		"systeminformation": "^5.27.10",
 		"undici": "^7.16.0"
 	},
 	"devDependencies": {
+		"@ava/typescript": "^6.0.0",
 		"@sindresorhus/tsconfig": "^3.0.1",
 		"@types/ink-text-input": "^2.0.5",
 		"@types/marked-terminal": "^6.1.1",
 		"@types/node": "^24.3.0",
 		"@types/react": "^19.0.0",
 		"@vdemedes/prettier-config": "^2.0.1",
-		"ava": "^5.2.0",
+		"ava": "^6.4.1",
 		"chalk": "^5.2.0",
 		"eslint-config-xo-react": "^0.27.0",
 		"eslint-plugin-react": "^7.32.2",
@@ -82,16 +84,25 @@
 		"ink-testing-library": "^3.0.0",
 		"prettier": "^2.8.7",
 		"ts-node": "^10.9.1",
+		"tsc-alias": "^1.8.16",
+		"tsx": "^4.20.6",
 		"typescript": "^5.0.3",
 		"xo": "^0.53.1"
 	},
 	"ava": {
-		"extensions": {
-			"ts": "module",
-			"tsx": "module"
+		"typescript": {
+			"rewritePaths": {
+				"source/": "dist/"
+			},
+			"compile": false
 		},
 		"nodeArguments": [
-			"--loader=ts-node/esm"
+			"--import=tsx"
+		],
+		"files": [
+			"source/**/*.spec.ts",
+			"!source/**/*-helpers.ts",
+			"!source/**/test-helpers.ts"
 		]
 	},
 	"xo": {

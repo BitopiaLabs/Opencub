@@ -1,6 +1,6 @@
 import {ReactNode} from 'react';
-import {ToolCall, LLMClient} from './core.js';
-import {CustomCommand} from './commands.js';
+import {ToolCall, LLMClient} from '@/types/core';
+import {CustomCommand} from '@/types/commands';
 
 export interface AssistantMessageProps {
 	message: string;
@@ -14,8 +14,6 @@ export interface BashExecutionIndicatorProps {
 export interface ChatQueueProps {
 	staticComponents?: ReactNode[];
 	queuedComponents?: ReactNode[];
-	displayCount?: number;
-	forceAllStatic?: boolean; // Force all messages to Static (e.g., during tool confirmation)
 }
 
 export interface ChatProps {

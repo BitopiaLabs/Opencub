@@ -1,9 +1,9 @@
-import {Message, LLMClient, DevelopmentMode} from '../../types/core.js';
-import {processToolUse, getToolManager} from '../../message-handler.js';
-import {ConversationContext} from './useAppState.js';
-import InfoMessage from '../../components/info-message.js';
-import ErrorMessage from '../../components/error-message.js';
-import ToolMessage from '../../components/tool-message.js';
+import {Message, LLMClient, DevelopmentMode} from '@/types/core';
+import {processToolUse, getToolManager} from '@/message-handler';
+import {ConversationContext} from '@/hooks/useAppState';
+import InfoMessage from '@/components/info-message';
+import ErrorMessage from '@/components/error-message';
+import ToolMessage from '@/components/tool-message';
 import React from 'react';
 
 interface UseToolHandlerProps {
@@ -154,7 +154,7 @@ export function useToolHandler({
 	// Handle tool confirmation
 	const handleToolConfirmation = async (confirmed: boolean) => {
 		if (!confirmed) {
-			// User cancelled - show message and reset state
+			// User cancelled - show message
 			addToChatQueue(
 				<InfoMessage
 					key={`tool-cancelled-${componentKeyCounter}`}
@@ -162,6 +162,42 @@ export function useToolHandler({
 					hideBox={true}
 				/>,
 			);
+
+			if (!currentConversationContext) {
+				resetToolConfirmationState();
+				return;
+			}
+
+			// Create cancellation results for all pending tools
+			// This is critical to maintain conversation state integrity
+			const cancellationResults = pendingToolCalls.map(toolCall => ({
+				tool_call_id: toolCall.id,
+				role: 'tool' as const,
+				name: toolCall.function.name,
+				content: 'Tool execution was cancelled by the user.',
+			}));
+
+			const {updatedMessages, assistantMsg} = currentConversationContext;
+
+			// Format tool results as standard tool messages
+			const toolMessages = cancellationResults.map(result => ({
+				role: 'tool' as const,
+				content: result.content || '',
+				tool_call_id: result.tool_call_id,
+				name: result.name,
+			}));
+
+			// Update conversation history with the assistant message + cancellation results
+			// This prevents the "mismatch" error on the next user message
+			const updatedMessagesWithCancellation = [
+				...updatedMessages,
+				assistantMsg, // Add the assistant message with tool_calls
+				...toolMessages, // Add cancellation results
+			];
+			setMessages(updatedMessagesWithCancellation);
+
+			// Reset state to allow user to type a new message
+			// Do NOT continue the conversation - let the user provide instructions
 			resetToolConfirmationState();
 			return;
 		}
@@ -249,7 +285,11 @@ export function useToolHandler({
 						tool_call_id: currentTool.id,
 						role: 'tool' as const,
 						name: currentTool.function.name,
-						content: `Validation error: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+						content: `Validation error: ${
+							validationError instanceof Error
+								? validationError.message
+								: String(validationError)
+						}`,
 					};
 
 					const newResults = [...completedToolResults, errorResult];
@@ -342,6 +382,42 @@ export function useToolHandler({
 				hideBox={true}
 			/>,
 		);
+
+		if (!currentConversationContext) {
+			resetToolConfirmationState();
+			return;
+		}
+
+		// Create cancellation results for all pending tools
+		// This is critical to maintain conversation state integrity
+		const cancellationResults = pendingToolCalls.map(toolCall => ({
+			tool_call_id: toolCall.id,
+			role: 'tool' as const,
+			name: toolCall.function.name,
+			content: 'Tool execution was cancelled by the user.',
+		}));
+
+		const {updatedMessages, assistantMsg} = currentConversationContext;
+
+		// Format tool results as standard tool messages
+		const toolMessages = cancellationResults.map(result => ({
+			role: 'tool' as const,
+			content: result.content || '',
+			tool_call_id: result.tool_call_id,
+			name: result.name,
+		}));
+
+		// Update conversation history with the assistant message + cancellation results
+		// This prevents the "mismatch" error on the next user message
+		const updatedMessagesWithCancellation = [
+			...updatedMessages,
+			assistantMsg, // Add the assistant message with tool_calls
+			...toolMessages, // Add cancellation results
+		];
+		setMessages(updatedMessagesWithCancellation);
+
+		// Reset state to allow user to type a new message
+		// Do NOT continue the conversation - let the user provide instructions
 		resetToolConfirmationState();
 	};
 
