@@ -147,7 +147,9 @@ export function McpStep({
 
 					setFieldAnswers(answers);
 					setCurrentValue(
-						answers[template.fields[0]?.name] || template.fields[0]?.default || '',
+						answers[template.fields[0]?.name] ||
+							template.fields[0]?.default ||
+							'',
 					);
 					setMultilineBuffer('');
 					setError(null);
@@ -194,9 +196,7 @@ export function McpStep({
 		if (currentFieldIndex < selectedTemplate.fields.length - 1) {
 			setCurrentFieldIndex(currentFieldIndex + 1);
 			const nextField = selectedTemplate.fields[currentFieldIndex + 1];
-			setCurrentValue(
-				newAnswers[nextField?.name] || nextField?.default || '',
-			);
+			setCurrentValue(newAnswers[nextField?.name] || nextField?.default || '');
 			setMultilineBuffer('');
 		} else {
 			// Build config and add/update server
@@ -326,7 +326,7 @@ export function McpStep({
 				)}
 				<SelectInput
 					items={templateOptions}
-					onSelect={handleTemplateSelect as any}
+					onSelect={(item: TemplateOption) => handleTemplateSelect(item)}
 				/>
 			</Box>
 		);
@@ -340,13 +340,17 @@ export function McpStep({
 						Select an MCP server to edit:
 					</Text>
 				</Box>
-				<SelectInput items={editOptions} onSelect={handleEditSelect as any} />
+				<SelectInput
+					items={editOptions}
+					onSelect={(item: TemplateOption) => handleEditSelect(item)}
+				/>
 			</Box>
 		);
 	}
 
 	if (mode === 'edit-or-delete') {
-		const server = editingServerName !== null ? servers[editingServerName] : null;
+		const server =
+			editingServerName !== null ? servers[editingServerName] : null;
 		const editOrDeleteOptions = [
 			{label: 'Edit this server', value: 'edit'},
 			{label: 'Delete this server', value: 'delete'},
@@ -361,7 +365,7 @@ export function McpStep({
 				</Box>
 				<SelectInput
 					items={editOrDeleteOptions}
-					onSelect={handleEditOrDeleteChoice as any}
+					onSelect={(item: {value: string}) => handleEditOrDeleteChoice(item)}
 				/>
 			</Box>
 		);
@@ -442,7 +446,7 @@ export function McpStep({
 
 				{error && (
 					<Box marginBottom={1}>
-						<Text color="red">{error}</Text>
+						<Text color={colors.error}>{error}</Text>
 					</Box>
 				)}
 

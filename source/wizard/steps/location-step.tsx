@@ -105,7 +105,7 @@ export function LocationStep({
 				</Box>
 				<SelectInput
 					items={existingConfigOptions}
-					onSelect={handleExistingConfigSelect as any}
+					onSelect={(item: {value: string}) => handleExistingConfigSelect(item)}
 				/>
 			</Box>
 		);
@@ -122,21 +122,23 @@ export function LocationStep({
 			</Box>
 			{globalExists && !projectExists && (
 				<Box marginBottom={1} flexDirection="column">
-					<Text color="yellow">
-						{isNarrow ? 'Note: Global config exists' : 'Note: Global config exists at'}
+					<Text color={colors.warning}>
+						{isNarrow
+							? 'Note: Global config exists'
+							: 'Note: Global config exists at'}
 					</Text>
 					{!isNarrow && <Text color={colors.secondary}>{globalPath}</Text>}
 				</Box>
 			)}
 			<SelectInput
 				items={locationOptions}
-				onSelect={handleLocationSelect as any}
+				onSelect={(item: LocationOption) => handleLocationSelect(item)}
 			/>
 			{!isNarrow && (
 				<Box marginTop={1}>
 					<Text color={colors.secondary}>
-						Tip: Project configs are useful for team settings. Global configs work
-						across all projects.
+						Tip: Project configs are useful for team settings. Global configs
+						work across all projects.
 					</Text>
 				</Box>
 			)}

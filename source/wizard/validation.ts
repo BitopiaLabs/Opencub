@@ -1,13 +1,13 @@
 import type {ProviderConfig} from '../types/config';
 import type {McpServerConfig} from './templates/mcp-templates';
 
-export interface ValidationResult {
+interface ValidationResult {
 	valid: boolean;
 	errors: string[];
 	warnings: string[];
 }
 
-export interface ProviderTestResult {
+interface ProviderTestResult {
 	providerName: string;
 	connected: boolean;
 	error?: string;
@@ -127,15 +127,18 @@ export async function testProviderConnection(
 	}
 }
 
-/**
- * Tests connectivity to all providers
- */
-export async function testAllProviders(
-	providers: ProviderConfig[],
-): Promise<ProviderTestResult[]> {
-	return Promise.all(
-		providers.map(provider => testProviderConnection(provider)),
-	);
+interface ConfigObject {
+	nanocoder: {
+		providers: Array<{
+			name: string;
+			models: string[];
+			baseUrl?: string;
+			apiKey?: string;
+			organizationId?: string;
+			timeout?: number;
+		}>;
+		mcpServers?: Record<string, McpServerConfig>;
+	};
 }
 
 /**
@@ -144,11 +147,18 @@ export async function testAllProviders(
 export function buildConfigObject(
 	providers: ProviderConfig[],
 	mcpServers: Record<string, McpServerConfig>,
-): Record<string, any> {
-	const config: Record<string, any> = {
+): ConfigObject {
+	const config: ConfigObject = {
 		nanocoder: {
 			providers: providers.map(p => {
-				const providerConfig: Record<string, any> = {
+				const providerConfig: {
+					name: string;
+					models: string[];
+					baseUrl?: string;
+					apiKey?: string;
+					organizationId?: string;
+					timeout?: number;
+				} = {
 					name: p.name,
 					models: p.models,
 				};

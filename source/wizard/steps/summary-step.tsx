@@ -1,4 +1,3 @@
-import React from 'react';
 import {Box, Text, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
 import type {ProviderConfig} from '../../types/config';
@@ -36,7 +35,7 @@ export function SummaryStep({
 		{label: 'Cancel (discard changes)', value: 'cancel'},
 	];
 
-	const handleSelect = (item: {value: string}) => {
+	const handleSelect = (item: {value: string; label: string}) => {
 		switch (item.value) {
 			case 'save': {
 				onSave();
@@ -159,7 +158,7 @@ export function SummaryStep({
 				</Box>
 			)}
 
-			<SelectInput items={options} onSelect={handleSelect as any} />
+			<SelectInput items={options} onSelect={handleSelect} />
 		</Box>
 	);
 }
