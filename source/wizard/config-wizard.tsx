@@ -49,21 +49,28 @@ export function ConfigWizard({
 
 	// Load existing config if editing
 	useEffect(() => {
-		if (configPath && existsSync(configPath)) {
-			try {
-				const configContent = readFileSync(configPath, 'utf-8');
-				const config = JSON.parse(configContent);
+		if (!configPath || !existsSync(configPath)) {
+			return;
+		}
 
-				if (config.nanocoder?.providers) {
-					setProviders(config.nanocoder.providers);
-				}
+		try {
+			const configContent = readFileSync(configPath, 'utf-8');
+			const config = JSON.parse(configContent) as {
+				nanocoder?: {
+					providers?: ProviderConfig[];
+					mcpServers?: Record<string, McpServerConfig>;
+				};
+			};
 
-				if (config.nanocoder?.mcpServers) {
-					setMcpServers(config.nanocoder.mcpServers);
-				}
-			} catch (err) {
-				console.error('Failed to load existing config:', err);
+			if (config.nanocoder?.providers) {
+				setProviders(config.nanocoder.providers);
 			}
+
+			if (config.nanocoder?.mcpServers) {
+				setMcpServers(config.nanocoder.mcpServers);
+			}
+		} catch (err) {
+			console.error('Failed to load existing config:', err);
 		}
 	}, [configPath]);
 
@@ -164,7 +171,12 @@ export function ConfigWizard({
 				// Reload the edited config
 				try {
 					const editedContent = readFileSync(configPath, 'utf-8');
-					const editedConfig = JSON.parse(editedContent);
+					const editedConfig = JSON.parse(editedContent) as {
+						nanocoder?: {
+							providers?: ProviderConfig[];
+							mcpServers?: Record<string, McpServerConfig>;
+						};
+					};
 
 					// Update state with edited values
 					if (editedConfig.nanocoder) {
