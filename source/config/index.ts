@@ -14,7 +14,7 @@ import {getAppDataPath} from '@/config/paths';
 // Suppress dotenv console output by temporarily redirecting stdout
 const envPath = join(process.cwd(), '.env');
 if (existsSync(envPath)) {
-	const originalWrite = process.stdout.write;
+	const originalWrite = process.stdout.write.bind(process.stdout);
 	process.stdout.write = () => true;
 	try {
 		loadEnv({path: envPath});
@@ -57,7 +57,7 @@ export function getClosestConfigFile(fileName: string): string {
 
 		return join(appDataPath, fileName);
 	} catch (error) {
-		logError(`Failed to load ${fileName}: ${error}`);
+		logError(`Failed to load ${fileName}: ${String(error)}`);
 	}
 
 	// The code should never hit this, but it makes the TS compiler happy.
@@ -80,7 +80,7 @@ function createDefaultConfFile(filePath: string, fileName: string): void {
 			);
 		}
 	} catch (error) {
-		logError(`Failed to write ${filePath}: ${error}`);
+		logError(`Failed to write ${filePath}: ${String(error)}`);
 	}
 }
 
@@ -90,18 +90,18 @@ function loadAppConfig(): AppConfig {
 
 	try {
 		const rawData = readFileSync(agentsJsonPath, 'utf-8');
-		const agentsData = JSON.parse(rawData);
+		const agentsData = JSON.parse(rawData) as {nanocoder?: AppConfig};
 
 		// Apply environment variable substitution
 		const processedData = substituteEnvVars(agentsData);
 
 		if (processedData.nanocoder) {
 			return {
-				providers: processedData.nanocoder.providers,
-				mcpServers: processedData.nanocoder.mcpServers,
+				providers: processedData.nanocoder.providers ?? [],
+				mcpServers: processedData.nanocoder.mcpServers ?? [],
 			};
 		}
-	} catch (error) {
+	} catch {
 		//
 	}
 

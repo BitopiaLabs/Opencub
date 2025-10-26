@@ -54,7 +54,7 @@ export default function UserInput({
 		// New paste handling functions
 		undo,
 		redo,
-		deletePlaceholder,
+		deletePlaceholder: _deletePlaceholder,
 		currentState,
 		setInputState,
 	} = inputState;
@@ -74,7 +74,7 @@ export default function UserInput({
 
 	// Load history on mount
 	useEffect(() => {
-		promptHistory.loadHistory();
+		void promptHistory.loadHistory();
 	}, []);
 
 	// Helper functions
@@ -182,6 +182,7 @@ export default function UserInput({
 			setHistoryIndex,
 			setOriginalInput,
 			setInputState,
+			updateInput,
 		],
 	);
 

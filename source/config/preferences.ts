@@ -16,9 +16,9 @@ function getPreferencesPath(): string {
 export function loadPreferences(): UserPreferences {
 	try {
 		const data = readFileSync(getPreferencesPath(), 'utf-8');
-		return JSON.parse(data);
+		return JSON.parse(data) as UserPreferences;
 	} catch (error) {
-		logError(`Failed to load preferences: ${error}`);
+		logError(`Failed to load preferences: ${String(error)}`);
 	}
 	return {};
 }
@@ -27,7 +27,7 @@ export function savePreferences(preferences: UserPreferences): void {
 	try {
 		writeFileSync(getPreferencesPath(), JSON.stringify(preferences, null, 2));
 	} catch (error) {
-		logError(`Failed to save preferences: ${error}`);
+		logError(`Failed to save preferences: ${String(error)}`);
 	}
 }
 

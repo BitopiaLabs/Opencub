@@ -34,7 +34,7 @@ export function useModeHandlers({
 	client,
 	currentModel,
 	currentProvider,
-	currentTheme,
+	currentTheme: _currentTheme,
 	setClient,
 	setCurrentModel,
 	setCurrentProvider,
@@ -137,7 +137,9 @@ export function useModeHandlers({
 				addToChatQueue(
 					<ErrorMessage
 						key={`provider-error-${componentKeyCounter}`}
-						message={`Failed to change provider to ${selectedProvider}: ${error}`}
+						message={`Failed to change provider to ${selectedProvider}: ${String(
+							error,
+						)}`}
 						hideBox={true}
 					/>,
 				);
@@ -239,7 +241,9 @@ export function useModeHandlers({
 				addToChatQueue(
 					<ErrorMessage
 						key={`config-init-error-${componentKeyCounter}`}
-						message={`Failed to initialize with new configuration: ${error}`}
+						message={`Failed to initialize with new configuration: ${String(
+							error,
+						)}`}
 						hideBox={true}
 					/>,
 				);

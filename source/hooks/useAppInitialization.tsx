@@ -10,6 +10,7 @@ import {
 	updateLastUsed,
 } from '@/config/preferences';
 import type {MCPInitResult, UserPreferences} from '@/types/index';
+import type {CustomCommand} from '@/types/commands';
 import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
 import {commandRegistry} from '@/commands';
 import {appConfig} from '@/config/index';
@@ -42,13 +43,13 @@ interface UseAppInitializationProps {
 	setToolManager: (manager: ToolManager | null) => void;
 	setCustomCommandLoader: (loader: CustomCommandLoader | null) => void;
 	setCustomCommandExecutor: (executor: CustomCommandExecutor | null) => void;
-	setCustomCommandCache: (cache: Map<string, any>) => void;
+	setCustomCommandCache: (cache: Map<string, CustomCommand>) => void;
 	setStartChat: (start: boolean) => void;
 	setMcpInitialized: (initialized: boolean) => void;
 	setUpdateInfo: (info: UpdateInfo | null) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
 	componentKeyCounter: number;
-	customCommandCache: Map<string, any>;
+	customCommandCache: Map<string, CustomCommand>;
 	setIsConfigWizardMode: (mode: boolean) => void;
 }
 
@@ -59,7 +60,7 @@ export function useAppInitialization({
 	setToolManager,
 	setCustomCommandLoader,
 	setCustomCommandExecutor,
-	setCustomCommandCache,
+	setCustomCommandCache: _setCustomCommandCache,
 	setStartChat,
 	setMcpInitialized,
 	setUpdateInfo,
@@ -97,8 +98,8 @@ export function useAppInitialization({
 	};
 
 	// Load and cache custom commands
-	const loadCustomCommands = async (loader: CustomCommandLoader) => {
-		await loader.loadCommands();
+	const loadCustomCommands = (loader: CustomCommandLoader) => {
+		loader.loadCommands();
 		const customCommands = loader.getAllCommands() || [];
 
 		// Populate command cache for better performance
@@ -165,7 +166,7 @@ export function useAppInitialization({
 				addToChatQueue(
 					<ErrorMessage
 						key={`mcp-fatal-error-${componentKeyCounter}`}
-						message={`Failed to initialize MCP servers: ${error}`}
+						message={`Failed to initialize MCP servers: ${String(error)}`}
 						hideBox={true}
 					/>,
 				);
@@ -204,7 +205,7 @@ export function useAppInitialization({
 				addToChatQueue(
 					<ErrorMessage
 						key={`init-error-${componentKeyCounter}`}
-						message={`No providers available: ${error}`}
+						message={`No providers available: ${String(error)}`}
 						hideBox={true}
 					/>,
 				);
@@ -213,12 +214,12 @@ export function useAppInitialization({
 		}
 
 		try {
-			await loadCustomCommands(newCustomCommandLoader);
+			loadCustomCommands(newCustomCommandLoader);
 		} catch (error) {
 			addToChatQueue(
 				<ErrorMessage
 					key={`commands-error-${componentKeyCounter}`}
-					message={`Failed to load custom commands: ${error}`}
+					message={`Failed to load custom commands: ${String(error)}`}
 					hideBox={true}
 				/>,
 			);
@@ -280,7 +281,7 @@ export function useAppInitialization({
 			try {
 				const info = await checkForUpdates();
 				setUpdateInfo(info);
-			} catch (error) {
+			} catch {
 				// Silent failure - don't show errors for update checks
 				setUpdateInfo(null);
 			}
@@ -291,7 +292,8 @@ export function useAppInitialization({
 			await initializeMCPServers(newToolManager);
 		};
 
-		initializeApp();
+		void initializeApp();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	return {
