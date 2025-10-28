@@ -208,6 +208,17 @@ It is recommended to set both `requestTimeout` and `socketTimeout` to the same v
 }
 ```
 
+**Troubleshooting Context Length Issues:**
+
+If you experience the model repeating tool calls or getting into loops (especially with multi-turn conversations), this is often caused by insufficient context length settings in your local AI provider:
+
+- **LM Studio**: Increase "Context Length" in Settings → Model Settings (recommended: 8192 or higher)
+- **Ollama**: Set context length with `OLLAMA_NUM_CTX=8192`
+- **llama.cpp**: Use `--ctx-size 8192` or higher when starting the server
+- **vLLM**: Set `--max-model-len 8192` when launching
+
+Tool-calling conversations require more context to track the history of tool calls and their results. If the context window is too small, the model may lose track of previous actions and repeat them indefinitely.
+
 ### MCP (Model Context Protocol) Servers
 
 Nanocoder supports connecting to MCP servers to extend its capabilities with additional tools. Configure MCP servers in your `agents.config.json`:
@@ -290,6 +301,7 @@ Nanocoder automatically saves your preferences to remember your choices across s
 
 - `/help` - Show available commands
 - `/init` - Initialize project with intelligent analysis, create AGENTS.md and configuration files
+- `/setup-config` - Interactive wizard for configuring AI providers and MCP servers with templates
 - `/clear` - Clear chat history
 - `/model` - Switch between available models
 - `/provider` - Switch between configured AI providers
