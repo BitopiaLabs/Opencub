@@ -2,8 +2,7 @@ import {fetch} from 'undici';
 import * as cheerio from 'cheerio';
 import React from 'react';
 import {Text, Box} from 'ink';
-import type {ToolDefinition} from '@/types/index';
-import {tool, jsonSchema} from '@/types/core';
+import type {ToolHandler, ToolDefinition} from '@/types/index';
 import {ThemeContext} from '@/hooks/useTheme';
 import ToolMessage from '@/components/tool-message';
 
@@ -18,7 +17,7 @@ interface SearchResult {
 	snippet: string;
 }
 
-const executeWebSearch = async (args: SearchArgs): Promise<string> => {
+const handler: ToolHandler = async (args: SearchArgs): Promise<string> => {
 	const maxResults = args.max_results ?? 10;
 	const encodedQuery = encodeURIComponent(args.query);
 
@@ -95,28 +94,6 @@ const executeWebSearch = async (args: SearchArgs): Promise<string> => {
 		throw new Error(`Web search failed: ${errorMessage}`);
 	}
 };
-
-// AI SDK tool definition
-const webSearchCoreTool = tool({
-	description:
-		'Search the web for information (scrapes Brave Search, returns markdown)',
-	inputSchema: jsonSchema<SearchArgs>({
-		type: 'object',
-		properties: {
-			query: {
-				type: 'string',
-				description: 'The search query.',
-			},
-			max_results: {
-				type: 'number',
-				description:
-					'Maximum number of search results to return (default: 10).',
-			},
-		},
-		required: ['query'],
-	}),
-	execute: executeWebSearch,
-});
 
 // Create a component that will re-render when theme changes
 const WebSearchFormatter = React.memo(
@@ -202,9 +179,8 @@ const validator = (
 	return Promise.resolve({valid: true});
 };
 
-// Nanocoder tool definition with AI SDK core tool + custom extensions
 export const webSearchTool: ToolDefinition = {
-	handler: executeWebSearch,
+	handler,
 	formatter,
 	validator,
 	requiresConfirmation: false,
@@ -232,6 +208,3 @@ export const webSearchTool: ToolDefinition = {
 		},
 	},
 };
-
-// Export the AI SDK core tool for Phase 3-4 migration
-export {webSearchCoreTool};

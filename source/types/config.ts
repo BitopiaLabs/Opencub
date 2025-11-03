@@ -1,7 +1,7 @@
 import type {ThemePreset} from '@/types/ui';
 
-// AI provider configurations (OpenAI-compatible)
-export interface AIProviderConfig {
+// LangChain provider configurations
+export interface LangChainProviderConfig {
 	name: string;
 	type: string;
 	models: string[];

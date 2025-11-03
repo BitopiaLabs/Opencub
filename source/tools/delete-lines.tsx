@@ -4,8 +4,7 @@ import {readFile, writeFile, access} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {highlight} from 'cli-highlight';
 import {Text, Box} from 'ink';
-import type {ToolDefinition, Colors} from '@/types/index';
-import {tool, jsonSchema} from '@/types/core';
+import type {ToolHandler, ToolDefinition, Colors} from '@/types/index';
 import {getColors} from '@/config/index';
 import {getLanguageFromExtension} from '@/utils/programming-language-helper';
 import ToolMessage from '@/components/tool-message';
@@ -16,7 +15,7 @@ interface DeleteLinesArgs {
 	end_line?: number;
 }
 
-const executeDeleteLines = async (args: DeleteLinesArgs): Promise<string> => {
+const handler: ToolHandler = async (args: DeleteLinesArgs): Promise<string> => {
 	const {path, line_number, end_line} = args;
 
 	// Validate line numbers
@@ -79,31 +78,6 @@ const executeDeleteLines = async (args: DeleteLinesArgs): Promise<string> => {
 			: `lines ${line_number}-${endLine}`;
 	return `Successfully deleted ${rangeDesc}.${fileContext}`;
 };
-
-// AI SDK tool definition
-const deleteLinesCoreTool = tool({
-	description: 'Delete a line or range of lines from a file',
-	inputSchema: jsonSchema<DeleteLinesArgs>({
-		type: 'object',
-		properties: {
-			path: {
-				type: 'string',
-				description: 'The path to the file to edit.',
-			},
-			line_number: {
-				type: 'number',
-				description: 'The starting line number (1-based) to delete.',
-			},
-			end_line: {
-				type: 'number',
-				description:
-					'The ending line number (1-based) for range deletion. If omitted, only line_number is deleted.',
-			},
-		},
-		required: ['path', 'line_number'],
-	}),
-	execute: executeDeleteLines,
-});
 
 const DeleteLinesFormatter = React.memo(
 	({preview}: {preview: React.ReactElement}) => {
@@ -456,9 +430,8 @@ const validator = async (
 	return {valid: true};
 };
 
-// Nanocoder tool definition with AI SDK core tool + custom extensions
 export const deleteLinesTool: ToolDefinition = {
-	handler: executeDeleteLines,
+	handler,
 	formatter,
 	validator,
 	config: {
@@ -488,6 +461,3 @@ export const deleteLinesTool: ToolDefinition = {
 		},
 	},
 };
-
-// Export the AI SDK core tool for Phase 3-4 migration
-export {deleteLinesCoreTool};

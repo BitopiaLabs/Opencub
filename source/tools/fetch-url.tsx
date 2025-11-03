@@ -1,8 +1,7 @@
 import {convertToMarkdown} from '@nanocollective/get-md';
 import React from 'react';
 import {Text, Box} from 'ink';
-import type {ToolDefinition} from '@/types/index';
-import {tool, jsonSchema} from '@/types/core';
+import type {ToolHandler, ToolDefinition} from '@/types/index';
 import {ThemeContext} from '@/hooks/useTheme';
 import ToolMessage from '@/components/tool-message';
 
@@ -10,7 +9,7 @@ interface FetchArgs {
 	url: string;
 }
 
-const executeFetchUrl = async (args: FetchArgs): Promise<string> => {
+const handler: ToolHandler = async (args: FetchArgs): Promise<string> => {
 	// Validate URL
 	try {
 		new URL(args.url);
@@ -41,23 +40,6 @@ const executeFetchUrl = async (args: FetchArgs): Promise<string> => {
 		throw new Error(`Failed to fetch URL: ${message}`);
 	}
 };
-
-// AI SDK tool definition
-const fetchUrlCoreTool = tool({
-	description:
-		'Fetch and parse content from a URL (converts to markdown via Jina AI Reader)',
-	inputSchema: jsonSchema<FetchArgs>({
-		type: 'object',
-		properties: {
-			url: {
-				type: 'string',
-				description: 'The URL to fetch content from.',
-			},
-		},
-		required: ['url'],
-	}),
-	execute: executeFetchUrl,
-});
 
 // Create a component that will re-render when theme changes
 const FetchUrlFormatter = React.memo(
@@ -162,9 +144,8 @@ const validator = (
 	}
 };
 
-// Nanocoder tool definition with AI SDK core tool + custom extensions
 export const fetchUrlTool: ToolDefinition = {
-	handler: executeFetchUrl,
+	handler,
 	formatter,
 	validator,
 	requiresConfirmation: false,
@@ -187,6 +168,3 @@ export const fetchUrlTool: ToolDefinition = {
 		},
 	},
 };
-
-// Export the AI SDK core tool for Phase 3-4 migration
-export {fetchUrlCoreTool};

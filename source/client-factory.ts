@@ -1,7 +1,7 @@
-import {AISDKClient} from '@/ai-sdk-client';
+import {LangGraphClient} from '@/langgraph-client';
 import {appConfig, getClosestConfigFile} from '@/config/index';
 import {loadPreferences} from '@/config/preferences';
-import type {LLMClient, AIProviderConfig} from '@/types/index';
+import type {LLMClient, LangChainProviderConfig} from '@/types/index';
 import {existsSync} from 'fs';
 import {join} from 'path';
 
@@ -25,11 +25,11 @@ export async function createLLMClient(
 	const agentsJsonPath = getClosestConfigFile('agents.config.json');
 	const hasConfigFile = existsSync(agentsJsonPath);
 
-	// Use AI SDK - it handles both tool-calling and non-tool-calling models
-	return createAISDKClient(provider, hasConfigFile);
+	// Always use LangGraph - it handles both tool-calling and non-tool-calling models
+	return createLangGraphClient(provider, hasConfigFile);
 }
 
-async function createAISDKClient(
+async function createLangGraphClient(
 	requestedProvider?: string,
 	hasConfigFile = true,
 ): Promise<{client: LLMClient; actualProvider: string}> {
@@ -88,7 +88,7 @@ async function createAISDKClient(
 			// Test provider connection
 			await testProviderConnection(providerConfig);
 
-			const client = await AISDKClient.create(providerConfig);
+			const client = await LangGraphClient.create(providerConfig);
 
 			return {client, actualProvider: providerType};
 		} catch (error: unknown) {
@@ -114,8 +114,8 @@ async function createAISDKClient(
 	}
 }
 
-function loadProviderConfigs(): AIProviderConfig[] {
-	const providers: AIProviderConfig[] = [];
+function loadProviderConfigs(): LangChainProviderConfig[] {
+	const providers: LangChainProviderConfig[] = [];
 
 	// Load providers from the new providers array structure
 	if (appConfig.providers) {
@@ -139,7 +139,7 @@ function loadProviderConfigs(): AIProviderConfig[] {
 }
 
 async function testProviderConnection(
-	providerConfig: AIProviderConfig,
+	providerConfig: LangChainProviderConfig,
 ): Promise<void> {
 	// Test local servers for connectivity
 	if (

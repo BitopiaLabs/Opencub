@@ -2,12 +2,13 @@ import {spawn} from 'node:child_process';
 import {highlight} from 'cli-highlight';
 import React from 'react';
 import {Text, Box} from 'ink';
-import type {ToolDefinition, BashToolResult} from '@/types/index';
-import {tool, jsonSchema} from '@/types/core';
+import type {ToolHandler, ToolDefinition, BashToolResult} from '@/types/index';
 import {ThemeContext} from '@/hooks/useTheme';
 import ToolMessage from '@/components/tool-message';
 
-const executeExecuteBash = async (args: {command: string}): Promise<string> => {
+const handler: ToolHandler = async (args: {
+	command: string;
+}): Promise<string> => {
 	return new Promise((resolve, reject) => {
 		const proc = spawn('sh', ['-c', args.command]);
 		let stdout = '';
@@ -50,23 +51,6 @@ ${stdout}`;
 		});
 	});
 };
-
-// AI SDK tool definition
-const executeBashCoreTool = tool({
-	description:
-		'Execute a bash command and return the output (use for running commands)',
-	inputSchema: jsonSchema<{command: string}>({
-		type: 'object',
-		properties: {
-			command: {
-				type: 'string',
-				description: 'The bash command to execute.',
-			},
-		},
-		required: ['command'],
-	}),
-	execute: executeExecuteBash,
-});
 
 // Create a component that will re-render when theme changes
 const ExecuteBashFormatter = React.memo(
@@ -181,9 +165,8 @@ const validator = (args: {
 	return Promise.resolve({valid: true});
 };
 
-// Nanocoder tool definition with AI SDK core tool + custom extensions
 export const executeBashTool: ToolDefinition = {
-	handler: executeExecuteBash,
+	handler,
 	formatter,
 	validator,
 	config: {
@@ -204,6 +187,3 @@ export const executeBashTool: ToolDefinition = {
 		},
 	},
 };
-
-// Export the AI SDK core tool for Phase 3-4 migration
-export {executeBashCoreTool};
