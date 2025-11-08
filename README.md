@@ -63,19 +63,13 @@ nanocoder
 
 #### Homebrew (macOS/Linux)
 
-First, tap the repository:
+Install using Homebrew tap:
 
 ```bash
-brew tap nano-collective/nanocoder https://github.com/Nano-Collective/nanocoder
+brew install nano-collective/nanocoder/nanocoder
 ```
 
-Then install:
-
-```bash
-brew install nanocoder
-```
-
-Run in any directory:
+Then run in any directory:
 
 ```bash
 nanocoder
