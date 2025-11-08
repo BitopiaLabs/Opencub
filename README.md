@@ -47,7 +47,7 @@ Firstly, we would love for you to be involved. You can get started contributing 
 
 ### For Users
 
-#### NPM (Recommended)
+#### NPM
 
 Install globally and use anywhere:
 
@@ -59,6 +59,32 @@ Then run in any directory:
 
 ```bash
 nanocoder
+```
+
+#### Homebrew (macOS/Linux)
+
+First, tap the repository:
+
+```bash
+brew tap nano-collective/nanocoder https://github.com/Nano-Collective/nanocoder
+```
+
+Then install:
+
+```bash
+brew install nanocoder
+```
+
+Run in any directory:
+
+```bash
+nanocoder
+```
+
+To update:
+
+```bash
+brew upgrade nanocoder
 ```
 
 #### Nix Flakes
@@ -390,6 +416,7 @@ Preferences follow the same location hierarchy as configuration files:
 - `/theme` - Select a theme for the Nanocoder CLI
 - `/update` - Update Nanocoder to the latest version
 - `!command` - Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM)
+- `@file` - Include file contents in messages automatically via fuzzy search as you type.
 
 #### Custom Commands
 
