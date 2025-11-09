@@ -9,7 +9,7 @@ import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {ProgressBar} from './progress-bar.js';
 import type {Message} from '@/types/core.js';
-import type {TokenBreakdown} from '@/usage/types.js';
+import type {TokenBreakdown} from '@/types/usage.js';
 import {formatTokenCount, getUsageStatusColor} from '@/usage/calculator.js';
 
 interface UsageDisplayProps {
@@ -79,8 +79,10 @@ export function UsageDisplay({
 			? Math.max(...messages.map(msg => getMessageTokens(msg)))
 			: 0;
 
-	// Bar width for category breakdown
-	const barMaxWidth = Math.min(30, boxWidth - 30);
+	// Responsive layout calculations based on terminal width
+	// For narrow terminals, reduce space for bars
+	const barMaxWidth = Math.max(10, Math.min(30, boxWidth - 20));
+	const mainProgressWidth = Math.max(20, Math.min(60, boxWidth - 12));
 
 	return (
 		<TitledBox
@@ -97,12 +99,14 @@ export function UsageDisplay({
 		>
 			{/* Overall Usage */}
 			<Box marginBottom={1}>
-				<Text color={colors.secondary}>Overall Usage</Text>
+				<Text color={colors.primary} bold>
+					Overall Usage
+				</Text>
 			</Box>
 			<Box marginBottom={0}>
 				<ProgressBar
 					percent={percentUsed}
-					width={Math.min(60, boxWidth - 8)}
+					width={mainProgressWidth}
 					color={progressColor}
 				/>
 				<Text color={colors.white} bold>
@@ -119,105 +123,108 @@ export function UsageDisplay({
 
 			{/* Category Breakdown */}
 			<Box marginTop={1} marginBottom={1}>
-				<Text color={colors.secondary}>Breakdown by Category</Text>
+				<Text color={colors.primary} bold>
+					Breakdown by Category
+				</Text>
 			</Box>
 
 			{/* System Prompt */}
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width={20}>
-					<Text color={colors.info}>System Prompt</Text>
+			<Box flexDirection="column" marginBottom={1}>
+				<Box marginBottom={0}>
+					<Text color={colors.info}>System Prompt:</Text>
 				</Box>
-				<Box width={barMaxWidth}>
+				<Box flexDirection="row">
 					<ProgressBar
 						percent={systemPercent}
 						width={barMaxWidth}
 						color={colors.info}
 					/>
-				</Box>
-				<Box marginLeft={2}>
-					<Text color={colors.white}>
-						{Math.round(systemPercent)}% ({formatTokenCount(breakdown.system)})
-					</Text>
+					<Box marginLeft={1}>
+						<Text color={colors.white}>
+							{Math.round(systemPercent)}% ({formatTokenCount(breakdown.system)}
+							)
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 
 			{/* User Messages */}
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width={20}>
-					<Text color={colors.secondary}>User Messages</Text>
+			<Box flexDirection="column" marginBottom={1}>
+				<Box marginBottom={0}>
+					<Text color={colors.secondary}>User Messages:</Text>
 				</Box>
-				<Box width={barMaxWidth}>
+				<Box flexDirection="row">
 					<ProgressBar
 						percent={userPercent}
 						width={barMaxWidth}
 						color={colors.info}
 					/>
-				</Box>
-				<Box marginLeft={2}>
-					<Text color={colors.white}>
-						{Math.round(userPercent)}% (
-						{formatTokenCount(breakdown.userMessages)})
-					</Text>
+					<Box marginLeft={1}>
+						<Text color={colors.white}>
+							{Math.round(userPercent)}% (
+							{formatTokenCount(breakdown.userMessages)})
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 
 			{/* Assistant Messages */}
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width={20}>
-					<Text color={colors.secondary}>Assistant Messages</Text>
+			<Box flexDirection="column" marginBottom={1}>
+				<Box marginBottom={0}>
+					<Text color={colors.secondary}>Assistant Messages:</Text>
 				</Box>
-				<Box width={barMaxWidth}>
+				<Box flexDirection="row">
 					<ProgressBar
 						percent={assistantPercent}
 						width={barMaxWidth}
 						color={colors.info}
 					/>
-				</Box>
-				<Box marginLeft={2}>
-					<Text color={colors.white}>
-						{Math.round(assistantPercent)}% (
-						{formatTokenCount(breakdown.assistantMessages)})
-					</Text>
+					<Box marginLeft={1}>
+						<Text color={colors.white}>
+							{Math.round(assistantPercent)}% (
+							{formatTokenCount(breakdown.assistantMessages)})
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 
 			{/* Tool Messages */}
-			<Box flexDirection="row" marginBottom={0}>
-				<Box width={20}>
-					<Text color={colors.secondary}>Tool Messages</Text>
+			<Box flexDirection="column" marginBottom={1}>
+				<Box marginBottom={0}>
+					<Text color={colors.secondary}>Tool Messages:</Text>
 				</Box>
-				<Box width={barMaxWidth}>
+				<Box flexDirection="row">
 					<ProgressBar
 						percent={toolMessagesPercent}
 						width={barMaxWidth}
 						color={colors.info}
 					/>
-				</Box>
-				<Box marginLeft={2}>
-					<Text color={colors.white}>
-						{Math.round(toolMessagesPercent)}% (
-						{formatTokenCount(breakdown.toolResults)})
-					</Text>
+					<Box marginLeft={1}>
+						<Text color={colors.white}>
+							{Math.round(toolMessagesPercent)}% (
+							{formatTokenCount(breakdown.toolResults)})
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 
 			{/* Tool Definitions */}
-			<Box flexDirection="row" marginBottom={1}>
-				<Box width={20}>
-					<Text color={colors.secondary}>Tool Definitions</Text>
+			<Box flexDirection="column" marginBottom={1}>
+				<Box marginBottom={0}>
+					<Text color={colors.secondary}>Tool Definitions:</Text>
 				</Box>
-				<Box width={barMaxWidth}>
+				<Box flexDirection="row">
 					<ProgressBar
 						percent={toolDefsPercent}
 						width={barMaxWidth}
 						color={colors.info}
 					/>
-				</Box>
-				<Box marginLeft={2}>
-					<Text color={colors.white}>
-						{Math.round(toolDefsPercent)}% (
-						{formatTokenCount(breakdown.toolDefinitions)})
-					</Text>
+					<Box marginLeft={1}>
+						<Text color={colors.white}>
+							{Math.round(toolDefsPercent)}% (
+							{formatTokenCount(breakdown.toolDefinitions)})
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 
@@ -233,7 +240,9 @@ export function UsageDisplay({
 
 			{/* Model Information */}
 			<Box marginTop={1} marginBottom={1}>
-				<Text color={colors.secondary}>Model Information</Text>
+				<Text color={colors.primary} bold>
+					Model Information
+				</Text>
 			</Box>
 			<Box>
 				<Text color={colors.secondary}>
@@ -261,7 +270,9 @@ export function UsageDisplay({
 
 			{/* Recent Activity */}
 			<Box marginTop={1} marginBottom={1}>
-				<Text color={colors.secondary}>Recent Activity</Text>
+				<Text color={colors.primary} bold>
+					Recent Activity
+				</Text>
 			</Box>
 			<Box>
 				<Text color={colors.secondary}>

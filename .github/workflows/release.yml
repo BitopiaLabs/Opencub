@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Check version difference
         id: version-check
@@ -55,7 +55,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Setup pnpm
@@ -190,7 +190,7 @@ jobs:
           git push origin main
 
   update-homebrew:
-    needs: [check-version, publish]
+    needs: [check-version, publish, update-nix]
     if: needs.check-version.outputs.should-publish == 'true'
     runs-on: macos-latest
     steps:

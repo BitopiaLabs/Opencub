@@ -63,13 +63,19 @@ nanocoder
 
 #### Homebrew (macOS/Linux)
 
-Install using Homebrew tap:
+First, tap the repository:
 
 ```bash
-brew install nano-collective/nanocoder/nanocoder
+brew tap nano-collective/nanocoder https://github.com/Nano-Collective/nanocoder
 ```
 
-Then run in any directory:
+Then install:
+
+```bash
+brew install nanocoder
+```
+
+Run in any directory:
 
 ```bash
 nanocoder
@@ -78,8 +84,14 @@ nanocoder
 To update:
 
 ```bash
+# Update Homebrew's tap cache first (important!)
+brew update
+
+# Then upgrade nanocoder
 brew upgrade nanocoder
 ```
+
+> **Note**: If `brew upgrade nanocoder` shows the old version is already installed, run `brew update` first. Homebrew caches tap formulas locally and only refreshes them during `brew update`. Without updating the tap cache, you'll see the cached (older) version even if a newer formula exists in the repository.
 
 #### Nix Flakes
 
@@ -409,8 +421,9 @@ Preferences follow the same location hierarchy as configuration files:
 - `/export` - Export current session to markdown file
 - `/theme` - Select a theme for the Nanocoder CLI
 - `/update` - Update Nanocoder to the latest version
+- `/usage` – Get current model context usage visually
 - `!command` - Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM)
-- `@file` - Include file contents in messages automatically via fuzzy search as you type.
+- `@file` - Include file contents in messages automatically via fuzzy search as you type
 
 #### Custom Commands
 
