@@ -2,6 +2,28 @@
 
 - Fix: Update checker used old rendering method so it appeared broken and always checking for an update. This has now been resolved.
 
+- Fix: Config files now correctly use `~/.config/nanocoder/` (or platform equivalents) instead of `~/.local/share/nanocoder/`, restoring proper XDG semantic separation between configuration and data. Thanks to @bowmanjd for patching this.
+
+- Fix: Many edge-case fixes in the markdown parser for assistant messages. Outputs are far cleaner now.
+
+- Removed message display limit, you can now see the entire session history. The message queue is very well optimised at this point so we can afford to.
+
+- Removed `read_many_files` tool, it's rarely used by models over `read_file` and provides little benefit.
+
+- Removed `search_files` tool as models often found it confusing for finding files and content.
+
+_In replacement:_
+
+- Added the `find_files` tool. The model provides a pattern and the tool returns matching files and directory paths.
+
+- Added `search-file-contents` tool. The model provides a pattern and the tool returns matching content and metadata for further use.
+
+- Revised `read_file` tool to reveal progressive information about a file. Called on its own, it'll return just file metadata, the model can also choose to pass line number ranges to get specific content.
+
+- Update main prompt to reflect.
+
+_^ All of the above is in effort to better manage context when it comes to models using tools. Some smaller models, like Qwen 3 Coder 30B struggle from intense context rot so these improvements are the first in a set that'll help small models make more accurate and purposeful tool calls._
+
 If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
 
 # 1.16.2
