@@ -1,3 +1,28 @@
+# 1.16.3
+
+- Fix: Update checker used old rendering method so it appeared broken and always checking for an update. This has now been resolved.
+
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+
+# 1.16.2
+
+- Fix: Models returning empty responses after tool execution now automatically reprompted.
+
+- Fix: HTML tags in responses no longer trigger false tool call detection errors.
+
+- `search_files` tool limited to 10 results (reduced from 50) to prevent large outputs
+- `execute_bash` output truncated to 2,000 chars (reduced from 4,000) and returns plain string.
+
+- Model context limit tests updated to match actual implementation
+
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+
+# 1.16.1
+
+- Fix: Removed postinstall hook that caused installation failures due to missing scripts directory in published package. Models.dev data is now fetched on first use instead of during installation.
+
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+
 # 1.16.0
 
 - New `/usage` command! Visually see model context usage. Thanks to @spinualexandru for doing this. Closes issue #12. 🎉
