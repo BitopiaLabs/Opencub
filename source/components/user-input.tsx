@@ -361,8 +361,17 @@ export default function UserInput({
 			focus('user-input');
 		}
 
-		// Handle return keys
+		// Handle return keys for multiline input
+		// Support Shift+Enter if the terminal sends it properly
 		if (key.return && key.shift) {
+			updateInput(input + '\n');
+			return;
+		}
+
+		// VSCode terminal sends Option+Enter as '\r' with key.return === false
+		// Regular Enter in VSCode sends '\r' with key.return === true
+		// So we use key.return to distinguish: false = multiline, true = submit
+		if (inputChar === '\r' && !key.return) {
 			updateInput(input + '\n');
 			return;
 		}
