@@ -41,6 +41,10 @@ export default function UserInput({
 	const uiState = useUIStateContext();
 	const {boxWidth, isNarrow} = useResponsiveTerminal();
 	const [textInputKey, setTextInputKey] = useState(0);
+	// Store the original InputState (including placeholders) when starting history navigation
+	const [originalInputState, setOriginalInputState] = useState<
+		typeof inputState.currentState | null
+	>(null);
 
 	// File autocomplete state
 	const [isFileAutocompleteMode, setIsFileAutocompleteMode] = useState(false);
@@ -231,6 +235,8 @@ export default function UserInput({
 
 			if (direction === 'up') {
 				if (historyIndex === -1) {
+					// Save the full current state (including placeholders) before starting navigation
+					setOriginalInputState(currentState);
 					setOriginalInput(input);
 					setHistoryIndex(history.length - 1);
 					setInputState(history[history.length - 1]);
@@ -241,7 +247,9 @@ export default function UserInput({
 					setInputState(history[newIndex]);
 					setTextInputKey(prev => prev + 1);
 				} else {
+					// Clear when going past the first history item
 					setHistoryIndex(-2);
+					setOriginalInput('');
 					updateInput('');
 					setTextInputKey(prev => prev + 1);
 				}
@@ -252,13 +260,26 @@ export default function UserInput({
 					setInputState(history[newIndex]);
 					setTextInputKey(prev => prev + 1);
 				} else if (historyIndex === history.length - 1) {
+					// Restore the full original state (including placeholders)
 					setHistoryIndex(-1);
-					updateInput(originalInput);
+					if (originalInputState) {
+						setInputState(originalInputState);
+						setOriginalInputState(null);
+					} else {
+						updateInput(originalInput);
+					}
 					setOriginalInput('');
 					setTextInputKey(prev => prev + 1);
 				} else if (historyIndex === -2) {
-					setHistoryIndex(0);
-					setInputState(history[0]);
+					// Restore the original input state when pressing down from the empty state
+					setHistoryIndex(-1);
+					if (originalInputState) {
+						setInputState(originalInputState);
+						setOriginalInputState(null);
+					} else {
+						updateInput(originalInput);
+					}
+					setOriginalInput('');
 					setTextInputKey(prev => prev + 1);
 				}
 			}
@@ -267,6 +288,8 @@ export default function UserInput({
 			historyIndex,
 			input,
 			originalInput,
+			currentState,
+			originalInputState,
 			setHistoryIndex,
 			setOriginalInput,
 			setInputState,
@@ -320,30 +343,35 @@ export default function UserInput({
 				return;
 			}
 
-			// Command completion - just show suggestions, no selection
+			// Command completion - use pre-calculated commandCompletions
 			if (input.startsWith('/')) {
-				const commandPrefix = input.slice(1).split(' ')[0];
-				const builtInCompletions =
-					commandRegistry.getCompletions(commandPrefix);
-				const customCompletions = customCommands.filter(cmd =>
-					cmd.startsWith(commandPrefix),
-				);
-
-				const allCompletions: Completion[] = [
-					...builtInCompletions.map(cmd => ({name: cmd, isCustom: false})),
-					...customCompletions.map(cmd => ({name: cmd, isCustom: true})),
-				];
-
-				if (allCompletions.length === 1) {
+				if (commandCompletions.length === 1) {
 					// Auto-complete when there's exactly one match
-					const completion = allCompletions[0];
+					const completion = commandCompletions[0];
 					const completedText = `/${completion.name}`;
-					updateInput(completedText);
+					// Use setInputState to bypass paste detection for autocomplete
+					setInputState({
+						displayValue: completedText,
+						placeholderContent: currentState.placeholderContent,
+					});
 					setTextInputKey(prev => prev + 1);
-				} else if (allCompletions.length > 1) {
-					// Show completions when there are multiple matches
-					setCompletions(allCompletions);
-					setShowCompletions(true);
+				} else if (commandCompletions.length > 1) {
+					// If completions are already showing, autocomplete to the first result
+					if (showCompletions && completions.length > 0) {
+						const completion = completions[0];
+						const completedText = `/${completion.name}`;
+						// Use setInputState to bypass paste detection for autocomplete
+						setInputState({
+							displayValue: completedText,
+							placeholderContent: currentState.placeholderContent,
+						});
+						setShowCompletions(false);
+						setTextInputKey(prev => prev + 1);
+					} else {
+						// Show completions when there are multiple matches
+						setCompletions(commandCompletions);
+						setShowCompletions(true);
+					}
 				}
 				return;
 			}
