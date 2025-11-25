@@ -19,10 +19,6 @@ import Spinner from 'ink-spinner';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import {RecommendationsDisplay} from '@/commands/recommendations';
 import {ConfigWizard} from '@/wizard/config-wizard';
-import {
-	VSCodeExtensionPrompt,
-	shouldPromptExtensionInstall,
-} from '@/components/vscode-extension-prompt';
 
 // Import extracted hooks and utilities
 import {useAppState} from '@/hooks/useAppState';
@@ -31,7 +27,6 @@ import {useToolHandler} from '@/hooks/useToolHandler';
 import {useModeHandlers} from '@/hooks/useModeHandlers';
 import {useAppInitialization} from '@/hooks/useAppInitialization';
 import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
-import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 import {
 	createClearMessagesHandler,
 	handleMessageSubmission,
@@ -40,62 +35,16 @@ import {
 // Provide shared UI state to components
 import {UIStateProvider} from '@/hooks/useUIState';
 
-interface AppProps {
-	vscodeMode?: boolean;
-	vscodePort?: number;
-}
-
-export default function App({vscodeMode = false, vscodePort}: AppProps) {
+export default function App() {
 	// Use extracted hooks
 	const appState = useAppState();
 	const {exit} = useApp();
 	const {isTrusted, handleConfirmTrust, isTrustLoading, isTrustedError} =
 		useDirectoryTrust();
 
-	// VS Code extension installation prompt state
-	const [showExtensionPrompt, setShowExtensionPrompt] = React.useState(
-		() => vscodeMode && shouldPromptExtensionInstall(),
-	);
-	const [extensionPromptComplete, setExtensionPromptComplete] =
-		React.useState(false);
-
 	const handleExit = () => {
 		exit();
 	};
-
-	// VS Code server integration - handles prompts from VS Code extension
-	const handleVSCodePrompt = React.useCallback(
-		(
-			prompt: string,
-			context?: {
-				filePath?: string;
-				selection?: string;
-				cursorPosition?: {line: number; character: number};
-			},
-		) => {
-			// Build enhanced prompt with context if available
-			let enhancedPrompt = prompt;
-			if (context?.filePath) {
-				enhancedPrompt = `[Context: ${context.filePath}${
-					context.selection ? ` (selection)` : ''
-				}]\n\n${prompt}`;
-			}
-			// This will be connected to chat handler after initialization
-			// For now, store it for processing
-			console.log('VS Code prompt received:', enhancedPrompt);
-		},
-		[],
-	);
-
-	// Setup VS Code server (returns connection status and methods)
-	// The server handles prompts via callback and exposes methods for sending messages
-	const _vsCodeServer = useVSCodeServer({
-		enabled: vscodeMode,
-		port: vscodePort,
-		currentModel: appState.currentModel,
-		currentProvider: appState.currentProvider,
-		onPrompt: handleVSCodePrompt,
-	});
 
 	// Create theme context value
 	const themeContextValue = {
@@ -163,6 +112,24 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 		setDevelopmentMode: appState.setDevelopmentMode,
 	});
 
+	// Setup initialization
+	const appInitialization = useAppInitialization({
+		setClient: appState.setClient,
+		setCurrentModel: appState.setCurrentModel,
+		setCurrentProvider: appState.setCurrentProvider,
+		setToolManager: appState.setToolManager,
+		setCustomCommandLoader: appState.setCustomCommandLoader,
+		setCustomCommandExecutor: appState.setCustomCommandExecutor,
+		setCustomCommandCache: appState.setCustomCommandCache,
+		setStartChat: appState.setStartChat,
+		setMcpInitialized: appState.setMcpInitialized,
+		setUpdateInfo: appState.setUpdateInfo,
+		addToChatQueue: appState.addToChatQueue,
+		componentKeyCounter: appState.componentKeyCounter,
+		customCommandCache: appState.customCommandCache,
+		setIsConfigWizardMode: appState.setIsConfigWizardMode,
+	});
+
 	// Setup mode handlers
 	const modeHandlers = useModeHandlers({
 		client: appState.client,
@@ -181,24 +148,7 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 		addToChatQueue: appState.addToChatQueue,
 		componentKeyCounter: appState.componentKeyCounter,
-	});
-
-	// Setup initialization
-	useAppInitialization({
-		setClient: appState.setClient,
-		setCurrentModel: appState.setCurrentModel,
-		setCurrentProvider: appState.setCurrentProvider,
-		setToolManager: appState.setToolManager,
-		setCustomCommandLoader: appState.setCustomCommandLoader,
-		setCustomCommandExecutor: appState.setCustomCommandExecutor,
-		setCustomCommandCache: appState.setCustomCommandCache,
-		setStartChat: appState.setStartChat,
-		setMcpInitialized: appState.setMcpInitialized,
-		setUpdateInfo: appState.setUpdateInfo,
-		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
-		customCommandCache: appState.customCommandCache,
-		setIsConfigWizardMode: appState.setIsConfigWizardMode,
+		reinitializeMCPServers: appInitialization.reinitializeMCPServers,
 	});
 
 	// Memoize handlers to prevent unnecessary re-renders
@@ -341,27 +291,6 @@ export default function App({vscodeMode = false, vscodePort}: AppProps) {
 	if (!isTrusted) {
 		return (
 			<SecurityDisclaimer onConfirm={handleConfirmTrust} onExit={handleExit} />
-		);
-	}
-
-	// Show VS Code extension installation prompt if needed
-	if (showExtensionPrompt && !extensionPromptComplete) {
-		return (
-			<ThemeContext.Provider value={themeContextValue}>
-				<Box flexDirection="column" padding={1}>
-					<WelcomeMessage />
-					<VSCodeExtensionPrompt
-						onComplete={() => {
-							setShowExtensionPrompt(false);
-							setExtensionPromptComplete(true);
-						}}
-						onSkip={() => {
-							setShowExtensionPrompt(false);
-							setExtensionPromptComplete(true);
-						}}
-					/>
-				</Box>
-			</ThemeContext.Provider>
 		);
 	}
 

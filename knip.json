@@ -1,15 +1,7 @@
 {
 	"$schema": "https://unpkg.com/knip@5/schema.json",
 	"ignoreDependencies": [],
-	"ignoreBinaries": ["vsce"],
-	"ignore": [
-		"nanocoder-dummy-file.ts",
-		"source/utils/message-queue.tsx",
-		"source/vscode/**/*.ts",
-		"source/hooks/useVSCodeServer.tsx",
-		"plugins/**/*",
-		"scripts/fetch-models.js"
-	],
+	"ignore": ["nanocoder-dummy-file.ts", "source/utils/message-queue.tsx"],
 	"ignoreExportsUsedInFile": {
 		"interface": true,
 		"type": true
