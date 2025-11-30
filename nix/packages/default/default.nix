@@ -12,7 +12,7 @@
 }:
 
 let
-  version = "1.17.0";
+  version = "1.17.2";
 in
 
 stdenv.mkDerivation (finalAttrs: {
@@ -23,7 +23,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "nano-collective";
     repo = "nanocoder";
     rev = "v${version}";
-    sha256 = "sha256-lfKnSANySQNsABKIXC1DQKdTThHRP7ZYQFoCCK4faF0=";
+    sha256 = "sha256-DqYutzJcacLR+AVLE1IgjKlDVzrWowOZ+Zt4cPSsxT4=";
   };
 
   nativeBuildInputs = [
@@ -53,6 +53,7 @@ stdenv.mkDerivation (finalAttrs: {
     cp -r dist $out/lib/nanocoder/
     cp -r node_modules $out/lib/nanocoder/
     cp package.json $out/lib/nanocoder/
+    cp -r plugins $out/lib/nanocoder/
 
     # Create wrapper script
     cat > $out/bin/nanocoder <<EOF
