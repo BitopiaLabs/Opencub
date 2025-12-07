@@ -1,5 +1,12 @@
 import {useState, useCallback, useMemo, useEffect} from 'react';
-import {LLMClient, Message, DevelopmentMode, ToolCall} from '@/types/core';
+import {
+	LLMClient,
+	Message,
+	DevelopmentMode,
+	ToolCall,
+	MCPConnectionStatus,
+	LSPConnectionStatus,
+} from '@/types/core';
 import {ToolManager} from '@/tools/tool-manager';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
@@ -45,6 +52,14 @@ export function useAppState() {
 	const [mcpInitialized, setMcpInitialized] = useState<boolean>(false);
 	const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
+	// Connection status states
+	const [mcpServersStatus, setMcpServersStatus] = useState<
+		MCPConnectionStatus[]
+	>([]);
+	const [lspServersStatus, setLspServersStatus] = useState<
+		LSPConnectionStatus[]
+	>([]);
+
 	// Cancelling indicator state
 	const [isCancelling, setIsCancelling] = useState<boolean>(false);
 
@@ -59,7 +74,7 @@ export function useAppState() {
 		useState<boolean>(false);
 	const [isThemeSelectionMode, setIsThemeSelectionMode] =
 		useState<boolean>(false);
-	const [isRecommendationsMode, setIsRecommendationsMode] =
+	const [isModelDatabaseMode, setIsModelDatabaseMode] =
 		useState<boolean>(false);
 	const [isConfigWizardMode, setIsConfigWizardMode] = useState<boolean>(false);
 	const [isToolConfirmationMode, setIsToolConfirmationMode] =
@@ -178,12 +193,14 @@ export function useAppState() {
 		startChat,
 		mcpInitialized,
 		updateInfo,
+		mcpServersStatus,
+		lspServersStatus,
 		isCancelling,
 		abortController,
 		isModelSelectionMode,
 		isProviderSelectionMode,
 		isThemeSelectionMode,
-		isRecommendationsMode,
+		isModelDatabaseMode,
 		isConfigWizardMode,
 		isToolConfirmationMode,
 		isToolExecuting,
@@ -213,12 +230,14 @@ export function useAppState() {
 		setStartChat,
 		setMcpInitialized,
 		setUpdateInfo,
+		setMcpServersStatus,
+		setLspServersStatus,
 		setIsCancelling,
 		setAbortController,
 		setIsModelSelectionMode,
 		setIsProviderSelectionMode,
 		setIsThemeSelectionMode,
-		setIsRecommendationsMode,
+		setIsModelDatabaseMode,
 		setIsConfigWizardMode,
 		setIsToolConfirmationMode,
 		setIsToolExecuting,

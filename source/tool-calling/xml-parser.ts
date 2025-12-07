@@ -199,13 +199,22 @@ export class XMLToolCallParser {
 
 		// Remove XML tool calls that aren't in code blocks
 		this.TOOL_CALL_REGEX.lastIndex = 0;
-		cleanedContent = cleanedContent.replace(this.TOOL_CALL_REGEX, '').trim();
+		cleanedContent = cleanedContent.replace(this.TOOL_CALL_REGEX, '');
 
 		// Remove any <tool_call> wrapper tags that may be left behind
-		cleanedContent = cleanedContent.replace(/<\/?tool_call>/g, '').trim();
+		cleanedContent = cleanedContent.replace(/<\/?tool_call>/g, '');
 
-		// Clean up extra whitespace and empty lines
-		cleanedContent = cleanedContent.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+		// Clean up whitespace artifacts left by removed tool calls
+		cleanedContent = cleanedContent
+			// Remove trailing whitespace from each line
+			.replace(/[ \t]+$/gm, '')
+			// Collapse multiple spaces (but not at start of line for indentation)
+			.replace(/([^ \t\n]) {2,}/g, '$1 ')
+			// Remove lines that are only whitespace
+			.replace(/^[ \t]+$/gm, '')
+			// Collapse 2+ consecutive blank lines to a single blank line
+			.replace(/\n{3,}/g, '\n\n')
+			.trim();
 
 		return cleanedContent;
 	}
@@ -229,46 +238,41 @@ export class XMLToolCallParser {
 		// Common malformed patterns
 		const patterns = [
 			{
+				// [tool_use: name] or [Tool: name] syntax (common with some models like GLM)
+				regex: /\[(?:tool_use|Tool):\s*(\w+)\]/i,
+				error:
+					'Invalid syntax: [tool_use: name] or [Tool: name] format is not supported',
+			},
+			{
 				// <function=name> syntax
 				regex: /<function=(\w+)>/,
 				error: 'Invalid syntax: <function=name> is not supported',
-				hint: (match: string) => {
-					const toolName = match.match(/<function=(\w+)>/)?.[1];
-					return `Use <${toolName}> instead of <function=${toolName}>`;
-				},
 			},
 			{
 				// <parameter=name> syntax
 				regex: /<parameter=(\w+)>/,
 				error: 'Invalid syntax: <parameter=name> is not supported',
-				hint: (match: string) => {
-					const paramName = match.match(/<parameter=(\w+)>/)?.[1];
-					return `Use <${paramName}>value</${paramName}> instead of <parameter=${paramName}>value</parameter>`;
-				},
 			},
 			{
 				// Generic closing </parameter> without proper name
 				regex: /<parameter=\w+>[\s\S]*?<\/parameter>/,
 				error:
 					'Invalid parameter syntax: parameters must use named tags, not generic <parameter> wrapper',
-				hint: () => 'Use <param_name>value</param_name> format',
 			},
 			{
 				// Generic closing </function> when <function=name> was used
 				regex: /<function=\w+>[\s\S]*?<\/function>/,
 				error:
 					'Invalid function syntax: use simple named tags, not <function=name> wrapper',
-				hint: () => 'Use <tool_name><param>value</param></tool_name> format',
 			},
 		];
 
 		for (const pattern of patterns) {
 			const match = content.match(pattern.regex);
 			if (match) {
-				const hint = pattern.hint(match[0]);
 				return {
 					error: pattern.error,
-					examples: this.getCorrectFormatExamples(hint),
+					examples: this.getCorrectFormatExamples(),
 				};
 			}
 		}
@@ -279,12 +283,7 @@ export class XMLToolCallParser {
 	/**
 	 * Generates correct format examples for error messages
 	 */
-	private static getCorrectFormatExamples(specificHint: string): string {
-		return `${specificHint}
-
-Correct format:
-<tool_name>
-  <param>value</param>
-</tool_name>`;
+	private static getCorrectFormatExamples(): string {
+		return `Please use the native tool calling format provided by the system. The tools are already available to you - call them directly using the function calling interface.`;
 	}
 }

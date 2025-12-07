@@ -439,13 +439,40 @@ test('hasToolCalls - returns false for incomplete XML', t => {
 });
 
 // detectMalformedToolCall tests
+test('detectMalformedToolCall - detects [tool_use: name] syntax', t => {
+	const content = '[tool_use: read_file]';
+	const result = XMLToolCallParser.detectMalformedToolCall(content);
+
+	t.truthy(result);
+	t.true(result!.error.includes('[tool_use: name]'));
+	t.true(result!.examples.includes('native tool calling'));
+});
+
+test('detectMalformedToolCall - detects [Tool: name] syntax', t => {
+	const content = '[Tool: read_file]';
+	const result = XMLToolCallParser.detectMalformedToolCall(content);
+
+	t.truthy(result);
+	t.true(result!.error.includes('[tool_use: name]'));
+	t.true(result!.examples.includes('native tool calling'));
+});
+
+test('detectMalformedToolCall - detects [Tool: name] in context', t => {
+	const content =
+		'Let me read the file for you.\n\n[Tool: read_file]\nThe file contains...';
+	const result = XMLToolCallParser.detectMalformedToolCall(content);
+
+	t.truthy(result);
+	t.true(result!.error.includes('[tool_use: name]'));
+});
+
 test('detectMalformedToolCall - detects <function=name> syntax', t => {
 	const content = '<function=read_file><path>/test.txt</path></function>';
 	const result = XMLToolCallParser.detectMalformedToolCall(content);
 
 	t.truthy(result);
 	t.true(result!.error.includes('<function=name>'));
-	t.true(result!.examples.includes('<read_file>'));
+	t.true(result!.examples.includes('native tool calling'));
 });
 
 test('detectMalformedToolCall - detects <parameter=name> syntax', t => {
@@ -493,8 +520,8 @@ test('detectMalformedToolCall - includes helpful examples in error', t => {
 	const result = XMLToolCallParser.detectMalformedToolCall(content);
 
 	t.truthy(result);
-	t.true(result!.examples.includes('Correct format:'));
-	t.true(result!.examples.includes('<tool_name>'));
+	t.true(result!.examples.includes('native tool calling'));
+	t.true(result!.examples.includes('function calling interface'));
 });
 
 // Complex integration tests

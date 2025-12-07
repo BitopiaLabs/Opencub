@@ -16,6 +16,19 @@ import {createTokenizer} from '@/tokenization/index';
 import {calculateTokenBreakdown} from '@/usage/calculator';
 import {getModelContextLimit} from '@/models/index';
 
+// Normalize streaming content to prevent excessive blank lines during output
+const normalizeStreamingContent = (content: string): string =>
+	content
+		// Strip <think>...</think> tags (some models output thinking that shouldn't be shown)
+		.replace(/<think>[\s\S]*?<\/think>/gi, '')
+		// Strip orphaned/incomplete think tags (during streaming)
+		.replace(/<think>[\s\S]*$/gi, '')
+		.replace(/<\/think>/gi, '')
+		// Collapse 3+ consecutive newlines to 2 (one blank line max)
+		.replace(/\n{3,}/g, '\n\n')
+		// Remove leading whitespace (clean start)
+		.replace(/^\s+/, '');
+
 // Helper function to convert tool results to message format
 const toolResultsToMessages = (results: ToolResult[]): Message[] =>
 	results.map(result => ({
@@ -190,7 +203,9 @@ export function useChatHandler({
 					addToChatQueue(
 						<WarningMessage
 							key={`context-warning-${componentKeyCounter}`}
-							message={`Context ${Math.round(percentUsed)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens). Consider using /clear to start fresh.`}
+							message={`Context ${Math.round(
+								percentUsed,
+							)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens). Consider using /clear to start fresh.`}
 							hideBox={true}
 						/>,
 					);
@@ -198,7 +213,9 @@ export function useChatHandler({
 					addToChatQueue(
 						<WarningMessage
 							key={`context-warning-${componentKeyCounter}`}
-							message={`Context ${Math.round(percentUsed)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens).`}
+							message={`Context ${Math.round(
+								percentUsed,
+							)}% full (${breakdown.total.toLocaleString()}/${contextLimit.toLocaleString()} tokens).`}
 							hideBox={true}
 						/>,
 					);
@@ -237,7 +254,7 @@ export function useChatHandler({
 				{
 					onToken: (token: string) => {
 						accumulatedContent += token;
-						setStreamingContent(accumulatedContent);
+						setStreamingContent(normalizeStreamingContent(accumulatedContent));
 					},
 					onToolExecuted: (toolCall: ToolCall, result: string) => {
 						// Display formatter for auto-executed tools (after execution with results)
@@ -684,11 +701,8 @@ export function useChatHandler({
 		setAbortController(controller);
 
 		try {
-			// Load and process system prompt with dynamic tool documentation
-			// Note: We still need tool definitions (not just native tools) for documentation
-			const systemPrompt = processPromptTemplate(
-				toolManager ? toolManager.getAllTools() : {},
-			);
+			// Load and process system prompt
+			const systemPrompt = processPromptTemplate();
 
 			// Create stream request
 			const systemMessage: Message = {
