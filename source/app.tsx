@@ -9,15 +9,20 @@ import ChatQueue from '@/components/chat-queue';
 import ModelSelector from '@/components/model-selector';
 import ProviderSelector from '@/components/provider-selector';
 import ThemeSelector from '@/components/theme-selector';
+import CheckpointSelector from '@/components/checkpoint-selector';
 import CancellingIndicator from '@/components/cancelling-indicator';
 import ToolConfirmation from '@/components/tool-confirmation';
 import ToolExecutionIndicator from '@/components/tool-execution-indicator';
 import BashExecutionIndicator from '@/components/bash-execution-indicator';
-import {setGlobalMessageQueue} from '@/utils/message-queue';
+import {setGlobalMessageQueue, addToMessageQueue} from '@/utils/message-queue';
 import Spinner from 'ink-spinner';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import {ModelDatabaseDisplay} from '@/commands/model-database';
 import {ConfigWizard} from '@/wizard/config-wizard';
+import {CheckpointManager} from '@/services/checkpoint-manager';
+import SuccessMessage from '@/components/success-message';
+import WarningMessage from '@/components/warning-message';
+import ErrorMessage from '@/components/error-message';
 import {
 	VSCodeExtensionPrompt,
 	shouldPromptExtensionInstall,
@@ -72,7 +77,7 @@ export function isNonInteractiveModeComplete(
 		!appState.isToolExecuting &&
 		!appState.isBashExecuting &&
 		!appState.isToolConfirmationMode;
-	const hasMessages = appState.messages.length > 0;
+	const _hasMessages = appState.messages.length > 0;
 	const hasTimedOut = Date.now() - startTime > maxExecutionTimeMs;
 
 	// Check for error messages in the messages array
@@ -259,6 +264,8 @@ export default function App({
 		setUpdateInfo: appState.setUpdateInfo,
 		setMcpServersStatus: appState.setMcpServersStatus,
 		setLspServersStatus: appState.setLspServersStatus,
+		setPreferencesLoaded: appState.setPreferencesLoaded,
+		setCustomCommandsCount: appState.setCustomCommandsCount,
 		addToChatQueue: appState.addToChatQueue,
 		componentKeyCounter: appState.componentKeyCounter,
 		customCommandCache: appState.customCommandCache,
@@ -327,15 +334,91 @@ export default function App({
 				updateInfo={appState.updateInfo}
 				mcpServersStatus={appState.mcpServersStatus}
 				lspServersStatus={appState.lspServersStatus}
+				preferencesLoaded={appState.preferencesLoaded}
+				customCommandsCount={appState.customCommandsCount}
 			/>,
 		);
 	}, [appState]);
+
+	// Checkpoint selection handlers
+	const handleCheckpointSelect = React.useCallback(
+		async (checkpointName: string, createBackup: boolean) => {
+			try {
+				const manager = new CheckpointManager();
+
+				if (createBackup) {
+					try {
+						await manager.saveCheckpoint(
+							`backup-${new Date().toISOString().replace(/[:.]/g, '-')}`,
+							appState.messages,
+							appState.currentProvider,
+							appState.currentModel,
+						);
+					} catch (error) {
+						addToMessageQueue(
+							<WarningMessage
+								key={`backup-warning-${Date.now()}`}
+								message={`Warning: Failed to create backup: ${
+									error instanceof Error ? error.message : 'Unknown error'
+								}`}
+								hideBox={true}
+							/>,
+						);
+					}
+				}
+
+				const checkpointData = await manager.loadCheckpoint(checkpointName, {
+					validateIntegrity: true,
+				});
+
+				await manager.restoreFiles(checkpointData);
+
+				addToMessageQueue(
+					<SuccessMessage
+						key={`restore-success-${Date.now()}`}
+						message={`✓ Checkpoint '${checkpointName}' restored successfully`}
+						hideBox={true}
+					/>,
+				);
+			} catch (error) {
+				addToMessageQueue(
+					<ErrorMessage
+						key={`restore-error-${Date.now()}`}
+						message={`Failed to restore checkpoint: ${
+							error instanceof Error ? error.message : 'Unknown error'
+						}`}
+						hideBox={true}
+					/>,
+				);
+			} finally {
+				appState.setIsCheckpointLoadMode(false);
+				appState.setCheckpointLoadData(null);
+			}
+		},
+		[appState],
+	);
+
+	const handleCheckpointCancel = React.useCallback(() => {
+		appState.setIsCheckpointLoadMode(false);
+		appState.setCheckpointLoadData(null);
+	}, [appState]);
+
+	const enterCheckpointLoadMode = React.useCallback(
+		(
+			checkpoints: import('@/types/checkpoint').CheckpointListItem[],
+			currentMessageCount: number,
+		) => {
+			appState.setCheckpointLoadData({checkpoints, currentMessageCount});
+			appState.setIsCheckpointLoadMode(true);
+		},
+		[appState],
+	);
 
 	const handleMessageSubmit = React.useCallback(
 		async (message: string) => {
 			// Reset conversation completion flag when starting a new message
 			appState.setIsConversationComplete(false);
-			
+
 			await handleMessageSubmission(message, {
 				customCommandCache: appState.customCommandCache,
 				customCommandLoader: appState.customCommandLoader,
@@ -346,6 +429,7 @@ export default function App({
 				onEnterThemeSelectionMode: modeHandlers.enterThemeSelectionMode,
 				onEnterModelDatabaseMode: modeHandlers.enterModelDatabaseMode,
 				onEnterConfigWizardMode: modeHandlers.enterConfigWizardMode,
+				onEnterCheckpointLoadMode: enterCheckpointLoadMode,
 				onShowStatus: handleShowStatus,
 				onHandleChatMessage: chatHandler.handleChatMessage,
 				onAddToChatQueue: appState.addToChatQueue,
@@ -363,29 +447,16 @@ export default function App({
 			});
 		},
 		[
-			appState.customCommandCache,
-			appState.customCommandLoader,
-			appState.customCommandExecutor,
-			appState.setIsConversationComplete,
+			appState,
 			clearMessages,
 			modeHandlers.enterModelSelectionMode,
 			modeHandlers.enterProviderSelectionMode,
 			modeHandlers.enterThemeSelectionMode,
 			modeHandlers.enterModelDatabaseMode,
 			modeHandlers.enterConfigWizardMode,
+			enterCheckpointLoadMode,
 			handleShowStatus,
 			chatHandler.handleChatMessage,
-			appState.addToChatQueue,
-			appState.componentKeyCounter,
-			appState.updateMessages,
-			appState.messages,
-			appState.setIsBashExecuting,
-			appState.setCurrentBashCommand,
-			appState.currentProvider,
-			appState.currentModel,
-			appState.currentTheme,
-			appState.updateInfo,
-			appState.getMessageTokens,
 		],
 	);
 
@@ -439,7 +510,9 @@ export default function App({
 				}
 				// Wait a bit to ensure all output is flushed
 				const timer = setTimeout(() => {
-					process.exit(reason === 'error' || reason === 'tool-approval' ? 1 : 0);
+					process.exit(
+						reason === 'error' || reason === 'tool-approval' ? 1 : 0,
+					);
 				}, OUTPUT_FLUSH_DELAY_MS);
 
 				return () => clearTimeout(timer);
@@ -448,11 +521,7 @@ export default function App({
 	}, [
 		nonInteractivePrompt,
 		nonInteractiveSubmitted,
-		appState.isToolExecuting,
-		appState.isBashExecuting,
-		appState.isToolConfirmationMode,
-		appState.isConversationComplete,
-		appState.messages,
+		appState,
 		startTime,
 		exit,
 	]);
@@ -465,6 +534,11 @@ export default function App({
 			return null;
 		}
 
+		// Don't show loading message when conversation is complete (about to exit)
+		if (appState.isConversationComplete) {
+			return null;
+		}
+
 		if (!appState.mcpInitialized || !appState.client) {
 			return 'Waiting for MCP servers...';
 		}
@@ -474,16 +548,17 @@ export default function App({
 			appState.isToolConfirmationMode ||
 			pendingToolCallCount > 0
 		) {
-			return 'Waiting for Tooling...';
+			return 'Waiting for tooling...';
 		}
 
 		if (appState.isBashExecuting) {
-			return 'Waiting for Bash execution...';
+			return 'Waiting for bash execution...';
 		}
 
-		return 'Waiting for Chat to complete...';
+		return 'Waiting for chat to complete...';
 	}, [
 		nonInteractivePrompt,
+		appState.isConversationComplete,
 		appState.mcpInitialized,
 		appState.client,
 		appState.isToolExecuting,
@@ -511,6 +586,8 @@ export default function App({
 				updateInfo={appState.updateInfo}
 				mcpServersStatus={appState.mcpServersStatus}
 				lspServersStatus={appState.lspServersStatus}
+				preferencesLoaded={appState.preferencesLoaded}
+				customCommandsCount={appState.customCommandsCount}
 			/>,
 		);
 		return components;
@@ -522,6 +599,8 @@ export default function App({
 		appState.updateInfo,
 		appState.mcpServersStatus,
 		appState.lspServersStatus,
+		appState.preferencesLoaded,
+		appState.customCommandsCount,
 	]);
 
 	// Handle loading state for directory trust check
@@ -529,7 +608,7 @@ export default function App({
 		return (
 			<Box flexDirection="column" padding={1}>
 				<Text color={themeContextValue.colors.secondary}>
-					<Spinner type="dots2" /> Checking directory trust...
+					<Spinner type="dots" /> Checking directory trust...
 				</Text>
 			</Box>
 		);
@@ -638,6 +717,18 @@ export default function App({
 									}
 									onCancel={modeHandlers.handleConfigWizardCancel}
 								/>
+							) : appState.isCheckpointLoadMode &&
+							  appState.checkpointLoadData ? (
+								<CheckpointSelector
+									checkpoints={appState.checkpointLoadData.checkpoints}
+									currentMessageCount={
+										appState.checkpointLoadData.currentMessageCount
+									}
+									onSelect={(name, backup) =>
+										void handleCheckpointSelect(name, backup)
+									}
+									onCancel={handleCheckpointCancel}
+								/>
 							) : appState.isToolConfirmationMode &&
 							  appState.pendingToolCalls[appState.currentToolIndex] ? (
 								<ToolConfirmation
@@ -678,9 +769,14 @@ export default function App({
 								/>
 							) : appState.mcpInitialized && !appState.client ? (
 								<></>
+							) : nonInteractivePrompt && !nonInteractiveLoadingMessage ? (
+								// Show completion message when non-interactive mode is done
+								<Text color={themeContextValue.colors.secondary}>
+									Completed. Exiting.
+								</Text>
 							) : (
 								<Text color={themeContextValue.colors.secondary}>
-									<Spinner type="dots2" /> {loadingLabel}
+									<Spinner type="dots" /> {loadingLabel}
 								</Text>
 							)}
 						</Box>

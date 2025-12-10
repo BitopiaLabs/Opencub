@@ -183,6 +183,7 @@ This will open an interactive chat session where you can:
 - Chat with the AI about your code
 - Use slash commands (e.g., `/help`, `/model`, `/status`)
 - Execute bash commands with `!`
+- Tag files with `@`
 - Review and approve tool executions
 - Switch between different models and providers
 
@@ -218,6 +219,7 @@ nanocoder run "refactor the database connection to use a connection pool"
 - Exits automatically when the task is complete
 
 **Note:** When using non-interactive mode with VS Code integration, place any flags (like `--vscode` or `--vscode-port`) before the `run` command:
+
 ```bash
 nanocoder --vscode run "your prompt"
 ```
@@ -294,6 +296,18 @@ Nanocoder looks for configuration in the following order (first found wins):
 				"baseUrl": "https://api.z.ai/api/coding/paas/v4/",
 				"apiKey": "your-z.ai-coding-api-key",
 				"models": ["glm-4.6", "glm-4.5", "glm-4.5-air"]
+			},
+			{
+				"name": "GitHub Models",
+				"baseUrl": "https://models.github.ai/inference",
+				"apiKey": "your-github-pat",
+				"models": ["openai/gpt-4o-mini", "meta/llama-3.1-70b-instruct"]
+			},
+			{
+				"name": "Poe",
+				"baseUrl": "https://api.poe.com/v1",
+				"apiKey": "your-poe-api-key",
+				"models": ["Claude-Sonnet-4", "GPT-4o", "Gemini-2.5-Pro"]
 			}
 		]
 	}
@@ -310,6 +324,8 @@ Nanocoder looks for configuration in the following order (first found wins):
 - **vLLM**: `"baseUrl": "http://localhost:8000/v1"`
 - **LocalAI**: `"baseUrl": "http://localhost:8080/v1"`
 - **OpenAI**: `"baseUrl": "https://api.openai.com/v1"`
+- **Poe**: `"baseUrl": "https://api.poe.com/v1"` (get API key from [poe.com/api_key](https://poe.com/api_key))
+- **GitHub Models**: `"baseUrl": "https://models.github.ai/inference"` (requires PAT with `models:read` scope)
 - **Z.ai**: `"baseUrl": "https://api.z.ai/api/paas/v4/"`
 - **Z.ai Coding**: `"baseUrl": "https://api.z.ai/api/coding/paas/v4/"`
 
@@ -501,7 +517,7 @@ You can override this directory using `NANOCODER_DATA_DIR`.
 #### Built-in Commands
 
 - `/help` - Show available commands
-- `/init` - Initialize project with intelligent analysis, create AGENTS.md and configuration files
+- `/init` - Initialize project with intelligent analysis, create AGENTS.md and configuration files. Use `/init --force` to regenerate AGENTS.md if it already exists.
 - `/setup-config` - Interactive wizard for configuring AI providers and MCP servers with templates
 - `/clear` - Clear chat history
 - `/model` - Switch between available models
@@ -510,6 +526,7 @@ You can override this directory using `NANOCODER_DATA_DIR`.
 - `/model-database` - Browse coding models from OpenRouter (searchable, filterable by open/proprietary)
 - `/mcp` - Show connected MCP servers and their tools
 - `/custom-commands` - List all custom commands
+- `/checkpoint` - Save and restore conversation snapshots (see [Checkpointing](#checkpointing) section)
 - `/exit` - Exit the application
 - `/export` - Export current session to markdown file
 - `/theme` - Select a theme for the Nanocoder CLI
@@ -518,6 +535,66 @@ You can override this directory using `NANOCODER_DATA_DIR`.
 - `/lsp` – List connected LSP servers
 - `!command` - Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM)
 - `@file` - Include file contents in messages automatically via fuzzy search as you type
+
+#### Checkpointing
+
+Nanocoder supports conversation checkpointing, allowing you to save snapshots of your coding sessions and restore them later. This is perfect for experimenting with different approaches or preserving important milestones.
+
+**Checkpoint Commands:**
+
+- `/checkpoint create [name]` - Create a checkpoint with optional custom name
+
+  - Auto-generates timestamp-based name if not provided
+  - Captures conversation history, modified files, and AI model configuration
+  - Example: `/checkpoint create feature-auth-v1`
+
+- `/checkpoint list` - List all available checkpoints
+
+  - Shows checkpoint name, creation time, message count, and files changed
+  - Sorted by creation date (newest first)
+
+- `/checkpoint load [name]` - Restore files from a checkpoint
+
+  - **Without name**: Shows interactive list to select checkpoint
+  - **With name**: Directly loads the specified checkpoint
+  - Prompts "Create backup before loading? (Y/n)" if current session has messages
+  - Press Y (or Enter) to auto-backup, N to skip, Esc to cancel
+  - Note: Conversation history restore requires restarting Nanocoder
+  - Example: `/checkpoint load` (interactive) or `/checkpoint load feature-auth-v1`
+
+- `/checkpoint delete <name>` - Delete a checkpoint permanently
+  - Removes checkpoint and all associated data
+  - Example: `/checkpoint delete old-checkpoint`
+
+**What gets saved:**
+
+- Complete conversation history
+- Modified files with their content (detected via git)
+- Active provider and model configuration
+- Timestamp and metadata
+
+**Storage location:**
+
+- Checkpoints are stored in `.nanocoder/checkpoints/` in your project directory
+- Each project has its own checkpoints
+- Consider adding `.nanocoder/checkpoints` to your `.gitignore`
+
+**Example workflow:**
+
+```bash
+# Create a checkpoint before trying a new approach
+/checkpoint create before-refactor
+
+# Make some experimental changes...
+# If things go wrong, restore the checkpoint
+/checkpoint load before-refactor
+
+# Or if things went well, create a new checkpoint
+/checkpoint create after-refactor
+
+# List all checkpoints to see your progress
+/checkpoint list
+```
 
 #### Custom Commands
 
