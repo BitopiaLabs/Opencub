@@ -4,6 +4,7 @@
  */
 
 import type {Logger, LoggerConfig, LogLevel} from './types.js';
+import {createLogMethods} from './log-method-factory.js';
 
 export class LoggerProvider {
 	private static instance: LoggerProvider | null = null;
@@ -12,8 +13,12 @@ export class LoggerProvider {
 	private _dependenciesLoaded = false;
 
 	// Lazy-loaded dependencies
-	private _createPinoLogger: ((config?: Partial<LoggerConfig>) => Logger) | null = null;
-	private _createConfig: ((config?: Partial<LoggerConfig>) => LoggerConfig) | null = null;
+	private _createPinoLogger:
+		| ((config?: Partial<LoggerConfig>) => Logger)
+		| null = null;
+	private _createConfig:
+		| ((config?: Partial<LoggerConfig>) => LoggerConfig)
+		| null = null;
 
 	private constructor() {
 		// Private constructor for singleton pattern
@@ -46,34 +51,106 @@ export class LoggerProvider {
 			redact: [],
 			correlation: false,
 			serialize: false,
-			...config
+			...config,
 		});
 		this._dependenciesLoaded = true;
 
 		// Asynchronously load the real dependencies and replace the fallback
 		this.loadRealDependencies().catch(error => {
-			console.error('[LOGGER_PROVIDER] Failed to load real dependencies, using fallback:', error);
+			try {
+				const fallbackLogger = this.createFallbackLogger();
+				fallbackLogger.error('[LOGGER_PROVIDER] Failed to load real dependencies', {
+					error: this.formatErrorForLogging(error),
+					fallback: true,
+					source: 'logger-provider',
+					timestamp: new Date().toISOString()
+				});
+			} catch (fallbackError) {
+				// Absolute fallback to console if everything else fails
+				console.error('[LOGGER_PROVIDER] Critical failure - fallback logger failed:', 
+							fallbackError, 'Original error:', error);
+			}
 		});
 	}
 
 	/**
 	 * Asynchronously load real Pino dependencies
+	 * Uses dynamic imports to avoid circular dependency issues
 	 */
 	private async loadRealDependencies() {
+		// Skip if already loaded to prevent duplicate loading
+		if (this._dependenciesLoaded) {
+			this.createFallbackLogger().debug('Real dependencies already loaded', {
+				source: 'logger-provider',
+				status: 'already-loaded'
+			});
+			return;
+		}
+
+		const startTime = Date.now();
+		this.createFallbackLogger().info('Loading real Pino dependencies', {
+			source: 'logger-provider',
+			method: 'dynamic-import',
+			status: 'starting'
+		});
+
 		try {
 			// Load dependencies dynamically to avoid circular imports
-			const pinoLogger = await import('./pino-logger.js');
-			const configModule = await import('./config.js');
+			// Using Promise.all for parallel loading to improve performance
+			const [pinoLogger, configModule] = await Promise.all([
+				import('./pino-logger.js'),
+				import('./config.js')
+			]);
+
+			// Verify imports were successful
+			if (!pinoLogger?.createPinoLogger || !configModule?.createConfig) {
+				throw new Error('Dynamic imports returned invalid modules');
+			}
 
 			this._createPinoLogger = pinoLogger.createPinoLogger;
 			this._createConfig = configModule.createConfig;
+			this._dependenciesLoaded = true;
 
 			// If we already have a logger with fallback config, reinitialize it with real config
 			if (this._logger && this._config) {
-				this._logger = this._createPinoLogger(this._config);
+				try {
+					this._logger = this._createPinoLogger(this._config);
+					this.createFallbackLogger().info('Logger reinitialized with real Pino instance', {
+						source: 'logger-provider',
+						status: 'reinitialized',
+						duration: Date.now() - startTime
+					});
+				} catch (reinitError) {
+					this.createFallbackLogger().warn('Failed to reinitialize logger, keeping fallback', {
+						error: this.formatErrorForLogging(reinitError),
+						source: 'logger-provider',
+						status: 'reinit-failed'
+					});
+				}
 			}
+
+			this.createFallbackLogger().info('Real dependencies loaded successfully', {
+				source: 'logger-provider',
+				status: 'success',
+				duration: Date.now() - startTime,
+				modules: ['pino-logger', 'config']
+			});
+
 		} catch (error) {
-			console.error('[LOGGER_PROVIDER] Failed to load real dependencies:', error);
+			try {
+				const fallbackLogger = this.createFallbackLogger();
+				fallbackLogger.error('[LOGGER_PROVIDER] Failed to load real dependencies', {
+					error: this.formatErrorForLogging(error),
+					fallback: true,
+					source: 'logger-provider',
+					status: 'load-failed',
+					duration: Date.now() - startTime
+				});
+			} catch (fallbackError) {
+				// Absolute fallback to console if everything else fails
+				console.error('[LOGGER_PROVIDER] Critical failure - fallback logger failed:', 
+							fallbackError, 'Original error:', error);
+			}
 			// Keep the fallback logger
 		}
 	}
@@ -82,95 +159,21 @@ export class LoggerProvider {
 	 * Create fallback logger when dependencies fail to load
 	 */
 	private createFallbackLogger(): Logger {
+		const fallbackConsole = console; // Use console as the logger
+
+		// Create all log methods using the factory
+		const logMethods = createLogMethods(fallbackConsole, {
+			consolePrefix: '',
+			transformArgs: (args, _level, _msg) => {
+				// Note: Level prefix is handled by consolePrefix option in createLogMethod
+				return args;
+			},
+		});
+
 		return {
-			fatal: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					// Called as fatal(object, ?message)
-					const obj = args[0];
-					const msg = args[1];
-					console.error('[FATAL]', msg || '', obj);
-				} else {
-					// Called as fatal(msg, ...args)
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.error('[FATAL]', msg, ...restArgs);
-				}
-			}) as any,
-			error: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.error('[ERROR]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.error('[ERROR]', msg, ...restArgs);
-				}
-			}) as any,
-			warn: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.warn('[WARN]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.warn('[WARN]', msg, ...restArgs);
-				}
-			}) as any,
-			info: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.log('[INFO]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.log('[INFO]', msg, ...restArgs);
-				}
-			}) as any,
-			http: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.log('[HTTP]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.log('[HTTP]', msg, ...restArgs);
-				}
-			}) as any,
-			debug: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.log('[DEBUG]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.log('[DEBUG]', msg, ...restArgs);
-				}
-			}) as any,
-			trace: ((...args: any[]) => {
-				if (args.length === 0) return;
-				if (typeof args[0] === 'object' && args[0] !== null) {
-					const obj = args[0];
-					const msg = args[1];
-					console.log('[TRACE]', msg || '', obj);
-				} else {
-					const msg = args[0];
-					const restArgs = args.slice(1);
-					console.log('[TRACE]', msg, ...restArgs);
-				}
-			}) as any,
-			child: (bindings: Record<string, any>) => this.createFallbackLogger(),
-			isLevelEnabled: (level: string) => true,
+			...logMethods,
+			child: (_bindings: Record<string, unknown>) => this.createFallbackLogger(),
+			isLevelEnabled: (_level: string) => true,
 			flush: async () => Promise.resolve(),
 			end: async () => Promise.resolve(),
 		};
@@ -179,7 +182,9 @@ export class LoggerProvider {
 	/**
 	 * Create default configuration based on environment
 	 */
-	private createDefaultConfig(override: Partial<LoggerConfig> = {}): LoggerConfig {
+	private createDefaultConfig(
+		override: Partial<LoggerConfig> = {},
+	): LoggerConfig {
 		const isDev = process.env.NODE_ENV === 'development';
 		const isTest = process.env.NODE_ENV === 'test';
 
@@ -208,7 +213,7 @@ export class LoggerProvider {
 
 		this.ensureDependenciesLoaded();
 		this._config = this.createDefaultConfig(config);
-		this._logger = this._createPinoLogger!(this._config);
+		this._logger = this._createPinoLogger?.(this._config) ?? this.createFallbackLogger();
 
 		return this._logger;
 	}
@@ -234,9 +239,24 @@ export class LoggerProvider {
 	/**
 	 * Create a child logger with additional context
 	 */
-	public createChildLogger(bindings: Record<string, any>): Logger {
+	public createChildLogger(bindings: Record<string, unknown>): Logger {
 		const parent = this.getLogger();
 		return parent.child(bindings);
+	}
+
+	/**
+	 * Format error for structured logging
+	 */
+	private formatErrorForLogging(error: unknown): object {
+		if (error instanceof Error) {
+			return {
+				message: error.message,
+				stack: error.stack,
+				name: error.name,
+				cause: error.cause
+			};
+		}
+		return { value: error };
 	}
 
 	/**

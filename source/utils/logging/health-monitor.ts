@@ -8,10 +8,11 @@ import {
 	withNewCorrelationContext,
 	getLogger,
 } from './index.js';
+import {loadavg} from 'os';
 import {globalLogStorage} from './log-query.js';
 import {globalRequestTracker} from './request-tracker.js';
 import {globalPerformanceMonitor} from './performance.js';
-import type {LoggerConfig, LogLevel, CorrelationContext} from './types.js';
+import type {CorrelationContext} from './types.js';
 
 // Get logger instance directly to avoid circular dependencies
 const logger = getLogger();
@@ -44,7 +45,7 @@ export interface HealthCheck {
 	score: number; // 0-100
 	duration: number;
 	message?: string;
-	details?: Record<string, any>;
+	details?: Record<string, unknown>;
 	error?: string;
 	threshold?: {
 		warning: number;
@@ -195,62 +196,130 @@ export class HealthMonitor {
 	 * Start health monitoring
 	 */
 	start(): void {
-		if (this.isRunning) {
-			logger.warn('Health monitoring already running', {
+		try {
+			if (this.isRunning) {
+				logger.warn('Health monitoring already running', {
+					correlationId: this.correlationId,
+					source: 'health-monitor',
+				});
+				return;
+			}
+
+			this.isRunning = true;
+
+			// Run initial check
+			try {
+				void this.runHealthCheck();
+			} catch (error) {
+				logger.error('Failed to run initial health check', {
+					error: error instanceof Error ? error.message : error,
+					correlationId: this.correlationId,
+					source: 'health-monitor',
+				});
+				// Continue starting monitoring even if initial check fails
+			}
+
+			// Schedule regular checks
+			try {
+				this.intervalId = setInterval(() => {
+					try {
+						void this.runHealthCheck();
+					} catch (error) {
+						logger.error('Failed to run scheduled health check', {
+							error: error instanceof Error ? error.message : error,
+							correlationId: this.correlationId,
+							source: 'health-monitor',
+						});
+					}
+				}, this.config.interval);
+			} catch (error) {
+				logger.error('Failed to schedule health monitoring', {
+					error: error instanceof Error ? error.message : error,
+					correlationId: this.correlationId,
+					source: 'health-monitor',
+				});
+				this.isRunning = false;
+				return;
+			}
+
+			logger.info('Health monitoring started', {
+				interval: `${this.config.interval}ms`,
+				timeout: `${this.config.timeout}ms`,
 				correlationId: this.correlationId,
 				source: 'health-monitor',
 			});
-			return;
+		} catch (error) {
+			logger.error('Critical error starting health monitoring', {
+				error: error instanceof Error ? error.message : error,
+				correlationId: this.correlationId,
+				source: 'health-monitor',
+			});
+			this.isRunning = false;
 		}
-
-		this.isRunning = true;
-
-		// Run initial check
-		this.runHealthCheck();
-
-		// Schedule regular checks
-		this.intervalId = setInterval(() => {
-			this.runHealthCheck();
-		}, this.config.interval);
-
-		logger.info('Health monitoring started', {
-			interval: `${this.config.interval}ms`,
-			timeout: `${this.config.timeout}ms`,
-			correlationId: this.correlationId,
-			source: 'health-monitor',
-		});
 	}
 
 	/**
 	 * Stop health monitoring
 	 */
 	stop(): void {
-		if (!this.isRunning) {
-			logger.debug('Health monitoring not running', {
+		try {
+			if (!this.isRunning) {
+				logger.debug('Health monitoring not running', {
+					correlationId: this.correlationId,
+					source: 'health-monitor',
+				});
+				return;
+			}
+
+			this.isRunning = false;
+
+			try {
+				if (this.intervalId) {
+					clearInterval(this.intervalId);
+					this.intervalId = undefined;
+				}
+			} catch (error) {
+				logger.error('Failed to clear health monitoring interval', {
+					error: error instanceof Error ? error.message : error,
+					correlationId: this.correlationId,
+					source: 'health-monitor',
+				});
+				// Continue with cleanup even if interval clearing fails
+			}
+
+			logger.info('Health monitoring stopped', {
 				correlationId: this.correlationId,
 				source: 'health-monitor',
 			});
-			return;
+		} catch (error) {
+			logger.error('Critical error stopping health monitoring', {
+				error: error instanceof Error ? error.message : error,
+				correlationId: this.correlationId,
+				source: 'health-monitor',
+			});
+			// Ensure we don't leave the system in a bad state
+			this.isRunning = false;
+			if (this.intervalId) {
+				try {
+					clearInterval(this.intervalId);
+					this.intervalId = undefined;
+				} catch (cleanupError) {
+					// Final fallback - log but don't rethrow
+					logger.error('Failed to cleanup health monitoring interval during error recovery', {
+						error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+						correlationId: this.correlationId,
+						source: 'health-monitor',
+					});
+				}
+			}
 		}
-
-		this.isRunning = false;
-
-		if (this.intervalId) {
-			clearInterval(this.intervalId);
-			this.intervalId = undefined;
-		}
-
-		logger.info('Health monitoring stopped', {
-			correlationId: this.correlationId,
-			source: 'health-monitor',
-		});
 	}
 
 	/**
 	 * Run a comprehensive health check
 	 */
 	async runHealthCheck(): Promise<HealthCheckResult> {
-		return withNewCorrelationContext(async (context: CorrelationContext) => {
+		return withNewCorrelationContext(async (_context: CorrelationContext) => {
 			const startTime = performance.now();
 
 			try {
@@ -373,7 +442,7 @@ export class HealthMonitor {
 	 * Get current system metrics
 	 */
 	getSystemMetrics(): SystemMetrics {
-		const now = Date.now();
+		const _now = Date.now();
 		const memory = process.memoryUsage();
 		const cpuUsage = process.cpuUsage();
 		const requestStats = globalRequestTracker.getStats();
@@ -406,7 +475,7 @@ export class HealthMonitor {
 			},
 			cpu: {
 				usage: (cpuUsage.user + cpuUsage.system) / 1000000, // Convert to milliseconds
-				loadAverage: require('os').loadavg(),
+				loadAverage: loadavg(),
 			},
 			process: {
 				uptime: process.uptime(),
@@ -474,7 +543,7 @@ export class HealthMonitor {
 		}
 	}
 
-	private async checkMemory(): Promise<HealthCheck> {
+	private checkMemory(): Promise<HealthCheck> {
 		const startTime = performance.now();
 		const memory = process.memoryUsage();
 		const heapUsagePercent = memory.heapUsed / memory.heapTotal;
@@ -505,7 +574,7 @@ export class HealthMonitor {
 			message = 'Memory usage is elevated';
 		}
 
-		return {
+		return Promise.resolve({
 			name: 'memory-usage',
 			status,
 			score: this.calculateScore(
@@ -521,10 +590,10 @@ export class HealthMonitor {
 				warning: thresholds.heapUsageWarning,
 				critical: thresholds.heapUsageCritical,
 			},
-		};
+		});
 	}
 
-	private async checkLoggingSystem(): Promise<HealthCheck> {
+	private checkLoggingSystem(): Promise<HealthCheck> {
 		const startTime = performance.now();
 		const logCount = globalLogStorage.getEntryCount();
 		const thresholds = this.config.thresholds.logging;
@@ -546,7 +615,7 @@ export class HealthMonitor {
 			message = 'No log entries detected';
 		}
 
-		return {
+		return Promise.resolve({
 			name: 'logging-system',
 			status,
 			score: this.calculateScore(status, 0, 0, 0),
@@ -557,10 +626,10 @@ export class HealthMonitor {
 				warning: thresholds.logRateWarning,
 				critical: thresholds.logRateCritical,
 			},
-		};
+		});
 	}
 
-	private async checkRequestTracking(): Promise<HealthCheck> {
+	private checkRequestTracking(): Promise<HealthCheck> {
 		const startTime = performance.now();
 		const stats = globalRequestTracker.getStats();
 		const thresholds = this.config.thresholds.requests;
@@ -588,7 +657,7 @@ export class HealthMonitor {
 			message = 'Request duration is elevated';
 		}
 
-		return {
+		return Promise.resolve({
 			name: 'request-tracking',
 			status,
 			score: this.calculateScore(
@@ -604,10 +673,10 @@ export class HealthMonitor {
 				warning: thresholds.errorRateWarning,
 				critical: thresholds.errorRateCritical,
 			},
-		};
+		});
 	}
 
-	private async checkPerformanceMonitoring(): Promise<HealthCheck> {
+	private checkPerformanceMonitoring(): Promise<HealthCheck> {
 		const startTime = performance.now();
 		const stats = globalPerformanceMonitor.getAllStats();
 		const thresholds = this.config.thresholds.performance;
@@ -628,7 +697,7 @@ export class HealthMonitor {
 			message = 'No performance measurements detected';
 		}
 
-		return {
+		return Promise.resolve({
 			name: 'performance-monitoring',
 			status,
 			score: this.calculateScore(status, 0, 0, 0),
@@ -639,15 +708,15 @@ export class HealthMonitor {
 				warning: thresholds.averageDurationWarning,
 				critical: thresholds.averageDurationCritical,
 			},
-		};
+		});
 	}
 
-	private async checkConfigurationSystem(): Promise<HealthCheck> {
+	private checkConfigurationSystem(): Promise<HealthCheck> {
 		const startTime = performance.now();
-		const reloaderStats = { isEnabled: false, watcherCount: 0 };
+		const reloaderStats = {isEnabled: false, watcherCount: 0};
 
-		let status: 'pass' | 'fail' | 'warn' = 'pass';
-		let message = 'Configuration system is healthy';
+		const status: 'pass' | 'fail' | 'warn' = 'pass';
+		const message = 'Configuration system is healthy';
 		const details = {
 			isEnabled: reloaderStats.isEnabled,
 			watcherCount: reloaderStats.watcherCount,
@@ -655,14 +724,14 @@ export class HealthMonitor {
 			hasPendingReloads: false,
 		};
 
-		return {
+		return Promise.resolve({
 			name: 'configuration-system',
 			status,
 			score: this.calculateScore(status, 0, 0, 0),
 			duration: performance.now() - startTime,
 			message,
 			details,
-		};
+		});
 	}
 
 	private calculateScore(
@@ -745,15 +814,15 @@ export class HealthMonitor {
 		return recommendations;
 	}
 
-	private async sendAlert(result: HealthCheckResult): Promise<void> {
-		if (!this.config.alerts.enabled) return;
+	private sendAlert(result: HealthCheckResult): Promise<void> {
+		if (!this.config.alerts.enabled) return Promise.resolve();
 
 		// Check cooldown
 		if (
 			this.lastAlert &&
 			Date.now() - this.lastAlert < this.config.alerts.cooldown
 		) {
-			return;
+			return Promise.resolve();
 		}
 
 		this.lastAlert = Date.now();
@@ -791,7 +860,7 @@ export class HealthMonitor {
 				case 'webhook':
 					if (this.config.alerts.webhookUrl) {
 						try {
-							// Would implement webhook call here
+							// TODO: implement webhook call here
 							logger.info('Webhook alert would be sent', {
 								url: this.config.alerts.webhookUrl,
 								correlationId: this.correlationId,
@@ -809,6 +878,8 @@ export class HealthMonitor {
 					break;
 			}
 		}
+
+		return Promise.resolve();
 	}
 }
 
@@ -880,7 +951,12 @@ export function initializeHealthMonitoring(
  * Health check middleware for HTTP servers
  */
 export function healthCheckMiddleware() {
-	return async (req: any, res: any, next: any) => {
+	return async (req: {path: string}, res: {
+		status: (code: number) => {
+			json: (data: unknown) => void;
+		};
+		json: (data: unknown) => void;
+	}, next: () => void) => {
 		if (req.path === '/health') {
 			try {
 				const health = await healthChecks.full();

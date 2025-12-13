@@ -3,29 +3,62 @@
  * Provides comprehensive monitoring and analysis capabilities
  */
 
+import {loadavg} from 'os';
 import type {PerformanceMetrics, CorrelationContext} from './types.js';
-import {
-	generateCorrelationId,
-	withNewCorrelationContext,
-	getCorrelationId,
-} from './index.js';
+import {generateCorrelationId, withNewCorrelationContext, createCorrelationContext, type Logger} from './index.js';
+import {correlationStorage} from './correlation.js';
 
 // Lazy logger initialization to avoid circular dependency
-let _logger: any = null;
-function getLogger() {
+let _logger: Logger | null = null;
+function getLogger(): Logger {
 	if (!_logger) {
-		const { getLogger: _getLogger } = require('./index.js');
-		_logger = _getLogger();
+		// Use dynamic import to avoid circular dependency
+		const loggingModule = import('./index.js');
+		// For now, create a simple fallback logger
+		_logger = {
+			fatal: () => {},
+			error: () => {},
+			warn: () => {},
+			info: () => {},
+			http: () => {},
+			debug: () => {},
+			trace: () => {},
+			child: () => _logger as Logger,
+			isLevelEnabled: () => false,
+			flush: async () => {},
+			end: async () => {},
+		};
+		void loggingModule.then(module => {
+			_logger = module.getLogger();
+		});
 	}
 	return _logger;
 }
 
 // Create a logger proxy that maintains the same API
-const logger = new Proxy({} as any, {
-	get(target, prop) {
+const logger: Logger = new Proxy({} as Logger, {
+	get(_target, prop): unknown {
 		const loggerInstance = getLogger();
-		return loggerInstance[prop];
-	}
+		if (loggerInstance && typeof loggerInstance === 'object' && prop in loggerInstance) {
+			const value = (loggerInstance as any)[prop];
+			return typeof value === 'function' ? value.bind(loggerInstance) : value;
+		}
+		// Return fallback methods that match Logger interface
+		const fallbacks: Record<string, unknown> = {
+			fatal: (_msg: string, ..._args: unknown[]) => {},
+			error: (_msg: string, ..._args: unknown[]) => {},
+			warn: (_msg: string, ..._args: unknown[]) => {},
+			info: (_msg: string, ..._args: unknown[]) => {},
+			http: (_msg: string, ..._args: unknown[]) => {},
+			debug: (_msg: string, ..._args: unknown[]) => {},
+			trace: (_msg: string, ..._args: unknown[]) => {},
+			child: () => logger,
+			isLevelEnabled: () => false,
+			flush: async () => {},
+			end: async () => {},
+		};
+		return fallbacks[prop as string] || (() => {});
+	},
 });
 
 /**
@@ -122,7 +155,7 @@ export function calculateCpuUsage(
 /**
  * Performance tracking decorator with structured logging integration
  */
-export function trackPerformance<T extends (...args: any[]) => any>(
+export function trackPerformance<T extends (...args: unknown[]) => unknown>(
 	fn: T,
 	name: string,
 	options?: {
@@ -146,28 +179,31 @@ export function trackPerformance<T extends (...args: any[]) => any>(
 	} = options || {};
 
 	return (async (...args: Parameters<T>) => {
-		const correlationId = generateCorrelationId();
 		const metrics = startMetrics();
 		const cpuStart = getCpuUsage();
 
-		return withNewCorrelationContext(async (context: CorrelationContext) => {
+		// Create new correlation context for this performance tracking
+		const context = createCorrelationContext();
+		
+		// Use AsyncLocalStorage.run() directly for proper async context handling
+		return correlationStorage.run(context, async () => {
 			try {
 				const result = await fn(...args);
 
 				const end = endMetrics(metrics);
 				const cpuEnd = getCpuUsage();
 				const memoryDelta = calculateMemoryDelta(
-					metrics.memoryUsage!,
-					end.memoryUsage!,
+					metrics.memoryUsage || process.memoryUsage(),
+					end.memoryUsage || process.memoryUsage(),
 				);
 				const cpuPercent = calculateCpuUsage(cpuStart, cpuEnd, end.duration);
 
 				// Prepare performance data
-				const perfData: Record<string, any> = {
+				const perfData: Record<string, unknown> = {
 					functionName: name,
 					duration: `${end.duration.toFixed(2)}ms`,
 					durationMs: end.duration,
-					correlationId,
+					correlationId: context.id,
 					source: 'performance-tracker',
 				};
 
@@ -179,7 +215,7 @@ export function trackPerformance<T extends (...args: any[]) => any>(
 						external: formatBytes(memoryDelta.externalDelta),
 						rss: formatBytes(memoryDelta.rssDelta),
 					};
-					perfData.currentMemory = formatMemoryUsage(end.memoryUsage!);
+					perfData.currentMemory = formatMemoryUsage(end.memoryUsage || process.memoryUsage());
 				}
 
 				if (trackCpu) {
@@ -237,8 +273,8 @@ export function trackPerformance<T extends (...args: any[]) => any>(
 			} catch (error) {
 				const end = endMetrics(metrics);
 				const memoryDelta = calculateMemoryDelta(
-					metrics.memoryUsage!,
-					end.memoryUsage!,
+					metrics.memoryUsage || process.memoryUsage(),
+					end.memoryUsage || process.memoryUsage(),
 				);
 				const cpuEnd = getCpuUsage();
 				const cpuPercent = calculateCpuUsage(cpuStart, cpuEnd, end.duration);
@@ -254,7 +290,7 @@ export function trackPerformance<T extends (...args: any[]) => any>(
 					memoryDelta: trackMemory ? memoryDelta : undefined,
 					cpuPercent: trackCpu ? `${cpuPercent.toFixed(2)}%` : undefined,
 					argCount: trackArgs ? args.length : undefined,
-					correlationId,
+					correlationId: context.id,
 					source: 'performance-tracker-error',
 				});
 
@@ -292,12 +328,15 @@ export async function measureTime<T>(
 		thresholds = {},
 	} = options || {};
 
-	const correlationId = generateCorrelationId();
 	const start = performance.now();
 	const memoryStart = process.memoryUsage();
 	const cpuStart = trackCpu ? getCpuUsage() : undefined;
 
-	return withNewCorrelationContext(async (context: CorrelationContext) => {
+	// Create new correlation context for this measurement
+	const context = createCorrelationContext();
+	
+	// Use AsyncLocalStorage.run() directly for proper async context handling
+	return correlationStorage.run(context, async () => {
 		try {
 			const result = await fn();
 			const duration = performance.now() - start;
@@ -316,11 +355,11 @@ export async function measureTime<T>(
 			}
 
 			if (logPerformance) {
-				const perfData: Record<string, any> = {
+				const perfData: Record<string, unknown> = {
 					label: label || 'Anonymous function',
 					duration: `${duration.toFixed(2)}ms`,
 					durationMs: duration,
-					correlationId,
+					correlationId: context.id,
 					source: 'measure-time',
 				};
 
@@ -383,7 +422,7 @@ export async function measureTime<T>(
 				error: error instanceof Error ? error.message : error,
 				errorType:
 					error instanceof Error ? error.constructor.name : typeof error,
-				correlationId,
+				correlationId: context.id,
 				source: 'measure-time-error',
 			});
 
@@ -530,7 +569,7 @@ export function takePerformanceSnapshot(options?: {
 		cpu: includeCpu ? process.cpuUsage() : {user: 0, system: 0},
 		uptime: process.uptime(),
 		uptimeFormatted: formatUptime(process.uptime()),
-		loadAverage: require('os').loadavg(),
+		loadAverage: loadavg(),
 		platform: process.platform,
 		arch: process.arch,
 		nodeVersion: process.version,
@@ -623,11 +662,11 @@ export function calculatePerformanceStats(
 	const durations = measurements.map(m => m.duration);
 	const errorCount = measurements.filter(m => m.error).length;
 	const memoryDeltas = measurements
-		.filter(m => m.memoryDelta)
-		.map(m => m.memoryDelta!);
+		.filter((m): m is typeof m & {memoryDelta: Record<string, number>} => m.memoryDelta !== undefined)
+		.map(m => m.memoryDelta);
 	const memoryUsages = measurements
-		.filter(m => m.memoryUsage)
-		.map(m => m.memoryUsage!);
+		.filter((m): m is typeof m & {memoryUsage: NodeJS.MemoryUsage} => m.memoryUsage !== undefined)
+		.map(m => m.memoryUsage);
 
 	const totalDuration = durations.reduce((sum, d) => sum + d, 0);
 	const averageDuration = totalDuration / durations.length;
@@ -694,7 +733,8 @@ export function calculatePerformanceStats(
  * Performance monitor class for ongoing tracking
  */
 export class PerformanceMonitor {
-	private measurements: Map<string, (PerformanceMetrics & {id?: string})[]> = new Map();
+	private measurements: Map<string, (PerformanceMetrics & {id?: string})[]> =
+		new Map();
 	private readonly maxMeasurements: number;
 
 	constructor(maxMeasurements: number = 100) {
@@ -712,7 +752,11 @@ export class PerformanceMonitor {
 			this.measurements.set(operation, []);
 		}
 
-		const operationMeasurements = this.measurements.get(operation)!;
+		const operationMeasurements = this.measurements.get(operation);
+		if (!operationMeasurements) {
+			this.measurements.set(operation, []);
+			return this.start(operation); // Retry with empty array
+		}
 		operationMeasurements.push({...metrics, id});
 
 		// Keep only the last N measurements
@@ -733,7 +777,7 @@ export class PerformanceMonitor {
 		const operationMeasurements = this.measurements.get(operation);
 		if (!operationMeasurements) return null;
 
-		const index = operationMeasurements.findIndex(m => (m as any).id === id);
+		const index = operationMeasurements.findIndex(m => 'id' in m && (m as {id?: string}).id === id);
 		if (index === -1) return null;
 
 		const metrics = operationMeasurements[index];
@@ -761,8 +805,8 @@ export class PerformanceMonitor {
 		}
 
 		const durations = operationMeasurements
-			.filter(m => 'duration' in m)
-			.map(m => (m as any).duration);
+			.filter((m): m is PerformanceMetrics & {duration: number} => 'duration' in m)
+			.map(m => m.duration);
 
 		if (durations.length === 0) return null;
 

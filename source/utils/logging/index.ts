@@ -84,7 +84,6 @@ export const console = {
 	},
 };
 
-
 /**
  * Flush any pending logs
  */
@@ -100,33 +99,41 @@ export async function end(): Promise<void> {
 }
 
 // Setup graceful shutdown handlers
-process.on('SIGTERM', async () => {
-	log.info('\n[LOGGER] Received SIGTERM, flushing logs...');
-	await flush();
-	await end();
-	log.info('[LOGGER] Graceful shutdown completed');
+process.on('SIGTERM', () => {
+	void (async () => {
+		log.info('\n[LOGGER] Received SIGTERM, flushing logs...');
+		await flush();
+		await end();
+		log.info('[LOGGER] Graceful shutdown completed');
+	})();
 });
 
-process.on('SIGINT', async () => {
-	log.info('\n[LOGGER] Received SIGINT, flushing logs...');
-	await flush();
-	await end();
-	log.info('[LOGGER] Graceful shutdown completed');
+process.on('SIGINT', () => {
+	void (async () => {
+		log.info('\n[LOGGER] Received SIGINT, flushing logs...');
+		await flush();
+		await end();
+		log.info('[LOGGER] Graceful shutdown completed');
+	})();
 });
 
 // Handle uncaught exceptions and unhandled rejections
-process.on('uncaughtException', async err => {
-	const logger = getLogger();
-	logger.fatal({err}, 'Uncaught exception');
-	await flush();
-	process.exit(1);
+process.on('uncaughtException', err => {
+	void (async () => {
+		const logger = getLogger();
+		logger.fatal({err}, 'Uncaught exception');
+		await flush();
+		process.exit(1);
+	})();
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-	const logger = getLogger();
-	logger.fatal({reason, promise}, 'Unhandled promise rejection');
-	await flush();
-	process.exit(1);
+process.on('unhandledRejection', (reason, promise) => {
+	void (async () => {
+		const logger = getLogger();
+		logger.fatal({reason, promise}, 'Unhandled promise rejection');
+		await flush();
+		process.exit(1);
+	})();
 });
 
 // Re-export all modules for external use
@@ -209,9 +216,9 @@ export {
 
 // Export request tracking utilities
 export {
-	RequestTracker,
-	RequestMetadata,
-	RequestStats,
+	// RequestTracker,  // This is a default export
+	// RequestMetadata,  // Interface - exported from request-tracker.ts directly
+	// RequestStats,  // Interface - exported from request-tracker.ts directly
 	globalRequestTracker,
 	trackRequest,
 	httpTracker,
@@ -219,14 +226,18 @@ export {
 	mcpTracker,
 } from './request-tracker.js';
 
+// Import default export separately
+import RequestTracker from './request-tracker.js';
+export {RequestTracker};
+
 // Export log query interface
 export {
 	// LogStorage,  // This is a default export
 	// LogEntry,  // Already exported from types.ts
-	LogQuery,
-	QueryResult,
-	AggregationOptions,
-	AggregationResult,
+	// LogQuery,  // Interface - exported from log-query.ts directly
+	// QueryResult,  // Interface - exported from log-query.ts directly
+	// AggregationOptions,  // Interface - exported from log-query.ts directly
+	// AggregationResult,  // Interface - exported from log-query.ts directly
 	LogQueryBuilder,
 	globalLogStorage,
 	createLogQuery,
@@ -235,8 +246,7 @@ export {
 
 // Import default export separately
 import LogStorage from './log-query.js';
-export { LogStorage };
-
+export {LogStorage};
 
 // Export health monitoring
 export {

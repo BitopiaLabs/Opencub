@@ -15,21 +15,37 @@ import {
 import type {
 	Logger,
 	LoggerConfig,
+	LogLevel,
 	LoggingCliConfig,
 	EnvironmentTransportConfig,
+	ConsoleArguments,
+	PinoTransportOptions,
+	PiiRedactionRules,
 } from './types.js';
+import {createLogMethods} from './log-method-factory.js';
+
+/**
+ * Type guard to check if a value is a Promise
+ * Handles void returns properly by checking for specific Promise characteristics
+ */
+function isPromise<T>(value: T | Promise<T> | void): value is Promise<T> {
+	return value !== null &&
+		value !== undefined &&
+		typeof value === 'object' &&
+		'then' in value;
+}
 
 /**
  * Determine transport configuration based on environment and CLI settings
  */
 function determineTransportConfig(
-	isProduction: boolean,
-	isDevelopment: boolean,
-	isTest: boolean,
-	cliConfig?: LoggingCliConfig,
+	_isProduction: boolean,
+	_isDevelopment: boolean,
+	_isTest: boolean,
+	_cliConfig?: LoggingCliConfig,
 ): EnvironmentTransportConfig {
-	const envLogFile = process.env.LOG_TO_FILE === 'true';
-	const envLogConsole = process.env.LOG_TO_CONSOLE === 'true';
+	const _envLogFile = process.env.LOG_TO_FILE === 'true';
+	const _envLogConsole = process.env.LOG_TO_CONSOLE === 'true';
 
 	// All environments: file only, no console - simplified approach
 	return {
@@ -59,14 +75,15 @@ function createEnvironmentLogger(
 			`nanocoder-${new Date().toISOString().split('T')[0]}.log`,
 		);
 
-		const transport = pino.transport({
+		const transportOptions: PinoTransportOptions = {
 			target: 'pino/file',
 			options: {
 				destination: logFilePath,
 				mkdir: true,
 			},
-		});
+		};
 
+		const transport = pino.transport(transportOptions) as pino.DestinationStream;
 		const pinoLogger = pino(baseConfig, transport);
 		const redactionRules = createRedactionRules(
 			Array.isArray(baseConfig.redact) ? baseConfig.redact : [],
@@ -82,122 +99,92 @@ function createEnvironmentLogger(
 }
 
 /**
+ * Factory function to create log method with specific level for Pino
+ * Uses the shared factory with custom transform logic for redaction and correlation
+ * @deprecated Use createLogMethods factory instead
+ */
+function _createPinoLogMethod(
+	logger: PinoLogger,
+	level: string,
+	redactionRules?: PiiRedactionRules,
+) {
+	// Create overloaded function using the shared factory pattern
+	const logMethod = (
+		msgOrObj: string | object,
+		...args: unknown[]
+	) => {
+		if (typeof msgOrObj === 'object' && msgOrObj !== null) {
+			// Object first: (obj: object, msg?: string) => void
+			const obj = msgOrObj as Record<string, unknown>;
+			const msg = args[0] as string | undefined;
+			logWithContext(logger, level, msg || '', [obj], redactionRules);
+		} else {
+			// String first: (msg: string, ...args: unknown[]) => void
+			const msg = msgOrObj as string;
+			logWithContext(logger, level, msg, args as ConsoleArguments, redactionRules);
+		}
+	};
+
+	return logMethod as ((msg: string, ...args: unknown[]) => void) &
+		((obj: object, msg?: string) => void);
+}
+
+/**
  * Create enhanced logger with correlation and redaction support
  */
 function createEnhancedLogger(
 	pinoLogger: PinoLogger,
 	_fileLogger?: PinoLogger,
-	redactionRules?: any,
+	redactionRules?: PiiRedactionRules,
 ): Logger {
+	// Create a transformer for Pino logger with redaction rules
+	const createPinoTransformer = (_level: string) => {
+		return (args: unknown[], _msg?: string) => {
+			// Apply redaction to object arguments
+			if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null && redactionRules) {
+				args[0] = redactLogEntry(args[0] as Record<string, unknown>, redactionRules);
+			}
+			return args;
+		};
+	};
+
+	// Use the factory to create all log methods
+	const logMethods = createLogMethods(pinoLogger, {
+		transformArgs: createPinoTransformer(''),
+	});
+
 	return {
-		fatal: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'fatal', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'fatal', msg, restArgs, redactionRules);
-			}
-		}) as any,
+		...logMethods,
 
-		error: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'error', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'error', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		warn: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'warn', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'warn', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		info: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'info', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'info', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		http: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'http', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'http', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		debug: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'debug', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'debug', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		trace: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(pinoLogger, 'trace', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(pinoLogger, 'trace', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		child: (bindings: Record<string, any>) => {
+		child: (bindings: Record<string, unknown>) => {
 			return createEnhancedChild(pinoLogger, bindings, redactionRules);
 		},
 
-		isLevelEnabled: (level: string) => {
+		isLevelEnabled: (level: LogLevel) => {
 			return pinoLogger.isLevelEnabled(level);
 		},
 
-		flush: async () => {
+		flush: async (): Promise<void> => {
 			if ('flush' in pinoLogger) {
-				await (pinoLogger as any).flush();
+				const flushMethod = (pinoLogger as PinoLogger & { flush?: (() => void) | (() => Promise<void>) }).flush;
+				if (flushMethod && typeof flushMethod === 'function') {
+					const result = flushMethod();
+					if (isPromise(result)) {
+						await result;
+					}
+				}
 			}
 		},
 
-		end: async () => {
+		end: async (): Promise<void> => {
 			if ('end' in pinoLogger) {
-				await (pinoLogger as any).end();
+				const endMethod = (pinoLogger as PinoLogger & { end?: (() => void) | (() => Promise<void>) }).end;
+				if (endMethod && typeof endMethod === 'function') {
+					const result = endMethod();
+					if (result instanceof Promise) {
+						await result;
+					}
+				}
 			}
 		},
 	};
@@ -208,120 +195,59 @@ function createEnhancedLogger(
  */
 function createEnhancedChild(
 	parent: PinoLogger,
-	bindings: Record<string, any>,
-	redactionRules?: any,
+	bindings: Record<string, unknown>,
+	redactionRules?: PiiRedactionRules,
 ): Logger {
 	const child = parent.child(bindings);
 
+	// Create a transformer for Pino logger with redaction rules
+	const createPinoTransformer = (_level: string) => {
+		return (args: unknown[], _msg?: string) => {
+			// Apply redaction to object arguments
+			if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null && redactionRules) {
+				args[0] = redactLogEntry(args[0] as Record<string, unknown>, redactionRules);
+			}
+			return args;
+		};
+	};
+
+	// Use the factory to create all log methods
+	const logMethods = createLogMethods(child, {
+		transformArgs: createPinoTransformer(''),
+	});
+
 	return {
-		fatal: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'fatal', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'fatal', msg, restArgs, redactionRules);
-			}
-		}) as any,
+		...logMethods,
 
-		error: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'error', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'error', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		warn: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'warn', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'warn', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		info: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'info', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'info', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		http: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'http', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'http', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		debug: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'debug', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'debug', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		trace: ((...args: any[]) => {
-			if (args.length === 0) return;
-			if (typeof args[0] === 'object' && args[0] !== null) {
-				const obj = args[0];
-				const msg = args[1];
-				logWithContext(child, 'trace', msg || '', [obj], redactionRules);
-			} else {
-				const msg = args[0];
-				const restArgs = args.slice(1);
-				logWithContext(child, 'trace', msg, restArgs, redactionRules);
-			}
-		}) as any,
-
-		child: (moreBindings: Record<string, any>) => {
+		child: (moreBindings: Record<string, unknown>) => {
 			return createEnhancedChild(child, moreBindings, redactionRules);
 		},
 
-		isLevelEnabled: (level: string) => {
+		isLevelEnabled: (level: LogLevel) => {
 			return child.isLevelEnabled(level);
 		},
 
-		flush: async () => {
+		flush: async (): Promise<void> => {
 			if ('flush' in child) {
-				await (child as any).flush();
+				const flushMethod = (child as PinoLogger & { flush?: (() => void) | (() => Promise<void>) }).flush;
+				if (flushMethod && typeof flushMethod === 'function') {
+					const result = flushMethod();
+					if (isPromise(result)) {
+						await result;
+					}
+				}
 			}
 		},
 
-		end: async () => {
+		end: async (): Promise<void> => {
 			if ('end' in child) {
-				await (child as any).end();
+				const endMethod = (child as PinoLogger & { end?: (() => void) | (() => Promise<void>) }).end;
+				if (endMethod && typeof endMethod === 'function') {
+					const result = endMethod();
+					if (result && typeof result === 'object' && 'then' in result) {
+						await result;
+					}
+				}
 			}
 		},
 	};
@@ -353,11 +279,11 @@ function logWithContext(
 	logger: PinoLogger,
 	level: string,
 	msg: string,
-	args: any[],
-	redactionRules?: any,
+	args: ConsoleArguments,
+	redactionRules?: PiiRedactionRules,
 ): void {
 	// Prepare log data
-	let logData: Record<string, any> = {msg};
+	let logData: Record<string, unknown> = {msg};
 
 	// Add correlation context if enabled
 	if (isCorrelationEnabled()) {
@@ -393,7 +319,34 @@ function logWithContext(
 	}
 
 	// Log to the transport
-	(logger as any)[level](logData);
+	switch (level) {
+		case 'fatal':
+			logger.fatal(logData);
+			break;
+		case 'error':
+			logger.error(logData);
+			break;
+		case 'warn':
+			logger.warn(logData);
+			break;
+		case 'info':
+			logger.info(logData);
+			break;
+		case 'http':
+			if ('http' in logger) {
+				(logger as { http?: (data: Record<string, unknown>) => void }).http?.(logData);
+			}
+			break;
+		case 'debug':
+			logger.debug(logData);
+			break;
+		case 'trace':
+			logger.trace(logData);
+			break;
+		default:
+			logger.info(logData);
+			break;
+	}
 }
 
 /**
@@ -417,7 +370,7 @@ export function createPinoLogger(
 	);
 
 	// Create redaction rules
-	const redactionRules = createRedactionRules(
+	const _redactionRules = createRedactionRules(
 		finalConfig.redact,
 		isProduction, // Enable email redaction in production
 		isProduction, // Enable user ID redaction in production
@@ -428,7 +381,7 @@ export function createPinoLogger(
 		level: finalConfig.level,
 		redact: finalConfig.redact,
 		formatters: {
-			level: (label: string, number: number) => ({level: label.toUpperCase()}),
+			level: (label: string, _number: number) => ({level: label.toUpperCase()}),
 		},
 		timestamp: pino.stdTimeFunctions.isoTime,
 		base: {
@@ -453,16 +406,26 @@ export function createPinoLogger(
  */
 export function createLoggerWithTransport(
 	config?: Partial<LoggerConfig>,
-	transport?: any,
+	transport?: pino.DestinationStream | PinoTransportOptions,
 ): Logger {
 	const finalConfig = createConfig(config);
-	const pinoConfig = {
+
+	// Handle transport parameter
+	let actualTransport: pino.DestinationStream | undefined;
+	if (transport) {
+		if (typeof transport === 'object' && 'target' in transport) {
+			actualTransport = pino.transport(transport) as pino.DestinationStream;
+		} else {
+			actualTransport = transport;
+		}
+	}
+
+	const pinoConfig: pino.LoggerOptions = {
 		level: finalConfig.level,
 		redact: finalConfig.redact,
 		formatters: {
-			level: (label: string, number: number) => ({level: label.toUpperCase()}),
+			level: (label: string, _number: number) => ({level: label.toUpperCase()}),
 		},
-		transport,
 		base: {
 			pid: process.pid,
 			platform: process.platform,
@@ -474,7 +437,7 @@ export function createLoggerWithTransport(
 		},
 	};
 
-	const pinoLogger = pino(pinoConfig);
+	const pinoLogger = actualTransport ? pino(pinoConfig, actualTransport) : pino(pinoConfig);
 	const redactionRules = createRedactionRules(
 		finalConfig.redact,
 		true, // Enable email redaction
