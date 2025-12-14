@@ -3,7 +3,6 @@ import * as path from 'path';
 import {existsSync} from 'fs';
 import {FileSnapshotService} from './file-snapshot';
 import {validateCheckpointName} from '@/utils/checkpoint-utils';
-import {logWarning} from '@/utils/message-queue';
 import type {Message} from '@/types/core';
 import type {
 	CheckpointMetadata,
@@ -208,12 +207,11 @@ export class CheckpointManager {
 					const content = await fs.readFile(filePath, 'utf-8');
 					fileSnapshots.set(relativePath, content);
 				} catch (error) {
-					logWarning('Could not load file snapshot', true, {
-						context: {
-							relativePath,
-							error: error instanceof Error ? error.message : 'Unknown error',
-						},
-					});
+					console.warn(
+						`Warning: Could not load file snapshot ${relativePath}: ${
+							error instanceof Error ? error.message : 'Unknown error'
+						}`,
+					);
 				}
 			}
 		}
@@ -261,12 +259,11 @@ export class CheckpointManager {
 						}
 					}
 				} catch (error) {
-					logWarning('Could not read checkpoint', true, {
-						context: {
-							checkpointName: entry,
-							error: error instanceof Error ? error.message : 'Unknown error',
-						},
-					});
+					console.warn(
+						`Warning: Could not read checkpoint ${entry}: ${
+							error instanceof Error ? error.message : 'Unknown error'
+						}`,
+					);
 				}
 			}
 
@@ -423,12 +420,11 @@ export class CheckpointManager {
 			}
 		} catch (error) {
 			// If we can't read the directory, just return 0
-			logWarning('Could not calculate directory size', true, {
-				context: {
-					dirPath,
-					error: error instanceof Error ? error.message : 'Unknown error',
-				},
-			});
+			console.warn(
+				`Warning: Could not calculate size for ${dirPath}: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
+			);
 		}
 
 		return totalSize;
