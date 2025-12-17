@@ -1,50 +1,50 @@
-import {Box, Text, useApp} from 'ink';
-import WelcomeMessage from '@/components/welcome-message';
-import React, {useEffect, useMemo} from 'react';
-import {getThemeColors} from '@/config/themes';
-import {ThemeContext} from '@/hooks/useTheme';
-import UserInput from '@/components/user-input';
-import Status from '@/components/status';
+import {ModelDatabaseDisplay} from '@/commands/model-database';
+import BashExecutionIndicator from '@/components/bash-execution-indicator';
+import CancellingIndicator from '@/components/cancelling-indicator';
 import ChatQueue from '@/components/chat-queue';
+import CheckpointSelector from '@/components/checkpoint-selector';
+import ErrorMessage from '@/components/error-message';
 import ModelSelector from '@/components/model-selector';
 import ProviderSelector from '@/components/provider-selector';
+import SecurityDisclaimer from '@/components/security-disclaimer';
+import Status from '@/components/status';
+import SuccessMessage from '@/components/success-message';
 import ThemeSelector from '@/components/theme-selector';
-import CheckpointSelector from '@/components/checkpoint-selector';
-import CancellingIndicator from '@/components/cancelling-indicator';
 import ToolConfirmation from '@/components/tool-confirmation';
 import ToolExecutionIndicator from '@/components/tool-execution-indicator';
-import BashExecutionIndicator from '@/components/bash-execution-indicator';
-import {setGlobalMessageQueue, addToMessageQueue} from '@/utils/message-queue';
-import Spinner from 'ink-spinner';
-import SecurityDisclaimer from '@/components/security-disclaimer';
-import {ModelDatabaseDisplay} from '@/commands/model-database';
-import {ConfigWizard} from '@/wizard/config-wizard';
-import {CheckpointManager} from '@/services/checkpoint-manager';
-import SuccessMessage from '@/components/success-message';
-import WarningMessage from '@/components/warning-message';
-import ErrorMessage from '@/components/error-message';
+import UserInput from '@/components/user-input';
 import {
 	VSCodeExtensionPrompt,
 	shouldPromptExtensionInstall,
 } from '@/components/vscode-extension-prompt';
+import WarningMessage from '@/components/warning-message';
+import WelcomeMessage from '@/components/welcome-message';
+import {getThemeColors} from '@/config/themes';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
+import {ThemeContext} from '@/hooks/useTheme';
+import {CheckpointManager} from '@/services/checkpoint-manager';
 import {
-	withNewCorrelationContext,
 	generateCorrelationId,
+	withNewCorrelationContext,
 } from '@/utils/logging';
+import {addToMessageQueue, setGlobalMessageQueue} from '@/utils/message-queue';
+import {ConfigWizard} from '@/wizard/config-wizard';
+import {Box, Text, useApp} from 'ink';
+import Spinner from 'ink-spinner';
+import React, {useEffect, useMemo} from 'react';
 
-// Import extracted hooks and utilities
-import {useAppState} from '@/hooks/useAppState';
-import {useChatHandler} from '@/hooks/useChatHandler';
-import {useToolHandler} from '@/hooks/useToolHandler';
-import {useModeHandlers} from '@/hooks/useModeHandlers';
-import {useAppInitialization} from '@/hooks/useAppInitialization';
-import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
-import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 import {
 	createClearMessagesHandler,
 	handleMessageSubmission,
 } from '@/app/utils/appUtils';
+import {useAppInitialization} from '@/hooks/useAppInitialization';
+// Import extracted hooks and utilities
+import {useAppState} from '@/hooks/useAppState';
+import {useChatHandler} from '@/hooks/useChatHandler';
+import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
+import {useModeHandlers} from '@/hooks/useModeHandlers';
+import {useToolHandler} from '@/hooks/useToolHandler';
+import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 
 // Provide shared UI state to components
 import {UIStateProvider} from '@/hooks/useUIState';
@@ -292,7 +292,7 @@ export default function App({
 		nonInteractiveMode,
 		onStartToolConfirmationFlow: (
 			toolCalls,
-			updatedMessages,
+			messagesBeforeToolExecution,
 			assistantMsg,
 			systemMessage,
 		) => {
@@ -300,7 +300,7 @@ export default function App({
 			appState.setCurrentToolIndex(0);
 			appState.setCompletedToolResults([]);
 			appState.setCurrentConversationContext({
-				updatedMessages,
+				messagesBeforeToolExecution,
 				assistantMsg,
 				systemMessage,
 			});
@@ -356,7 +356,7 @@ export default function App({
 						clientInitialized: !!appState.client,
 						mcpServersConnected: appState.mcpInitialized,
 						inputDisabled:
-							chatHandler.isStreaming ||
+							chatHandler.isGenerating ||
 							appState.isToolExecuting ||
 							appState.isBashExecuting,
 					},
@@ -372,7 +372,7 @@ export default function App({
 		appState.pendingToolCalls.length,
 		logger,
 		appState.developmentMode,
-		chatHandler.isStreaming,
+		chatHandler.isGenerating,
 		appState.isBashExecuting,
 	]);
 
@@ -665,13 +665,7 @@ export default function App({
 				return () => clearTimeout(timer);
 			}
 		}
-	}, [
-		nonInteractivePrompt,
-		nonInteractiveSubmitted,
-		appState,
-		startTime,
-		exit,
-	]);
+	}, [nonInteractivePrompt, nonInteractiveSubmitted, appState, startTime]);
 
 	const shouldShowWelcome = shouldRenderWelcome(nonInteractiveMode);
 	const pendingToolCallCount = appState.pendingToolCalls.length;
@@ -715,7 +709,7 @@ export default function App({
 	]);
 
 	const loadingLabel = nonInteractivePrompt
-		? nonInteractiveLoadingMessage ?? 'Loading...'
+		? (nonInteractiveLoadingMessage ?? 'Loading...')
 		: 'Loading...';
 
 	// Memoize static components to prevent unnecessary re-renders
@@ -838,17 +832,6 @@ export default function App({
 					{appState.startChat && (
 						<Box flexDirection="column" marginLeft={-1}>
 							{appState.isCancelling && <CancellingIndicator />}
-							{/* Show streaming content while it's being streamed */}
-							{chatHandler.isStreaming && chatHandler.streamingContent && (
-								<Box flexDirection="column" marginBottom={1}>
-									<Box marginBottom={1}>
-										<Text color={themeContextValue.colors.primary} bold>
-											{appState.currentModel}:
-										</Text>
-									</Box>
-									<Text>{chatHandler.streamingContent}</Text>
-								</Box>
-							)}
 							{appState.isModelSelectionMode ? (
 								<ModelSelector
 									client={appState.client}
@@ -884,7 +867,7 @@ export default function App({
 									onCancel={modeHandlers.handleConfigWizardCancel}
 								/>
 							) : appState.isCheckpointLoadMode &&
-							  appState.checkpointLoadData ? (
+								appState.checkpointLoadData ? (
 								<CheckpointSelector
 									checkpoints={appState.checkpointLoadData.checkpoints}
 									currentMessageCount={
@@ -896,7 +879,7 @@ export default function App({
 									onCancel={handleCheckpointCancel}
 								/>
 							) : appState.isToolConfirmationMode &&
-							  appState.pendingToolCalls[appState.currentToolIndex] ? (
+								appState.pendingToolCalls[appState.currentToolIndex] ? (
 								<ToolConfirmation
 									toolCall={
 										appState.pendingToolCalls[appState.currentToolIndex]
@@ -905,7 +888,7 @@ export default function App({
 									onCancel={toolHandler.handleToolConfirmationCancel}
 								/>
 							) : appState.isToolExecuting &&
-							  appState.pendingToolCalls[appState.currentToolIndex] ? (
+								appState.pendingToolCalls[appState.currentToolIndex] ? (
 								<ToolExecutionIndicator
 									toolName={
 										appState.pendingToolCalls[appState.currentToolIndex]
@@ -917,15 +900,15 @@ export default function App({
 							) : appState.isBashExecuting ? (
 								<BashExecutionIndicator command={appState.currentBashCommand} />
 							) : appState.mcpInitialized &&
-							  appState.client &&
-							  !nonInteractivePrompt ? (
+								appState.client &&
+								!nonInteractivePrompt ? (
 								<UserInput
 									customCommands={Array.from(
 										appState.customCommandCache.keys(),
 									)}
 									onSubmit={msg => void handleMessageSubmit(msg)}
 									disabled={
-										chatHandler.isStreaming ||
+										chatHandler.isGenerating ||
 										appState.isToolExecuting ||
 										appState.isBashExecuting
 									}

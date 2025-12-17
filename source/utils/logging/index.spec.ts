@@ -1,25 +1,28 @@
-import test from 'ava';
-import {existsSync, writeFileSync, rmSync, mkdirSync} from 'fs';
-import {join} from 'path';
+import {existsSync, mkdirSync, rmSync, writeFileSync} from 'fs';
 import {tmpdir} from 'os';
+import {join} from 'path';
+import test from 'ava';
 
 console.log(`\nlogging/index.spec.ts`);
 
 // Import the logging functions we want to test
 import {
-	initializeLogger,
+	createChildLogger,
+	end,
+	flush,
 	getLogger,
 	getLoggerConfig,
-	createChildLogger,
+	initializeLogger,
 	isLevelEnabled,
 	log,
 	console as structuredConsole,
-	flush,
-	end,
 } from './index.js';
 
+// Import logger provider for reset functionality
+import {LoggerProvider} from './logger-provider.js';
+
 // Import types for testing
-import type {LoggerConfig, LogLevel} from './types.js';
+import type {LogLevel, LoggerConfig} from './types.js';
 
 // Create a temporary test directory
 const testDir = join(tmpdir(), `nanocoder-logging-test-${Date.now()}`);
@@ -111,18 +114,21 @@ test('createChildLogger creates child with bindings', t => {
 });
 
 test('isLevelEnabled checks log level correctly', t => {
-	initializeLogger({level: 'warn'});
+	// Reset logger to ensure clean state
+	const provider = LoggerProvider.getInstance();
+	provider.reset();
 
-	// Note: The fallback logger in logger-provider always returns true for isLevelEnabled
-	// This is expected behavior during the transition period
-	// The actual level filtering happens in the real Pino logger
+	// Initialize with debug level to ensure logging is enabled in tests
+	initializeLogger({level: 'debug'});
+
+	// With debug level, these should all be enabled
 	t.true(
 		isLevelEnabled('debug'),
-		'Debug should be enabled (fallback behavior)',
+		'Debug should be enabled',
 	);
 	t.true(
 		isLevelEnabled('trace'),
-		'Trace should be enabled (fallback behavior)',
+		'Trace should be enabled',
 	);
 	t.true(isLevelEnabled('warn'), 'Warn should be enabled');
 	t.true(isLevelEnabled('error'), 'Error should be enabled');

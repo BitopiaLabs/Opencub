@@ -1,27 +1,27 @@
-import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
-import {generateText, stepCountIs, RetryError, APICallError} from 'ai';
-import type {ModelMessage} from 'ai';
-import {Agent, fetch as undiciFetch} from 'undici';
+import {getModelContextLimit} from '@/models/index.js';
+import {XMLToolCallParser} from '@/tool-calling/xml-parser';
 import type {
 	AIProviderConfig,
+	AISDKCoreTool,
 	LLMChatResponse,
 	LLMClient,
 	Message,
-	ToolCall,
-	AISDKCoreTool,
 	StreamCallbacks,
+	ToolCall,
 } from '@/types/index';
-import {XMLToolCallParser} from '@/tool-calling/xml-parser';
-import {getModelContextLimit} from '@/models/index.js';
 import {
-	getLogger,
-	withNewCorrelationContext,
-	startMetrics,
 	endMetrics,
 	formatMemoryUsage,
-	getCorrelationId,
 	generateCorrelationId,
+	getCorrelationId,
+	getLogger,
+	startMetrics,
+	withNewCorrelationContext,
 } from '@/utils/logging';
+import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
+import {APICallError, RetryError, generateText, stepCountIs} from 'ai';
+import type {AssistantContent, ModelMessage, TextPart, ToolCallPart} from 'ai';
+import {Agent, fetch as undiciFetch} from 'undici';
 
 /**
  * Message type used for testing the empty assistant message filter.
@@ -230,20 +230,29 @@ export function parseAPIError(error: unknown): string {
 }
 
 /**
- * Convert our Message format to AI SDK v5 ModelMessage format
+ * Convert our Message format to AI SDK v6 ModelMessage format
  *
- * Tool messages: Converted to user messages with [Tool: name] prefix.
- * This approach is simpler and avoids issues with orphaned tool results
- * in multi-turn conversations.
+ * Tool messages: Converted to AI SDK tool-result format with proper structure.
  */
 function convertToModelMessages(messages: Message[]): ModelMessage[] {
 	return messages.map((msg): ModelMessage => {
 		if (msg.role === 'tool') {
-			// Convert tool results to user messages with clear labeling
-			const toolName = msg.name || 'unknown_tool';
+			// Convert to AI SDK tool-result format
+			// AI SDK expects: { role: 'tool', content: [{ type: 'tool-result', toolCallId, toolName, output }] }
+			// where output is { type: 'text', value: string } or { type: 'json', value: JSONValue }
 			return {
-				role: 'user',
-				content: `[Tool: ${toolName}]\n${msg.content}`,
+				role: 'tool',
+				content: [
+					{
+						type: 'tool-result',
+						toolCallId: msg.tool_call_id || '',
+						toolName: msg.name || '',
+						output: {
+							type: 'text',
+							value: msg.content,
+						},
+					},
+				],
 			};
 		}
 
@@ -262,11 +271,40 @@ function convertToModelMessages(messages: Message[]): ModelMessage[] {
 		}
 
 		if (msg.role === 'assistant') {
+			// Build content array
+			const content: AssistantContent = [];
+
+			// Add text content if present
+			if (msg.content) {
+				content.push({
+					type: 'text',
+					text: msg.content,
+				} as TextPart);
+			}
+
+			// Add tool calls if present (for auto-executed messages)
+			if (msg.tool_calls && msg.tool_calls.length > 0) {
+				for (const toolCall of msg.tool_calls) {
+					content.push({
+						type: 'tool-call',
+						toolCallId: toolCall.id,
+						toolName: toolCall.function.name,
+						input: toolCall.function.arguments,
+					} as ToolCallPart);
+				}
+			}
+
+			// If no content at all, add empty text to avoid empty message
+			if (content.length === 0) {
+				content.push({
+					type: 'text',
+					text: '',
+				} as TextPart);
+			}
+
 			return {
 				role: 'assistant',
-				content: msg.content,
-				// Note: tool_calls are handled separately by AI SDK
-				// They come from the response, not the input messages
+				content,
 			};
 		}
 
@@ -309,7 +347,7 @@ export class AISDKClient implements LLMClient {
 		const {requestTimeout, socketTimeout} = this.providerConfig;
 		const effectiveSocketTimeout = socketTimeout ?? requestTimeout;
 		const resolvedSocketTimeout =
-			effectiveSocketTimeout === -1 ? 0 : effectiveSocketTimeout ?? 120000;
+			effectiveSocketTimeout === -1 ? 0 : (effectiveSocketTimeout ?? 120000);
 
 		this.undiciAgent = new Agent({
 			connect: {
@@ -464,7 +502,6 @@ export class AISDKClient implements LLMClient {
 					tools: aiTools,
 					abortSignal: signal,
 					maxRetries: this.maxRetries,
-					temperature: 0.6,
 					stopWhen: stepCountIs(10), // Allow up to 10 tool execution steps
 					// Can be used to add custom logging, metrics, or step tracking
 					onStepFinish(step) {
@@ -513,17 +550,45 @@ export class AISDKClient implements LLMClient {
 					prepareStep: ({messages}) => {
 						// Filter out empty assistant messages that would cause API errors
 						// "Assistant message must have either content or tool_calls"
-						const filteredMessages = messages.filter(
-							m => !isEmptyAssistantMessage(m as unknown as TestableMessage),
-						);
+						// Also filter out orphaned tool messages that follow empty assistant messages
+						const filteredMessages: typeof messages = [];
+						const indicesToSkip = new Set<number>();
+
+						// First pass: identify empty assistant messages and their orphaned tool results
+						for (let i = 0; i < messages.length; i++) {
+							if (
+								isEmptyAssistantMessage(
+									messages[i] as unknown as TestableMessage,
+								)
+							) {
+								indicesToSkip.add(i);
+
+								// Mark any immediately following tool messages as orphaned
+								let j = i + 1;
+								while (j < messages.length && messages[j].role === 'tool') {
+									indicesToSkip.add(j);
+									j++;
+								}
+							}
+						}
+
+						// Second pass: build filtered array
+						for (let i = 0; i < messages.length; i++) {
+							if (!indicesToSkip.has(i)) {
+								filteredMessages.push(messages[i]);
+							}
+						}
 
 						// Log message filtering
 						if (filteredMessages.length !== messages.length) {
-							logger.debug('Filtered empty assistant messages', {
-								originalCount: messages.length,
-								filteredCount: filteredMessages.length,
-								removedCount: messages.length - filteredMessages.length,
-							});
+							logger.debug(
+								'Filtered empty assistant messages and orphaned tool results',
+								{
+									originalCount: messages.length,
+									filteredCount: filteredMessages.length,
+									removedCount: messages.length - filteredMessages.length,
+								},
+							);
 						}
 
 						// Return filtered messages if any were removed, otherwise no changes
@@ -551,8 +616,53 @@ export class AISDKClient implements LLMClient {
 				// Get tool calls from result
 				const toolCallsResult = result.toolCalls;
 
-				// Can inspect result.steps to see auto-executed tool calls and results
-				// const steps = await result.steps;
+				// Extract auto-executed assistant messages and tool results from steps
+				// These need to be added to the messages array so usage tracking can count them
+				const autoExecutedMessages: Array<Message> = [];
+				const steps = result.steps;
+				for (const step of steps) {
+					if (
+						step.toolCalls &&
+						step.toolResults &&
+						step.toolCalls.length === step.toolResults.length
+					) {
+						// This step had tool calls that were auto-executed
+						// Add the assistant message with tool_calls
+						const stepToolCalls: ToolCall[] = step.toolCalls.map(toolCall => ({
+							id:
+								toolCall.toolCallId ||
+								`tool_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+							function: {
+								name: toolCall.toolName,
+								arguments: toolCall.input as Record<string, unknown>,
+							},
+						}));
+
+						autoExecutedMessages.push({
+							role: 'assistant',
+							content: step.text || '',
+							tool_calls: stepToolCalls,
+						});
+
+						// Add the tool result messages
+						step.toolCalls.forEach((toolCall, idx) => {
+							const toolResult = step.toolResults[idx];
+							const resultStr =
+								typeof toolResult.output === 'string'
+									? toolResult.output
+									: JSON.stringify(toolResult.output);
+
+							autoExecutedMessages.push({
+								role: 'tool' as const,
+								content: resultStr,
+								tool_call_id:
+									toolCall.toolCallId ||
+									`tool_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+								name: toolCall.toolName,
+							});
+						});
+					}
+				}
 
 				// Extract tool calls
 				const toolCalls: ToolCall[] = [];
@@ -665,6 +775,9 @@ export class AISDKClient implements LLMClient {
 							},
 						},
 					],
+					// Include auto-executed messages so they can be added to message history
+					autoExecutedMessages:
+						autoExecutedMessages.length > 0 ? autoExecutedMessages : undefined,
 				};
 			} catch (error) {
 				// Calculate performance metrics even for errors

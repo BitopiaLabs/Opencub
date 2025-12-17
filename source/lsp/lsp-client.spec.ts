@@ -1,5 +1,5 @@
-import test from 'ava';
 import {EventEmitter} from 'events';
+import test from 'ava';
 import {LSPClient, type LSPServerConfig} from './lsp-client';
 
 console.log(`\nlsp-client.spec.ts`);
@@ -422,7 +422,6 @@ test('LSPClient - exit event with non-zero code', t => {
 		receivedCode = code;
 	});
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(client.emit as any)('exit', 1);
 	t.is(receivedCode, 1);
 });

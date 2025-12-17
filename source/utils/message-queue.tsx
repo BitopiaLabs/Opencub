@@ -1,19 +1,19 @@
-import React from 'react';
 import ErrorMessage from '@/components/error-message';
 import InfoMessage from '@/components/info-message';
 import SuccessMessage from '@/components/success-message';
 import WarningMessage from '@/components/warning-message';
 import type {MessageType} from '@/types/index';
+import {createErrorInfo} from '@/utils/error-formatter';
 // Import logging utilities with dependency injection pattern
 import {
-	withNewCorrelationContext,
+	calculateMemoryDelta,
+	endMetrics,
+	formatMemoryUsage,
 	generateCorrelationId,
 	startMetrics,
-	endMetrics,
-	calculateMemoryDelta,
-	formatMemoryUsage,
+	withNewCorrelationContext,
 } from '@/utils/logging';
-import {createErrorInfo} from '@/utils/error-formatter';
+import React from 'react';
 
 // Global message queue function - will be set by App component
 let globalAddToChatQueue: ((component: React.ReactNode) => void) | null = null;
@@ -108,10 +108,10 @@ function addTypedMessage(
 			type === 'error'
 				? 'error'
 				: type === 'warning'
-				? 'warn'
-				: type === 'success'
-				? 'info'
-				: 'info'
+					? 'warn'
+					: type === 'success'
+						? 'info'
+						: 'info'
 		](`Message queued: ${type.toUpperCase()}`, {
 			messageType: type,
 			message: message.substring(0, 200), // Truncate long messages for logs
@@ -199,7 +199,9 @@ function addTypedMessage(
 		// Track performance metrics
 		const finalMetrics = endMetrics(metrics);
 		const memoryDelta = calculateMemoryDelta(
+			// biome-ignore lint/style/noNonNullAssertion: memoryUsage is always defined after endMetrics
 			metrics.memoryUsage!,
+			// biome-ignore lint/style/noNonNullAssertion: memoryUsage is always defined after endMetrics
 			finalMetrics.memoryUsage!,
 		);
 
@@ -224,6 +226,7 @@ export function logInfo(
 	hideBox: boolean = true,
 	options?: {
 		source?: string;
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic format args
 		context?: Record<string, any>;
 		correlationId?: string;
 	},
@@ -239,6 +242,7 @@ export function logError(
 	hideBox: boolean = true,
 	options?: {
 		source?: string;
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic format args
 		context?: Record<string, any>;
 		correlationId?: string;
 		error?: unknown;
@@ -255,6 +259,7 @@ export function logSuccess(
 	hideBox: boolean = true,
 	options?: {
 		source?: string;
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic format args
 		context?: Record<string, any>;
 		correlationId?: string;
 	},
@@ -270,6 +275,7 @@ export function logWarning(
 	hideBox: boolean = true,
 	options?: {
 		source?: string;
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic format args
 		context?: Record<string, any>;
 		correlationId?: string;
 	},
@@ -332,6 +338,7 @@ export function logToolExecution(
 	options?: {
 		correlationId?: string;
 		error?: unknown;
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic format args
 		context?: Record<string, any>;
 	},
 ) {
@@ -371,6 +378,7 @@ export function logToolExecution(
 
 export function logUserAction(
 	action: string,
+	// biome-ignore lint/suspicious/noExplicitAny: Dynamic details type
 	details?: Record<string, any>,
 	options?: {
 		correlationId?: string;

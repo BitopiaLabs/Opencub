@@ -2,7 +2,6 @@
  * ASCII progress bar component for usage visualization
  */
 
-import React from 'react';
 import {Text} from 'ink';
 
 interface ProgressBarProps {

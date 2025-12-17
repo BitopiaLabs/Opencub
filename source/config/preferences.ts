@@ -1,6 +1,6 @@
 import {readFileSync, writeFileSync} from 'fs';
-import {logError} from '@/utils/message-queue';
 import {getClosestConfigFile} from '@/config/index';
+import {logError} from '@/utils/message-queue';
 
 import type {UserPreferences} from '@/types/index';
 
@@ -48,16 +48,4 @@ export function updateLastUsed(provider: string, model: string): void {
 export function getLastUsedModel(provider: string): string | undefined {
 	const preferences = loadPreferences();
 	return preferences.providerModels?.[provider];
-}
-
-export function isDebuggingEnabled(): boolean {
-	const preferences = loadPreferences();
-	// Default to false if not set
-	return preferences.debuggingEnabled ?? false;
-}
-
-export function setDebuggingEnabled(enabled: boolean): void {
-	const preferences = loadPreferences();
-	preferences.debuggingEnabled = enabled;
-	savePreferences(preferences);
 }

@@ -4,8 +4,8 @@
  */
 
 import {loadavg} from 'os';
-import type {PerformanceMetrics, Logger} from './types.js';
 import {generateCorrelationId} from './index.js';
+import type {Logger, PerformanceMetrics} from './types.js';
 
 // Create correlation context function
 function createCorrelationContext() {
@@ -71,6 +71,7 @@ const logger: Logger = new Proxy({} as Logger, {
 			typeof loggerInstance === 'object' &&
 			prop in loggerInstance
 		) {
+			// biome-ignore lint/suspicious/noExplicitAny: Dynamic property access
 			const value = (loggerInstance as any)[prop];
 			return typeof value === 'function' ? value.bind(loggerInstance) : value;
 		}

@@ -1,11 +1,11 @@
-import React, {useState, useEffect} from 'react';
-import {Box, Text, useInput, useFocus} from 'ink';
-import {Tabs, Tab} from 'ink-tab';
 import {TitledBox} from '@/components/ui/titled-box';
-import {Command, Colors, ModelEntry} from '@/types/index';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {databaseEngine} from '@/model-database/database-engine';
+import {Colors, Command, ModelEntry} from '@/types/index';
+import {Box, Text, useFocus, useInput} from 'ink';
+import {Tab, Tabs} from 'ink-tab';
+import React, {useState, useEffect} from 'react';
 
 type TabType = 'latest' | 'open' | 'proprietary';
 
@@ -113,8 +113,8 @@ function ModelDatabaseDisplay({onCancel}: ModelDatabaseDisplayProps) {
 	});
 
 	// Reset index when switching tabs
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset state when activeTab changes is intentional
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when activeTab changes is intentional
 		setCurrentModelIndex(0);
 	}, [activeTab]);
 

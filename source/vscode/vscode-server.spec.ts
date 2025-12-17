@@ -1,19 +1,19 @@
 import test from 'ava';
 import {WebSocket} from 'ws';
+import type {
+	AssistantMessage,
+	ConnectionAckMessage,
+	DiagnosticsRequestMessage,
+	FileChangeMessage,
+	ServerMessage,
+	StatusMessage,
+} from './protocol.js';
 import {
 	VSCodeServer,
 	getVSCodeServer,
 	isVSCodeConnected,
 	sendFileChangeToVSCode,
 } from './vscode-server.js';
-import type {
-	ServerMessage,
-	ConnectionAckMessage,
-	FileChangeMessage,
-	StatusMessage,
-	AssistantMessage,
-	DiagnosticsRequestMessage,
-} from './protocol.js';
 
 // Use different ports for each test to avoid conflicts
 let testPort = 52000;
@@ -304,7 +304,7 @@ test('VSCodeServer sendAssistantMessage broadcasts message', async t => {
 	const message = await messagePromise;
 	t.is(message.type, 'assistant_message');
 	t.is(message.content, 'Hello from assistant');
-	t.false(message.isStreaming);
+	t.false(message.isGenerating);
 
 	client.close();
 	await server.stop();
@@ -333,7 +333,7 @@ test('VSCodeServer sendAssistantMessage with streaming flag', async t => {
 	server.sendAssistantMessage('Streaming...', true);
 
 	const message = await messagePromise;
-	t.true(message.isStreaming);
+	t.true(message.isGenerating);
 
 	client.close();
 	await server.stop();

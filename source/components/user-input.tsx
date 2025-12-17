@@ -1,21 +1,21 @@
-import {Box, Text, useFocus, useInput} from 'ink';
-import TextInput from 'ink-text-input';
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@/hooks/useTheme';
-import {promptHistory} from '@/prompt-history';
 import {commandRegistry} from '@/commands';
-import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
-import {useUIStateContext} from '@/hooks/useUIState';
 import {useInputState} from '@/hooks/useInputState';
-import {assemblePrompt} from '@/utils/prompt-processor';
+import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
+import {useTheme} from '@/hooks/useTheme';
+import {useUIStateContext} from '@/hooks/useUIState';
+import {promptHistory} from '@/prompt-history';
+import {DEVELOPMENT_MODE_LABELS, DevelopmentMode} from '@/types/core';
 import {Completion} from '@/types/index';
-import {DevelopmentMode, DEVELOPMENT_MODE_LABELS} from '@/types/core';
 import {
 	getCurrentFileMention,
 	getFileCompletions,
 } from '@/utils/file-autocomplete';
 import {handleFileMention} from '@/utils/file-mention-handler';
+import {assemblePrompt} from '@/utils/prompt-processor';
+import {Box, Text, useFocus, useInput} from 'ink';
 import Spinner from 'ink-spinner';
+import TextInput from 'ink-text-input';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 interface ChatProps {
 	onSubmit?: (message: string) => void;
@@ -433,6 +433,17 @@ export default function UserInput({
 
 	const textColor = disabled || !input ? colors.secondary : colors.primary;
 
+	// When disabled, show minimal UI to avoid cluttering the screen
+	if (disabled) {
+		return (
+			<Box flexDirection="column" paddingY={1} width="100%" marginTop={1}>
+				<Text color={colors.secondary} dimColor>
+					<Spinner type="dots" /> Press Esc to cancel
+				</Text>
+			</Box>
+		);
+	}
+
 	return (
 		<Box flexDirection="column" paddingY={1} width="100%" marginTop={1}>
 			<Box
@@ -445,7 +456,7 @@ export default function UserInput({
 				{!isBashMode && (
 					<>
 						<Text color={colors.primary} bold>
-							{disabled ? '' : 'What would you like me to help with?'}
+							What would you like me to help with?
 						</Text>
 					</>
 				)}
@@ -453,20 +464,14 @@ export default function UserInput({
 				{/* Input row */}
 				<Box>
 					<Text color={textColor}>{'>'} </Text>
-					{disabled ? (
-						<Text color={colors.secondary}>
-							<Spinner type="dots" />
-						</Text>
-					) : (
-						<TextInput
-							key={textInputKey}
-							value={input}
-							onChange={updateInput}
-							onSubmit={handleSubmit}
-							placeholder={actualPlaceholder}
-							focus={isFocused}
-						/>
-					)}
+					<TextInput
+						key={textInputKey}
+						value={input}
+						onChange={updateInput}
+						onSubmit={handleSubmit}
+						placeholder={actualPlaceholder}
+						focus={isFocused}
+					/>
 				</Box>
 
 				{isBashMode && (
@@ -520,8 +525,8 @@ export default function UserInput({
 						developmentMode === 'normal'
 							? colors.secondary
 							: developmentMode === 'auto-accept'
-							? colors.info
-							: colors.warning
+								? colors.info
+								: colors.warning
 					}
 				>
 					<Text bold>{DEVELOPMENT_MODE_LABELS[developmentMode]}</Text>{' '}

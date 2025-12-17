@@ -1,29 +1,25 @@
-import {readFileTool} from '@/tools/read-file';
 import {createFileTool} from '@/tools/create-file';
-import {insertLinesTool} from '@/tools/insert-lines';
-import {replaceLinesTool} from '@/tools/replace-lines';
-import {deleteLinesTool} from '@/tools/delete-lines';
 import {executeBashTool} from '@/tools/execute-bash';
-import {webSearchTool} from '@/tools/web-search';
 import {fetchUrlTool} from '@/tools/fetch-url';
 import {findFilesTool} from '@/tools/find-files';
-import {searchFileContentsTool} from '@/tools/search-file-contents';
 import {getDiagnosticsTool} from '@/tools/lsp-get-diagnostics';
-import React from 'react';
+import {readFileTool} from '@/tools/read-file';
+import {searchFileContentsTool} from '@/tools/search-file-contents';
+import {stringReplaceTool} from '@/tools/string-replace';
+import {webSearchTool} from '@/tools/web-search';
 import type {
-	ToolHandler,
 	AISDKCoreTool,
 	NanocoderToolExport,
+	ToolHandler,
 } from '@/types/index';
+import React from 'react';
 
 // Array of all tool exports from individual tool files
 // Each tool exports: { name, tool, formatter?, validator? }
 const allTools: NanocoderToolExport[] = [
 	readFileTool,
 	createFileTool,
-	insertLinesTool,
-	replaceLinesTool,
-	deleteLinesTool,
+	stringReplaceTool,
 	executeBashTool,
 	webSearchTool,
 	fetchUrlTool,
@@ -42,11 +38,11 @@ export const toolRegistry: Record<string, ToolHandler> = Object.fromEntries(
 	allTools.map(t => [
 		t.name,
 		// Extract the execute function from the AI SDK tool
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 		async (args: any) => {
 			// Call the tool's execute function with a dummy options object
 			// The actual options will be provided by AI SDK during automatic execution
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+			// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 			return await (t.tool as any).execute(args, {
 				toolCallId: 'manual',
 				messages: [],
@@ -59,7 +55,7 @@ export const toolRegistry: Record<string, ToolHandler> = Object.fromEntries(
 export const toolFormatters: Record<
 	string,
 	(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 		args: any,
 	) =>
 		| string
@@ -76,7 +72,7 @@ export const toolFormatters: Record<
 	{} as Record<
 		string,
 		(
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 			args: any,
 		) =>
 			| string
@@ -89,7 +85,7 @@ export const toolFormatters: Record<
 // Export validator registry
 export const toolValidators: Record<
 	string,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 	(args: any) => Promise<{valid: true} | {valid: false; error: string}>
 > = allTools.reduce(
 	(acc, t) => {
@@ -100,7 +96,7 @@ export const toolValidators: Record<
 	},
 	{} as Record<
 		string,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// biome-ignore lint/suspicious/noExplicitAny: Dynamic typing required
 		(args: any) => Promise<{valid: true} | {valid: false; error: string}>
 	>,
 );
