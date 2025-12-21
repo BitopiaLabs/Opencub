@@ -1,0 +1,438 @@
+name: Pull Request Automated Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+env:
+  ENABLE_COVERAGE_THRESHOLD: '80'
+  FAIL_ON_COVERAGE_DROP: 'true'
+  ENABLE_SECURITY_SCAN: 'true'
+
+jobs:
+  # Self-contained test jobs - optimized for parallel execution
+  test-lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linting
+        run: pnpm run test:lint
+
+  test-types:
+    name: Type Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run TypeScript type checking
+        run: pnpm run test:types
+
+  test-format:
+    name: Format Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run format check
+        run: pnpm run test:format
+
+  test-knip:
+    name: Unused Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run dependency check (knip)
+        run: pnpm run test:knip
+
+  test-coverage:
+    name: Unit Tests & Coverage Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      coverage: ${{ steps.coverage.outputs.coverage }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests with coverage
+        run: pnpm run test:ava:coverage
+
+      - name: Generate coverage summary
+        run: |
+          pnpm exec c8 report --reporter=json-summary
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+            echo "Current coverage: ${COVERAGE}%"
+
+            # Check coverage threshold
+            if (( $(echo "${COVERAGE} < ${ENABLE_COVERAGE_THRESHOLD}" | bc -l) )); then
+              echo "❌ Coverage ${COVERAGE}% is below threshold ${ENABLE_COVERAGE_THRESHOLD}%"
+              exit 1
+            else
+              echo "✅ Coverage ${COVERAGE}% meets threshold ${ENABLE_COVERAGE_THRESHOLD}%"
+            fi
+          else
+            echo "❌ No coverage report found"
+            exit 1
+          fi
+
+  verify-build:
+    name: Verify Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Verify build artifacts
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            test -f dist/cli.js
+            echo "✓ CLI build verified"
+          fi
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            test -f assets/nanocoder-vscode.vsix
+            echo "✓ VS Code extension verified"
+          fi
+        shell: bash
+
+  # Security and dependency analysis (runs once)
+  security-scan:
+    name: Security & Dependency Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run security audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Check for outdated dependencies
+        run: |
+          echo "Checking for outdated dependencies..."
+          pnpm outdated || echo "Some dependencies are outdated"
+        continue-on-error: true
+
+  # PR Comment with results
+  pr-comment:
+    name: PR Results Summary
+    runs-on: ubuntu-latest
+    needs: [test-lint, test-types, test-format, test-knip, test-coverage, verify-build, security-scan]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { number } = context.issue;
+
+            // Check job results
+            const lintResult = '${{ needs.test-lint.result }}';
+            const typesResult = '${{ needs.test-types.result }}';
+            const formatResult = '${{ needs.test-format.result }}';
+            const knipResult = '${{ needs.test-knip.result }}';
+            const coverageResult = '${{ needs.test-coverage.result }}';
+            const buildResult = '${{ needs.verify-build.result }}';
+            const securityResult = '${{ needs.security-scan.result }}';
+
+            // Job mapping for API calls
+            const jobMap = {
+              'lint': { result: lintResult, name: 'Linting', jobName: 'test-lint' },
+              'types': { result: typesResult, name: 'Type Checks', jobName: 'test-types' },
+              'format': { result: formatResult, name: 'Format Checks', jobName: 'test-format' },
+              'knip': { result: knipResult, name: 'Unused Dependencies', jobName: 'test-knip' },
+              'coverage': { result: coverageResult, name: 'Coverage Analysis', jobName: 'test-coverage' },
+              'build': { result: buildResult, name: 'Build Verification', jobName: 'verify-build' },
+              'security': { result: securityResult, name: 'Security Analysis', jobName: 'security-scan' }
+            };
+
+            // Get workflow run information
+            const { data: workflowRuns } = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              event: 'pull_request'
+            });
+
+            const workflowRun = workflowRuns.workflow_runs.find(run =>
+              run.head_sha === context.sha
+            );
+
+            let jobDetails = {};
+            if (workflowRun) {
+              const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+                owner,
+                repo,
+                run_id: workflowRun.id
+              });
+
+              jobDetails = jobs.jobs.reduce((acc, job) => {
+                acc[job.name] = job;
+                return acc;
+              }, {});
+            }
+
+            // Function to extract error details from job logs
+            async function getJobErrorDetails(jobName) {
+              if (!workflowRun || !jobDetails[jobName] || jobDetails[jobName].conclusion === 'success') {
+                return null;
+              }
+
+              try {
+                const response = await github.request('GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs', {
+                  owner,
+                  repo,
+                  job_id: jobDetails[jobName].id
+                });
+
+                // For logs, the response is a redirect to a download URL
+                // We'll skip log extraction for now to avoid the complexity
+                return null;
+              } catch (error) {
+                console.log(`Failed to get logs for job ${jobName}:`, error.message);
+                return 'Error retrieving job logs';
+              }
+            }
+
+            // Build detailed status sections
+            const buildStatusSection = async (key, jobInfo) => {
+              const { result, name, jobName } = jobInfo;
+              const icon = result === 'success' ? '✅' : '❌';
+              const isSuccess = result === 'success';
+
+              let details = '';
+              if (!isSuccess) {
+                if (key === 'coverage') {
+                  const coverageOutput = '${{ needs.test-coverage.outputs.coverage }}';
+                  details = coverageOutput ? '\\n\\n**Current Coverage:** ${coverageOutput}% (Required: ${{ env.ENABLE_COVERAGE_THRESHOLD }}%)' : '';
+                }
+
+                const errorDetails = await getJobErrorDetails(jobName);
+                if (errorDetails) {
+                  details += '\\n\\n<details>\\n<summary>🔍 Error Details</summary>\\n\\n```bash\\n' + errorDetails.substring(0, 1500) + (errorDetails.length > 1500 ? '\\n...' : '') + '\\n```\\n</details>';
+                }
+
+                if (jobDetails[jobName]) {
+                  const job = jobDetails[jobName];
+                  const duration = job.completed_at ? Math.round((new Date(job.completed_at) - new Date(job.started_at)) / 1000) : 'N/A';
+                  details += `\\n\\n**Duration:** ${duration}s | **Run ID:** #${job.run_number}`;
+                }
+              } else {
+                if (jobDetails[jobName]) {
+                  const job = jobDetails[jobName];
+                  const duration = job.completed_at ? Math.round((new Date(job.completed_at) - new Date(job.started_at)) / 1000) : 'N/A';
+                  details = ` (${duration}s)`;
+                }
+              }
+
+              return `### ${name} ${icon}\\n${getDescription(key)}${details}`;
+            };
+
+            function getDescription(key) {
+              const descriptions = {
+                'lint': 'Code linting with Biome',
+                'types': 'TypeScript type checking',
+                'format': 'Code formatting with Biome',
+                'knip': 'Unused dependency and file detection',
+                'coverage': 'Unit test coverage analysis',
+                'build': 'Build artifact verification',
+                'security': 'Security audit and dependency analysis'
+              };
+              return descriptions[key] || 'Automated check';
+            }
+
+            // Build overall status
+            let overallStatus = '✅ All checks passed!';
+            let failedJobs = Object.entries(jobMap).filter(([key, job]) => job.result !== 'success');
+
+            if (failedJobs.length > 0) {
+              overallStatus = `❌ ${failedJobs.length} check${failedJobs.length > 1 ? 's' : ''} failed`;
+            }
+
+            // Generate comment sections
+            let commentSections = [];
+            for (const [key, jobInfo] of Object.entries(jobMap)) {
+              commentSections.push(await buildStatusSection(key, jobInfo));
+            }
+
+            // Create comment body
+            const comment = `
+            ## 🤖 PR Checks Summary
+
+            ${commentSections.join('\\n\\n')}
+
+            ## Overall Status: ${overallStatus}
+
+            ---
+            **📊 Quick Stats:**
+            • **Total Checks:** ${Object.keys(jobMap).length}
+            • **Passed:** ${Object.values(jobMap).filter(job => job.result === 'success').length}
+            • **Failed:** ${failedJobs.length}
+            • **Workflow Run:** [#${workflowRun?.run_number || 'N/A'}](${workflowRun?.html_url || '#'})
+
+            *This comment was automatically generated by PR checks workflow*
+            `;
+
+            // Find existing bot comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('PR Checks Summary')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: botComment.id,
+                body: comment,
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: number,
+                body: comment,
+              });
+            }
