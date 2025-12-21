@@ -5,6 +5,10 @@ import {memo} from 'react';
 import {TitledBox} from '@/components/ui/titled-box';
 import {confDirMap} from '@/config/index';
 import {getThemeColors, themes} from '@/config/themes';
+import {
+	PATH_LENGTH_NARROW_TERMINAL,
+	PATH_LENGTH_NORMAL_TERMINAL,
+} from '@/constants';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {LSPConnectionStatus, MCPConnectionStatus} from '@/types/core';
 import type {ThemePreset} from '@/types/ui';
@@ -59,7 +63,9 @@ export default memo(function Status({
 	};
 
 	// Calculate max path length based on terminal size
-	const maxPathLength = isNarrow ? 30 : 60;
+	const maxPathLength = isNarrow
+		? PATH_LENGTH_NARROW_TERMINAL
+		: PATH_LENGTH_NORMAL_TERMINAL;
 
 	return (
 		<>

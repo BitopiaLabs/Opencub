@@ -3,6 +3,10 @@ import AssistantMessage from '@/components/assistant-message';
 import ErrorMessage from '@/components/error-message';
 import UserMessage from '@/components/user-message';
 import WarningMessage from '@/components/warning-message';
+import {
+	TOKEN_THRESHOLD_CRITICAL_PERCENT,
+	TOKEN_THRESHOLD_WARNING_PERCENT,
+} from '@/constants';
 import {getModelContextLimit} from '@/models/index';
 import {promptHistory} from '@/prompt-history';
 import {createTokenizer} from '@/tokenization/index';
@@ -183,8 +187,8 @@ export function useChatHandler({
 
 				const percentUsed = (breakdown.total / contextLimit) * 100;
 
-				// Show warning on every message once past 80%
-				if (percentUsed >= 95) {
+				// Show warning on every message once past TOKEN_THRESHOLD_WARNING_PERCENT%
+				if (percentUsed >= TOKEN_THRESHOLD_CRITICAL_PERCENT) {
 					addToChatQueue(
 						<WarningMessage
 							key={`context-warning-${componentKeyCounter}`}
@@ -194,7 +198,7 @@ export function useChatHandler({
 							hideBox={true}
 						/>,
 					);
-				} else if (percentUsed >= 80) {
+				} else if (percentUsed >= TOKEN_THRESHOLD_WARNING_PERCENT) {
 					addToChatQueue(
 						<WarningMessage
 							key={`context-warning-${componentKeyCounter}`}

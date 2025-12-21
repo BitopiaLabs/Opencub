@@ -3,6 +3,7 @@
  * Provides powerful filtering, searching, and analytics capabilities
  */
 
+import {MAX_LOG_ENTRIES} from '@/constants';
 import {getLogger} from './index.js';
 
 // Get logger instance directly to avoid circular dependencies
@@ -179,7 +180,7 @@ class LogStorage {
 	private maxEntries: number;
 	private indexes: Map<string, Set<string>> = new Map();
 
-	constructor(maxEntries: number = 10000) {
+	constructor(maxEntries: number = MAX_LOG_ENTRIES) {
 		this.maxEntries = maxEntries;
 		this.entries = new Array(maxEntries); // Pre-allocate array
 	}

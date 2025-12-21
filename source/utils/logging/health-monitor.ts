@@ -5,6 +5,17 @@
 
 import {loadavg} from 'os';
 import {
+	COOLDOWN_ALERT_MS,
+	DURATION_AVERAGE_CRITICAL_MS,
+	DURATION_AVERAGE_WARNING_MS,
+	DURATION_REQUEST_CRITICAL_MS,
+	DURATION_REQUEST_WARNING_MS,
+	HEAP_USAGE_CRITICAL_THRESHOLD,
+	HEAP_USAGE_WARNING_THRESHOLD,
+	INTERVAL_HEALTH_CHECK_MS,
+	TIMEOUT_HEALTH_CHECK_MS,
+} from '@/constants';
+import {
 	generateCorrelationId,
 	getLogger,
 	withNewCorrelationContext,
@@ -155,18 +166,18 @@ export class HealthMonitor {
 		this.correlationId = generateCorrelationId();
 		this.config = {
 			enabled: true,
-			interval: 30000, // 30 seconds
-			timeout: 5000, // 5 seconds
+			interval: INTERVAL_HEALTH_CHECK_MS,
+			timeout: TIMEOUT_HEALTH_CHECK_MS,
 			thresholds: {
 				memory: {
-					heapUsageWarning: 0.8,
-					heapUsageCritical: 0.95,
+					heapUsageWarning: HEAP_USAGE_WARNING_THRESHOLD,
+					heapUsageCritical: HEAP_USAGE_CRITICAL_THRESHOLD,
 					externalWarning: 256,
 					externalCritical: 512,
 				},
 				performance: {
-					averageDurationWarning: 1000,
-					averageDurationCritical: 5000,
+					averageDurationWarning: DURATION_AVERAGE_WARNING_MS,
+					averageDurationCritical: DURATION_AVERAGE_CRITICAL_MS,
 					errorRateWarning: 0.05,
 					errorRateCritical: 0.1,
 				},
@@ -177,8 +188,8 @@ export class HealthMonitor {
 					errorRateCritical: 0.05,
 				},
 				requests: {
-					durationWarning: 2000,
-					durationCritical: 10000,
+					durationWarning: DURATION_REQUEST_WARNING_MS,
+					durationCritical: DURATION_REQUEST_CRITICAL_MS,
 					errorRateWarning: 0.05,
 					errorRateCritical: 0.1,
 				},
@@ -186,7 +197,7 @@ export class HealthMonitor {
 			alerts: {
 				enabled: true,
 				channels: ['console'],
-				cooldown: 300000, // 5 minutes
+				cooldown: COOLDOWN_ALERT_MS,
 			},
 			...config,
 		};

@@ -3,6 +3,10 @@ import {commandRegistry} from '@/commands';
 import ErrorMessage from '@/components/error-message';
 import InfoMessage from '@/components/info-message';
 import ToolMessage from '@/components/tool-message';
+import {
+	DELAY_COMMAND_COMPLETE_MS,
+	TRUNCATION_RESULT_STRING_LENGTH,
+} from '@/constants';
 import {CheckpointManager} from '@/services/checkpoint-manager';
 import {toolRegistry} from '@/tools/index';
 import type {LLMClient} from '@/types/core';
@@ -62,8 +66,8 @@ export async function handleMessageSubmission(
 				result = {
 					fullOutput: resultString,
 					llmContext:
-						resultString.length > 4000
-							? resultString.substring(0, 4000)
+						resultString.length > TRUNCATION_RESULT_STRING_LENGTH
+							? resultString.substring(0, TRUNCATION_RESULT_STRING_LENGTH)
 							: resultString,
 				};
 			}
@@ -179,7 +183,7 @@ ${result.fullOutput || '(No output)'}`;
 			} else if (commandName === 'status') {
 				onShowStatus();
 				// Status adds to queue synchronously, give React time to render
-				setTimeout(() => onCommandComplete?.(), 100);
+				setTimeout(() => onCommandComplete?.(), DELAY_COMMAND_COMPLETE_MS);
 				return;
 			}
 
@@ -244,7 +248,7 @@ ${result.fullOutput || '(No output)'}`;
 					// Give React time to render before signaling completion
 					setTimeout(() => {
 						onCommandComplete?.();
-					}, 100);
+					}, DELAY_COMMAND_COMPLETE_MS);
 				} else if (typeof result === 'string' && result.trim()) {
 					queueMicrotask(() => {
 						onAddToChatQueue(
@@ -258,7 +262,7 @@ ${result.fullOutput || '(No output)'}`;
 					// Give React time to render before signaling completion
 					setTimeout(() => {
 						onCommandComplete?.();
-					}, 100);
+					}, DELAY_COMMAND_COMPLETE_MS);
 				} else {
 					// No output to display, signal completion immediately
 					onCommandComplete?.();

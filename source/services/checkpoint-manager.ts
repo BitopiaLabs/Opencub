@@ -1,5 +1,6 @@
 import {existsSync} from 'fs';
 import * as path from 'path';
+import {TRUNCATION_DESCRIPTION_LENGTH} from '@/constants';
 import type {
 	CheckpointConversation,
 	CheckpointData,
@@ -76,9 +77,9 @@ export class CheckpointManager {
 		}
 
 		const firstMessage = userMessages[0].content;
-		// Take first 100 characters and add ellipsis if longer
-		return firstMessage.length > 100
-			? `${firstMessage.substring(0, 100)}...`
+		// Take first characters and add ellipsis if longer
+		return firstMessage.length > TRUNCATION_DESCRIPTION_LENGTH
+			? `${firstMessage.substring(0, TRUNCATION_DESCRIPTION_LENGTH)}...`
 			: firstMessage;
 	}
 

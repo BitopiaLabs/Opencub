@@ -6,6 +6,10 @@
 import {execSync, spawn} from 'child_process';
 import {existsSync} from 'fs';
 import {join} from 'path';
+import {
+	TIMEOUT_LSP_SPAWN_VERIFICATION_MS,
+	TIMEOUT_LSP_VERIFICATION_MS,
+} from '@/constants';
 import type {LSPServerConfig} from './lsp-client';
 
 interface LanguageServerDefinition {
@@ -142,6 +146,8 @@ const KNOWN_SERVERS: LanguageServerDefinition[] = [
 		verificationMethod: 'version',
 		installHint: 'Install from https://github.com/LuaLS/lua-language-server',
 	},
+
+	//markdown
 	{
 		name: 'vscode-markdown-language-server',
 		command: 'vscode-mdx-language-server',
@@ -161,6 +167,45 @@ const KNOWN_SERVERS: LanguageServerDefinition[] = [
 		verificationMethod: 'version',
 		installHint:
 			'npm install -g marksman or download from https://github.com/artempyanykh/marksman/releases',
+	},
+
+	//graphql
+	{
+		name: 'graphql-lsp-server',
+		command: 'graphql-lsp',
+		args: ['server -s'],
+		languages: ['graphql', 'gql'],
+		checkCommand: 'graphql-lsp --version',
+		verificationMethod: 'version',
+		installHint: 'npm install -g @graphql-tools/lsp-server',
+	},
+	{
+		name: 'graphql-language-server-cli',
+		command: 'graphql-lsp',
+		args: ['server', '--stdio'],
+		languages: ['graphql', 'gql'],
+		checkCommand: 'graphql-lsp --version',
+		verificationMethod: 'version',
+		installHint: 'npm install -g graphql-language-service-cli',
+	},
+	{
+		name: 'docker-language',
+		command: 'docker-langserver',
+		args: ['--stdio'],
+		languages: ['dockerfile'],
+		checkCommand: 'docker-langserver --version',
+		verificationMethod: 'version',
+		installHint:
+			'npm install -g docker-langserver or https://github.com/rcjsuen/dockerfile-language-server-nodejs',
+	},
+	{
+		name: 'docker-compose-language',
+		command: 'yaml-language-server',
+		args: ['--stdio'],
+		languages: ['yaml', 'yml', 'docker-compose'],
+		checkCommand: 'yaml-language-server --version',
+		verificationMethod: 'version',
+		installHint: 'npm install -g yaml-language-server',
 	},
 ];
 
@@ -191,7 +236,10 @@ function findCommand(command: string): string | null {
  */
 function verifyServer(checkCommand: string): boolean {
 	try {
-		execSync(checkCommand, {stdio: 'ignore', timeout: 5000});
+		execSync(checkCommand, {
+			stdio: 'ignore',
+			timeout: TIMEOUT_LSP_VERIFICATION_MS,
+		});
 		return true;
 	} catch {
 		return false;
@@ -213,7 +261,7 @@ function verifyLSPServerWithCommunication(
 		const timeout = setTimeout(() => {
 			child.kill();
 			resolve(false);
-		}, 2000);
+		}, TIMEOUT_LSP_SPAWN_VERIFICATION_MS);
 
 		// Listen for errors during startup (e.g., command not found)
 		child.on('error', () => {
@@ -324,6 +372,16 @@ export function getServerForLanguage(
 export function getLanguageId(extension: string): string {
 	const ext = extension.startsWith('.') ? extension.slice(1) : extension;
 
+	// Handle Docker Compose filename patterns
+	if (
+		ext === 'docker-compose.yml' ||
+		ext === 'docker-compose.yaml' ||
+		ext === 'compose.yml' ||
+		ext === 'compose.yaml'
+	) {
+		return 'docker-compose';
+	}
+
 	const languageMap: Record<string, string> = {
 		ts: 'typescript',
 		tsx: 'typescriptreact',
@@ -366,6 +424,9 @@ export function getLanguageId(extension: string): string {
 		swift: 'swift',
 		rb: 'ruby',
 		php: 'php',
+		graphql: 'graphql',
+		gql: 'graphql',
+		dockerfile: 'dockerfile',
 	};
 
 	return languageMap[ext] || ext;

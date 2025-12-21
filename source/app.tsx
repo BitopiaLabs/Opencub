@@ -47,6 +47,7 @@ import {useModeHandlers} from '@/hooks/useModeHandlers';
 import {useToolHandler} from '@/hooks/useToolHandler';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 
+import {TIMEOUT_EXECUTION_MAX_MS, TIMEOUT_OUTPUT_FLUSH_MS} from '@/constants';
 // Provide shared UI state to components
 import {UIStateProvider} from '@/hooks/useUIState';
 import {createPinoLogger} from '@/utils/logging/pino-logger';
@@ -635,8 +636,6 @@ export default function App({
 	]);
 
 	// Exit in non-interactive mode when all processing is complete
-	const OUTPUT_FLUSH_DELAY_MS = 1000;
-	const MAX_EXECUTION_TIME_MS = 300000; // 5 minutes
 	const [startTime] = React.useState(Date.now());
 
 	React.useEffect(() => {
@@ -644,7 +643,7 @@ export default function App({
 			const {shouldExit, reason} = isNonInteractiveModeComplete(
 				appState,
 				startTime,
-				MAX_EXECUTION_TIME_MS,
+				TIMEOUT_EXECUTION_MAX_MS,
 			);
 
 			if (shouldExit) {
@@ -662,7 +661,7 @@ export default function App({
 					process.exit(
 						reason === 'error' || reason === 'tool-approval' ? 1 : 0,
 					);
-				}, OUTPUT_FLUSH_DELAY_MS);
+				}, TIMEOUT_OUTPUT_FLUSH_MS);
 
 				return () => clearTimeout(timer);
 			}

@@ -3,6 +3,7 @@
  * Fetches and caches model metadata
  */
 
+import {TIMEOUT_HTTP_BODY_MS, TIMEOUT_HTTP_HEADERS_MS} from '@/constants';
 import {formatError} from '@/utils/error-formatter';
 import {getLogger} from '@/utils/logging';
 import {request} from 'undici';
@@ -168,8 +169,8 @@ async function fetchModelsData(): Promise<ModelsDevDatabase | null> {
 	try {
 		const response = await request(MODELS_DEV_API_URL, {
 			method: 'GET',
-			headersTimeout: 10000,
-			bodyTimeout: 30000,
+			headersTimeout: TIMEOUT_HTTP_HEADERS_MS,
+			bodyTimeout: TIMEOUT_HTTP_BODY_MS,
 		});
 
 		if (response.statusCode !== 200) {
@@ -182,7 +183,7 @@ async function fetchModelsData(): Promise<ModelsDevDatabase | null> {
 		const data = body as ModelsDevDatabase;
 
 		// Cache the successful response
-		writeCache(data);
+		await writeCache(data);
 
 		return data;
 	} catch (error) {
@@ -190,7 +191,7 @@ async function fetchModelsData(): Promise<ModelsDevDatabase | null> {
 		logger.warn({error: formatError(error)}, 'Failed to fetch from models.dev');
 
 		// Try to use cached data as fallback
-		const cached = readCache();
+		const cached = await readCache();
 		if (cached) {
 			logger.info('Using cached models data');
 			return cached.data;
@@ -205,7 +206,7 @@ async function fetchModelsData(): Promise<ModelsDevDatabase | null> {
  */
 async function getModelsData(): Promise<ModelsDevDatabase | null> {
 	// Try cache first
-	const cached = readCache();
+	const cached = await readCache();
 	if (cached) {
 		return cached.data;
 	}

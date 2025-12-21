@@ -5,6 +5,7 @@
 
 import {randomBytes} from 'node:crypto';
 
+import {MAX_COMPLETED_REQUESTS} from '@/constants';
 import {generateCorrelationId, getLogger} from './index.js';
 import {
 	calculateMemoryDelta,
@@ -80,7 +81,7 @@ export class RequestTracker {
 	private readonly maxCompletedRequests: number;
 	private readonly correlationId: string;
 
-	constructor(maxCompletedRequests: number = 1000) {
+	constructor(maxCompletedRequests: number = MAX_COMPLETED_REQUESTS) {
 		this.maxCompletedRequests = maxCompletedRequests;
 		this.correlationId = generateCorrelationId();
 	}

@@ -1,4 +1,10 @@
 import {TitledBox} from '@/components/ui/titled-box';
+import {
+	COST_SCORE_CHEAP,
+	COST_SCORE_EXPENSIVE,
+	COST_SCORE_FREE,
+	COST_SCORE_MODERATE,
+} from '@/constants';
 import {useTerminalWidth} from '@/hooks/useTerminalWidth';
 import {useTheme} from '@/hooks/useTheme';
 import {databaseEngine} from '@/model-database/database-engine';
@@ -340,10 +346,13 @@ function ModelItem({model, colors}: {model: ModelEntry; colors: Colors}) {
 
 	// Get cost label based on score
 	const getCostLabel = (score: number) => {
-		if (score >= 9) return {label: 'Free', color: colors.success};
-		if (score >= 7) return {label: 'Cheap', color: colors.success};
-		if (score >= 5) return {label: 'Moderate', color: colors.primary};
-		if (score >= 3) return {label: 'Expensive', color: colors.warning};
+		if (score >= COST_SCORE_FREE) return {label: 'Free', color: colors.success};
+		if (score >= COST_SCORE_CHEAP)
+			return {label: 'Cheap', color: colors.success};
+		if (score >= COST_SCORE_MODERATE)
+			return {label: 'Moderate', color: colors.primary};
+		if (score >= COST_SCORE_EXPENSIVE)
+			return {label: 'Expensive', color: colors.warning};
 		return {label: 'Premium', color: colors.error};
 	};
 

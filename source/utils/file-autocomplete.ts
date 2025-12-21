@@ -2,6 +2,7 @@ import {exec} from 'node:child_process';
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
+import {BUFFER_FILE_LIST_BYTES, CACHE_FILE_LIST_TTL_MS} from '@/constants';
 import ignore from 'ignore';
 import {formatError} from './error-formatter';
 import {fuzzyScoreFilePath} from './fuzzy-matching';
@@ -57,7 +58,6 @@ interface FileListCache {
 }
 
 let fileListCache: FileListCache | null = null;
-const CACHE_TTL = 5000; // 5 seconds
 
 /**
  * Get list of all files in the project (respecting gitignore)
@@ -65,7 +65,7 @@ const CACHE_TTL = 5000; // 5 seconds
 async function getAllFiles(cwd: string): Promise<string[]> {
 	// Check cache
 	const now = Date.now();
-	if (fileListCache && now - fileListCache.timestamp < CACHE_TTL) {
+	if (fileListCache && now - fileListCache.timestamp < CACHE_FILE_LIST_TTL_MS) {
 		return fileListCache.files;
 	}
 
@@ -75,7 +75,7 @@ async function getAllFiles(cwd: string): Promise<string[]> {
 		// Use find to list all files, excluding common large directories
 		const {stdout} = await execAsync(
 			`find . -type f -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/dist/*" -not -path "*/build/*" -not -path "*/coverage/*" -not -path "*/.next/*" -not -path "*/.nuxt/*" -not -path "*/out/*" -not -path "*/.cache/*"`,
-			{cwd, maxBuffer: 1024 * 1024 * 10}, // 10MB buffer
+			{cwd, maxBuffer: BUFFER_FILE_LIST_BYTES},
 		);
 
 		const allFiles = stdout
@@ -98,15 +98,6 @@ async function getAllFiles(cwd: string): Promise<string[]> {
 		logger.error({error: formatError(error)}, 'Failed to list files');
 		return [];
 	}
-}
-
-/**
- * Fuzzy match scoring algorithm for file paths
- * Returns a score from 0 to 1000 (higher = better match)
- * @deprecated Use fuzzyScoreFilePath from fuzzy-matching.ts instead
- */
-export function fuzzyScore(filePath: string, query: string): number {
-	return fuzzyScoreFilePath(filePath, query);
 }
 
 /**

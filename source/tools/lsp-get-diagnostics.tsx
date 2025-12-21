@@ -3,6 +3,7 @@ import {Box, Text} from 'ink';
 import React from 'react';
 
 import ToolMessage from '@/components/tool-message';
+import {TIMEOUT_LSP_DIAGNOSTICS_MS} from '@/constants';
 import {ThemeContext} from '@/hooks/useTheme';
 import {DiagnosticSeverity, getLSPManager} from '@/lsp/index';
 import {jsonSchema, tool} from '@/types/core';
@@ -24,7 +25,7 @@ async function getVSCodeDiagnostics(
 	return new Promise(resolve => {
 		const timeout = setTimeout(() => {
 			resolve(null);
-		}, 5000); // 5 second timeout
+		}, TIMEOUT_LSP_DIAGNOSTICS_MS);
 
 		// Register callback for this specific request
 		server.onCallbacks({

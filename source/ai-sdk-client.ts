@@ -1,5 +1,6 @@
 import {randomBytes} from 'node:crypto';
 
+import {MAX_TOOL_STEPS, TIMEOUT_SOCKET_DEFAULT_MS} from '@/constants';
 import {getModelContextLimit} from '@/models/index.js';
 import {XMLToolCallParser} from '@/tool-calling/xml-parser';
 import type {
@@ -350,7 +351,9 @@ export class AISDKClient implements LLMClient {
 		const {requestTimeout, socketTimeout} = this.providerConfig;
 		const effectiveSocketTimeout = socketTimeout ?? requestTimeout;
 		const resolvedSocketTimeout =
-			effectiveSocketTimeout === -1 ? 0 : (effectiveSocketTimeout ?? 120000);
+			effectiveSocketTimeout === -1
+				? 0
+				: (effectiveSocketTimeout ?? TIMEOUT_SOCKET_DEFAULT_MS);
 
 		this.undiciAgent = new Agent({
 			connect: {
@@ -500,14 +503,14 @@ export class AISDKClient implements LLMClient {
 
 				// Tools with needsApproval: false auto-execute in the loop
 				// Tools with needsApproval: true cause interruptions for manual approval
-				// stopWhen controls when the tool loop stops (max 10 steps)
+				// stopWhen controls when the tool loop stops (max MAX_TOOL_STEPS steps)
 				const result = await generateText({
 					model,
 					messages: modelMessages,
 					tools: aiTools,
 					abortSignal: signal,
 					maxRetries: this.maxRetries,
-					stopWhen: stepCountIs(10), // Allow up to 10 tool execution steps
+					stopWhen: stepCountIs(MAX_TOOL_STEPS), // Allow up to MAX_TOOL_STEPS tool execution steps
 					// Can be used to add custom logging, metrics, or step tracking
 					onStepFinish(step) {
 						// Log tool execution steps

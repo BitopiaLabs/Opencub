@@ -3,6 +3,7 @@ import {join} from 'path';
 import {AISDKClient} from '@/ai-sdk-client';
 import {appConfig, getClosestConfigFile} from '@/config/index';
 import {loadPreferences} from '@/config/preferences';
+import {TIMEOUT_PROVIDER_CONNECTION_MS} from '@/constants';
 import type {AIProviderConfig, LLMClient} from '@/types/index';
 
 // Custom error class for configuration errors that need special UI handling
@@ -148,7 +149,7 @@ async function testProviderConnection(
 	) {
 		try {
 			await fetch(providerConfig.config.baseURL, {
-				signal: AbortSignal.timeout(5000),
+				signal: AbortSignal.timeout(TIMEOUT_PROVIDER_CONNECTION_MS),
 			});
 			// Don't check response.ok as some servers return 404 for root path
 			// We just need to confirm the server responded (not a network error)
