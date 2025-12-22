@@ -3,8 +3,8 @@
  * Uses dependency injection pattern to avoid circular dependencies
  */
 
-import {loggerProvider} from './logger-provider.js';
-import type {LogLevel, Logger, LoggerConfig} from './types.js';
+import {loggerProvider} from './logger-provider';
+import type {LogLevel, Logger, LoggerConfig} from './types';
 
 /**
  * Initialize the logger with configuration
@@ -204,7 +204,7 @@ export {
 // No exports from console-facade.js as they are only used internally and in tests
 
 // Export request tracking utilities (specific instances used by other modules)
-export {healthChecks} from './health-monitor.js';
+export {healthChecks} from './health-monitor/index.js';
 
 // Internal exports that knip should ignore
 /** @internal */
@@ -219,7 +219,7 @@ export {mcpTracker} from './request-tracker.js';
 export {globalRequestTracker} from './request-tracker.js';
 
 // Export log storage for tests
-export {globalLogStorage} from './log-query.js';
+export {globalLogStorage} from './log-query/index.js';
 
 // RequestTracker is only used internally as default export
 // No export needed here
@@ -233,14 +233,4 @@ export {
 	type HealthCheck,
 	type SystemMetrics,
 	type HealthCheckConfig,
-} from './health-monitor.js';
-
-// Internal exports that knip should ignore
-/** @internal */
-export {globalHealthMonitor} from './health-monitor.js';
-
-/** @internal */
-export {initializeHealthMonitoring} from './health-monitor.js';
-
-/** @internal */
-export {healthCheckMiddleware} from './health-monitor.js';
+} from './health-monitor/index.js';
