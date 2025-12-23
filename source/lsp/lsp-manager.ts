@@ -5,7 +5,6 @@
 
 import {EventEmitter} from 'events';
 import {extname} from 'path';
-import {fileURLToPath} from 'url';
 import {readFile} from 'fs/promises';
 import {LSPClient, LSPServerConfig} from './lsp-client';
 import {
@@ -73,11 +72,7 @@ export class LSPManager extends EventEmitter {
 
 		// Auto-discover additional servers if enabled (default: true)
 		if (config.autoDiscover !== false) {
-			// Extract file path from rootUri for context-aware server discovery
-			const projectRoot = this.rootUri.startsWith('file://')
-				? fileURLToPath(this.rootUri)
-				: this.rootUri;
-			const discovered = await discoverLanguageServers(projectRoot);
+			const discovered = await discoverLanguageServers();
 
 			// Only add discovered servers for languages not already covered
 			const coveredLanguages = new Set<string>();
