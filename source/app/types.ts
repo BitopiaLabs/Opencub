@@ -1,3 +1,5 @@
+import type {LoggingCliConfig} from '@/utils/logging/types';
+
 /**
  * Props for the main App component
  */
@@ -6,6 +8,7 @@ export interface AppProps {
 	vscodePort?: number;
 	nonInteractivePrompt?: string;
 	nonInteractiveMode?: boolean;
+	loggingConfig?: LoggingCliConfig;
 }
 
 /**

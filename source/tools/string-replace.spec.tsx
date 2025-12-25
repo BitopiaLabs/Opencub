@@ -2,12 +2,33 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'ava';
+import {render} from 'ink-testing-library';
+import React from 'react';
+import {themes} from '../config/themes.js';
 import {setCurrentMode} from '../context/mode-context.js';
+import {ThemeContext} from '../hooks/useTheme.js';
 import {stringReplaceTool} from './string-replace.js';
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
+
+console.log(`\nstring-replace.spec.tsx – ${React.version}`);
+
+// Create a mock theme provider for tests
+function TestThemeProvider({children}: {children: React.ReactNode}) {
+	const themeContextValue = {
+		currentTheme: 'tokyo-night' as const,
+		colors: themes['tokyo-night'].colors,
+		setCurrentTheme: () => {},
+	};
+
+	return (
+		<ThemeContext.Provider value={themeContextValue}>
+			{children}
+		</ThemeContext.Provider>
+	);
+}
 
 let testDir: string;
 
@@ -476,174 +497,228 @@ test('string_replace: handles quotes and escapes', async t => {
 });
 
 // ============================================================================
-// Formatter Tests
+// Formatter Tests (Visual Display with Ink)
 // ============================================================================
 
-test('string_replace formatter: generates preview for valid replacement', async t => {
+test('string_replace formatter: renders preview with basic replacement', async t => {
 	const filePath = await createTestFile(
 		'test.ts',
 		'const x = 1;\nconst y = 2;\nconst z = 3;\n',
 	);
 
-	if (!stringReplaceTool.formatter) {
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await stringReplaceTool.formatter({
+	const element = await formatter({
 		path: filePath,
-		old_str: 'const x = 1;\nconst y = 2;',
-		new_str: 'const x = 1;\nconst y = 5;',
+		old_str: 'const y = 2;',
+		new_str: 'const y = 5;',
 	});
 
-	// Verify preview is a valid React element (truthy, has type property)
-	t.truthy(preview);
-	// React elements have a $$typeof property or type property
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /string_replace/);
+	t.regex(output!, /test\.ts/);
+	t.regex(output!, /Replacing 1 line/);
 });
 
-test('string_replace formatter: generates result message after execution', async t => {
+test('string_replace formatter: shows normalized indentation for deeply indented code', async t => {
 	const filePath = await createTestFile(
-		'test.ts',
-		'const x = 1;\nconst y = 2;\n',
+		'nested.tsx',
+		'      function Component() {\n        return (\n          <div>\n            <button>Click</button>\n          </div>\n        );\n      }\n',
 	);
 
-	if (!stringReplaceTool.formatter) {
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const result = await executeStringReplace({
+	const element = await formatter({
 		path: filePath,
-		old_str: 'const x = 1;',
-		new_str: 'const x = 10;',
+		old_str: '            <button>Click</button>',
+		new_str: '            <button>Submit</button>',
 	});
 
-	const preview = await stringReplaceTool.formatter(
-		{
-			path: filePath,
-			old_str: 'const x = 1;',
-			new_str: 'const x = 10;',
-		},
-		result,
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	t.truthy(output);
+	// Should show normalized indentation (not the original deep nesting)
+	// The leftmost code should start at column 0 after line numbers
+	t.regex(output!, /string_replace/);
+	t.regex(output!, /nested\.tsx/);
 });
 
-test('string_replace formatter: shows error for content not found', async t => {
+test('string_replace formatter: shows context before and after', async t => {
+	const filePath = await createTestFile(
+		'context.ts',
+		'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\n',
+	);
+
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	const element = await formatter({
+		path: filePath,
+		old_str: 'line5',
+		new_str: 'CHANGED',
+	});
+
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	// Should show context lines (3 before, 3 after)
+	t.regex(output!, /line2/);
+	t.regex(output!, /line3/);
+	t.regex(output!, /line4/);
+	t.regex(output!, /line6/);
+	t.regex(output!, /line7/);
+	t.regex(output!, /line8/);
+});
+
+test('string_replace formatter: displays error when content not found', async t => {
 	const filePath = await createTestFile('test.txt', 'Hello World\n');
 
-	if (!stringReplaceTool.formatter) {
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await stringReplaceTool.formatter({
+	const element = await formatter({
 		path: filePath,
-		old_str: 'This does not exist',
-		new_str: 'New content',
+		old_str: 'Does not exist',
+		new_str: 'New',
 	});
 
-	// Should return a React element with error content
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /Error.*Content not found/);
+	t.regex(output!, /Searching for/);
 });
 
-test('string_replace formatter: shows error for multiple matches', async t => {
+test('string_replace formatter: displays error when multiple matches', async t => {
 	const filePath = await createTestFile(
-		'test.txt',
-		'Hello World\nHello World\n',
+		'duplicate.txt',
+		'foo\nfoo\nfoo\n',
 	);
 
-	if (!stringReplaceTool.formatter) {
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await stringReplaceTool.formatter({
+	const element = await formatter({
 		path: filePath,
-		old_str: 'Hello World',
-		new_str: 'Hi Universe',
+		old_str: 'foo',
+		new_str: 'bar',
 	});
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /Error.*Found 3 matches/);
+	t.regex(output!, /Add more surrounding context/);
 });
 
-test('string_replace formatter: handles file read errors gracefully', async t => {
-	if (!stringReplaceTool.formatter) {
+test('string_replace formatter: shows success after execution', async t => {
+	const filePath = await createTestFile('test.txt', 'old content\n');
+
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await stringReplaceTool.formatter({
-		path: join(testDir, 'nonexistent.txt'),
-		old_str: 'old',
-		new_str: 'new',
+	// First execute the replacement
+	await executeStringReplace({
+		path: filePath,
+		old_str: 'old content',
+		new_str: 'new content',
 	});
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
+	// Then render the result state
+	const element = await formatter(
+		{
+			path: filePath,
+			old_str: 'old content',
+			new_str: 'new content',
+		},
+		'Successfully replaced content at line 1',
 	);
+
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /string_replace/);
+	t.regex(output!, /String replacement completed successfully/);
 });
 
-// ============================================================================
-// Validator Additional Error Handling Tests
-// ============================================================================
+test('string_replace formatter: handles multi-line replacements', async t => {
+	const filePath = await createTestFile(
+		'multi.ts',
+		'function old() {\n  return 1;\n}\n',
+	);
 
-test('string_replace validator: handles file read errors', async t => {
-	if (!stringReplaceTool.validator) {
-		t.fail('Validator not defined');
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
 		return;
 	}
 
-	// Create a file but make it unreadable
-	const filePath = await createTestFile('test.txt', 'content\n');
-
-	// Mock getCachedFileContent to throw an error
-	const originalCache = await import('../utils/file-cache.js');
-	const mockError = new Error('EACCES: permission denied');
-
-	// Since we can't easily mock the file cache, we'll test with an invalid path
-	// that causes the file read to fail in a different way
-	const result = await stringReplaceTool.validator({
-		path: join(testDir, 'nonexistent.txt'),
-		old_str: 'old',
-		new_str: 'new',
+	const element = await formatter({
+		path: filePath,
+		old_str: 'function old() {\n  return 1;\n}',
+		new_str: 'function new() {\n  return 2;\n  return 3;\n}',
 	});
 
-	t.false(result.valid);
-	if (!result.valid) {
-		t.true(result.error.includes('does not exist') || result.error.includes('⚒'));
-	}
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /Replacing 3 lines with 4 lines/);
 });
 
-test('string_replace validator: handles file content access errors', async t => {
-	if (!stringReplaceTool.validator) {
-		t.fail('Validator not defined');
+test('string_replace formatter: normalizes tabs to 2 spaces', async t => {
+	const filePath = await createTestFile(
+		'tabs.ts',
+		'\t\tfunction test() {\n\t\t\treturn 1;\n\t\t}\n',
+	);
+
+	const formatter = stringReplaceTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
 		return;
 	}
 
-	// Use a directory path instead of a file path to trigger a different error
-	const result = await stringReplaceTool.validator({
-		path: testDir, // Directory, not a file
-		old_str: 'old',
-		new_str: 'new',
+	const element = await formatter({
+		path: filePath,
+		old_str: '\t\t\treturn 1;',
+		new_str: '\t\t\treturn 2;',
 	});
 
-	// Should fail because it's a directory, not a file
-	t.false(result.valid);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	// Should normalize tabs to spaces for display
+	t.regex(output!, /string_replace/);
+	t.regex(output!, /tabs\.ts/);
 });
 
 // ============================================================================

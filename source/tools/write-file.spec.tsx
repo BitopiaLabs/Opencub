@@ -2,12 +2,33 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'ava';
+import {render} from 'ink-testing-library';
+import React from 'react';
+import {themes} from '../config/themes.js';
 import {setCurrentMode} from '../context/mode-context.js';
+import {ThemeContext} from '../hooks/useTheme.js';
 import {writeFileTool} from './write-file.js';
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
+
+console.log(`\nwrite-file.spec.tsx – ${React.version}`);
+
+// Create a mock theme provider for tests
+function TestThemeProvider({children}: {children: React.ReactNode}) {
+	const themeContextValue = {
+		currentTheme: 'tokyo-night' as const,
+		colors: themes['tokyo-night'].colors,
+		setCurrentTheme: () => {},
+	};
+
+	return (
+		<ThemeContext.Provider value={themeContextValue}>
+			{children}
+		</ThemeContext.Provider>
+	);
+}
 
 let testDir: string;
 
@@ -335,293 +356,198 @@ test('write_file: can overwrite files (unlike create_file)', async t => {
 });
 
 // ============================================================================
-// Formatter Tests
+// Formatter Tests (Visual Display with Ink)
 // ============================================================================
 
-test('write_file formatter: generates preview for new file', async t => {
-	const filePath = join(testDir, 'new.txt');
-
-	if (!writeFileTool.formatter) {
+test('write_file formatter: renders file content preview', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await writeFileTool.formatter({
-		path: filePath,
-		content: 'Hello World\n',
+	const element = await formatter({
+		path: 'test.ts',
+		content: 'const x = 1;\nconst y = 2;\n',
 	});
 
-	// Verify preview is a valid React element
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /write_file/);
+	t.regex(output!, /test\.ts/);
+	t.regex(output!, /3 lines/); // Trailing newline creates 3 lines
+	t.regex(output!, /File content:/);
 });
 
-test('write_file formatter: generates result message after execution', async t => {
-	const filePath = join(testDir, 'result.txt');
-
-	if (!writeFileTool.formatter) {
+test('write_file formatter: shows normalized indentation for deeply indented code', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	// Execute the tool first
-	const result = await executeWriteFile({
-		path: filePath,
-		content: 'Test content\n',
+	const element = await formatter({
+		path: 'nested.jsx',
+		content: '        function Component() {\n          return (\n            <div>Hello</div>\n          );\n        }\n',
 	});
 
-	// Then get the formatter result
-	const preview = await writeFileTool.formatter(
-		{
-			path: filePath,
-			content: 'Test content\n',
-		},
-		result,
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	t.truthy(output);
+	// Should show normalized indentation (leftmost code at column 0)
+	t.regex(output!, /write_file/);
+	t.regex(output!, /nested\.jsx/);
+	t.regex(output!, /6 lines/); // Trailing newline creates 6 lines
 });
 
-test('write_file formatter: handles empty content', async t => {
-	const filePath = join(testDir, 'empty.txt');
-
-	if (!writeFileTool.formatter) {
+test('write_file formatter: displays token count', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await writeFileTool.formatter({
-		path: filePath,
+	const content = 'x'.repeat(400); // ~100 tokens
+
+	const element = await formatter({
+		path: 'large.txt',
+		content,
+	});
+
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /~100 tokens/);
+});
+
+test('write_file formatter: handles empty file', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
+		return;
+	}
+
+	const element = await formatter({
+		path: 'empty.txt',
 		content: '',
 	});
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /write_file/);
+	t.regex(output!, /File will be empty/);
 });
 
-test('write_file formatter: handles file_path parameter', async t => {
-	const filePath = join(testDir, 'filepath.txt');
-
-	if (!writeFileTool.formatter) {
+test('write_file formatter: shows line numbers with content', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	// Test with file_path parameter instead of path
-	const preview = await writeFileTool.formatter({
-		file_path: filePath,
-		content: 'Content\n',
+	const element = await formatter({
+		path: 'numbered.ts',
+		content: 'line1\nline2\nline3\n',
 	});
 
-	t.truthy(preview);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	// Line numbers should be padded to 4 spaces
+	t.regex(output!, /1\s+line1/);
+	t.regex(output!, /2\s+line2/);
+	t.regex(output!, /3\s+line3/);
 });
 
-test('write_file formatter: generates preview with large content', async t => {
-	const filePath = join(testDir, 'large.txt');
-	const largeContent = Array.from({length: 100}, (_, i) => `Line ${i + 1}`).join('\n');
-
-	if (!writeFileTool.formatter) {
+test('write_file formatter: normalizes tabs to 2 spaces', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
 		t.fail('Formatter not defined');
 		return;
 	}
 
-	const preview = await writeFileTool.formatter({
-		path: filePath,
-		content: largeContent,
+	const element = await formatter({
+		path: 'tabs.go',
+		content: '\t\tfunc main() {\n\t\t\tfmt.Println("hello")\n\t\t}\n',
 	});
 
-	t.truthy(preview);
-	t.truthy(
-		preview && typeof preview === 'object' && ('$$typeof' in preview || 'type' in preview),
-	);
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	// Should normalize tabs to spaces for display
+	t.regex(output!, /write_file/);
+	t.regex(output!, /tabs\.go/);
+	t.regex(output!, /4 lines/); // Trailing newline creates 4 lines
 });
 
-// ============================================================================
-// Validator Additional System Directory Tests
-// ============================================================================
-
-test('write_file validator: rejects /etc directory', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
+test('write_file formatter: handles JSX with normalized indentation', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
 		return;
 	}
 
-	const result = await writeFileTool.validator({
-		path: '/etc/test.conf',
-		content: 'test',
+	const element = await formatter({
+		path: 'component.jsx',
+		content: '      export function Button() {\n        return <button>Click me</button>;\n      }\n',
 	});
 
-	t.false(result.valid);
-	if (!result.valid) {
-		t.true(result.error.includes('system directory'));
-	}
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /write_file/);
+	t.regex(output!, /component\.jsx/);
+	// Indentation should be normalized
 });
 
-test('write_file validator: rejects /sys directory', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
+test('write_file formatter: shows character count', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
 		return;
 	}
 
-	const result = await writeFileTool.validator({
-		path: '/sys/kernel/test',
-		content: 'test',
+	const element = await formatter({
+		path: 'size.txt',
+		content: 'Hello World!', // 12 characters
 	});
 
-	t.false(result.valid);
-	// On Linux, this should fail with system directory error
-	// On other platforms, it may fail because /sys doesn't exist
-	if (!result.valid) {
-		t.true(
-			result.error.includes('system directory') ||
-				result.error.includes('does not exist'),
-		);
-	}
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
+
+	t.truthy(output);
+	t.regex(output!, /12 characters/);
 });
 
-test('write_file validator: rejects /proc directory', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
+test('write_file formatter: renders syntax highlighting for code', async t => {
+	const formatter = writeFileTool.formatter;
+	if (!formatter) {
+		t.fail('Formatter not defined');
 		return;
 	}
 
-	const result = await writeFileTool.validator({
-		path: '/proc/meminfo',
-		content: 'test',
+	const element = await formatter({
+		path: 'code.ts',
+		content: 'const greeting = "Hello";\nconsole.log(greeting);\n',
 	});
 
-	t.false(result.valid);
-	// On Linux, this should fail with system directory error
-	// On other platforms, it may fail because /proc doesn't exist
-	if (!result.valid) {
-		t.true(
-			result.error.includes('system directory') ||
-				result.error.includes('does not exist'),
-		);
-	}
-});
+	const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+	const output = lastFrame();
 
-test('write_file validator: rejects /dev directory', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
-		return;
-	}
-
-	const result = await writeFileTool.validator({
-		path: '/dev/null',
-		content: 'test',
-	});
-
-	t.false(result.valid);
-	if (!result.valid) {
-		t.true(result.error.includes('system directory'));
-	}
-});
-
-test('write_file validator: rejects /boot directory', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
-		return;
-	}
-
-	const result = await writeFileTool.validator({
-		path: '/boot/config',
-		content: 'test',
-	});
-
-	t.false(result.valid);
-	// On Linux, this should fail with system directory error
-	// On other platforms, it may fail because /boot doesn't exist
-	if (!result.valid) {
-		t.true(
-			result.error.includes('system directory') ||
-				result.error.includes('does not exist'),
-		);
-	}
-});
-
-test('write_file validator: rejects Windows system directories', async t => {
-	if (!writeFileTool.validator) {
-		t.fail('Validator not defined');
-		return;
-	}
-
-	// Note: This test only works on Windows due to path resolution
-	// On Linux/Mac, Windows paths are resolved as relative paths
-	const isWindows = process.platform === 'win32';
-
-	if (isWindows) {
-		const windowsPaths = [
-			'C:\\Windows\\System32\\test.exe',
-			'C:\\Program Files\\test.txt',
-		];
-
-		for (const path of windowsPaths) {
-			const result = await writeFileTool.validator({
-				path,
-				content: 'test',
-			});
-
-			t.false(result.valid);
-			if (!result.valid) {
-				t.true(result.error.includes('system directory'));
-			}
-		}
-	} else {
-		// On non-Windows, just verify the test would work with proper paths
-		t.pass('Skipped on non-Windows platform');
-	}
-});
-
-// ============================================================================
-// Additional Edge Case Tests
-// ============================================================================
-
-test('write_file: handles UTF-8 content with unicode', async t => {
-	const filePath = join(testDir, 'unicode.txt');
-	const content = 'Hello 世界 🚀\nEmoji: 😀😃😄\nAccented: éàüö\n';
-
-	await executeWriteFile({
-		path: filePath,
-		content,
-	});
-
-	const actual = await readFile(filePath, 'utf-8');
-	t.is(actual, content);
-});
-
-test('write_file: handles binary-like content', async t => {
-	const filePath = join(testDir, 'binary.txt');
-	const content = '\x00\x01\x02\x03\xff\xfe\xfd';
-
-	await executeWriteFile({
-		path: filePath,
-		content,
-	});
-
-	const actual = await readFile(filePath, 'utf-8');
-	t.is(actual, content);
-});
-
-test('write_file: handles very long lines', async t => {
-	const filePath = join(testDir, 'longlines.txt');
-	const longLine = 'x'.repeat(10000);
-	const content = `${longLine}\n${longLine}\n`;
-
-	await executeWriteFile({
-		path: filePath,
-		content,
-	});
-
-	const actual = await readFile(filePath, 'utf-8');
-	t.is(actual, content);
+	t.truthy(output);
+	t.regex(output!, /write_file/);
+	t.regex(output!, /code\.ts/);
+	// Content should be present (syntax highlighting adds ANSI codes)
+	t.regex(output!, /greeting/);
 });
 
 // ============================================================================

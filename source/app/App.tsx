@@ -37,9 +37,13 @@ export default function App({
 	vscodePort,
 	nonInteractivePrompt,
 	nonInteractiveMode = false,
+	loggingConfig = {},
 }: AppProps) {
 	// Memoize the logger to prevent recreation on every render
-	const logger = useMemo(() => createPinoLogger(), []);
+	const logger = useMemo(
+		() => createPinoLogger(undefined, loggingConfig),
+		[loggingConfig],
+	);
 
 	// Log application startup with key configuration
 	React.useEffect(() => {

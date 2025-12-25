@@ -26,8 +26,7 @@
 		"dist",
 		"node_modules",
 		"source/**/__tests__/**/*",
-		"source/**/*.spec.tsx",
-		"source/**/*.spec.ts"
+		"source/**/*.spec.tsx"
 	],
 	"ts-node": {
 		"esm": true,

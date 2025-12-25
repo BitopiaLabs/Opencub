@@ -4,23 +4,17 @@ import {logError} from '@/utils/message-queue';
 import fs from 'fs/promises';
 import type {InputState} from './types/hooks';
 
+const HISTORY_FILE = getClosestConfigFile('.nano-coder-history');
 const ENTRY_SEPARATOR = '\n---ENTRY_SEPARATOR---\n';
 const JSON_FORMAT_MARKER = '---JSON_FORMAT---';
 
-export class PromptHistory {
+class PromptHistory {
 	private history: InputState[] = [];
 	private currentIndex: number = -1;
-	private readonly historyFile: string;
-	private savePromise: Promise<void> = Promise.resolve();
-
-	constructor(historyFile?: string) {
-		this.historyFile =
-			historyFile ?? getClosestConfigFile('.nano-coder-history');
-	}
 
 	async loadHistory(): Promise<void> {
 		try {
-			const content = await fs.readFile(this.historyFile, 'utf8');
+			const content = await fs.readFile(HISTORY_FILE, 'utf8');
 
 			if (content.startsWith(JSON_FORMAT_MARKER)) {
 				// New JSON format with InputState objects
@@ -57,23 +51,19 @@ export class PromptHistory {
 	}
 
 	async saveHistory(): Promise<void> {
-		// Chain this save onto the previous save to prevent concurrent writes
-		this.savePromise = this.savePromise.then(async () => {
-			try {
-				const jsonContent = JSON.stringify(this.history, null, 2);
-				await fs.writeFile(
-					this.historyFile,
-					JSON_FORMAT_MARKER + jsonContent,
-					'utf8',
-				);
-			} catch (error) {
-				// Silently fail to avoid disrupting the user experience
-				const errorMessage =
-					error instanceof Error ? error.message : 'Unknown error';
-				logError(`Failed to save prompt history: ${errorMessage}`);
-			}
-		});
-		return this.savePromise;
+		try {
+			const jsonContent = JSON.stringify(this.history, null, 2);
+			await fs.writeFile(
+				HISTORY_FILE,
+				JSON_FORMAT_MARKER + jsonContent,
+				'utf8',
+			);
+		} catch (error) {
+			// Silently fail to avoid disrupting the user experience
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error';
+			logError(`Failed to save prompt history: ${errorMessage}`);
+		}
 	}
 
 	addPrompt(inputState: InputState): void;
