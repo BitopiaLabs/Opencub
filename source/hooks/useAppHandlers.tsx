@@ -1,7 +1,5 @@
-import {
-	createClearMessagesHandler,
-	handleMessageSubmission,
-} from '@/app/utils/app-util';
+import {handleMessageSubmission} from '@/app/utils/appUtils';
+import {createClearMessagesHandler} from '@/app/utils/appUtils';
 import {
 	ErrorMessage,
 	SuccessMessage,
