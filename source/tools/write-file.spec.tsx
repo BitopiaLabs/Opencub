@@ -248,47 +248,37 @@ test('write_file: detects token count', async t => {
 // ============================================================================
 
 test('write_file validator: accepts valid path', async t => {
+	const filePath = join(testDir, 'valid.txt');
+
 	if (!writeFileTool.validator) {
 		t.fail('Validator not defined');
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await writeFileTool.validator({
+		path: filePath,
+		content: 'test',
+	});
 
-		const result = await writeFileTool.validator({
-			path: 'valid.txt',
-			content: 'test',
-		});
-
-		t.true(result.valid);
-	} finally {
-		process.chdir(originalCwd);
-	}
+	t.true(result.valid);
 });
 
 test('write_file validator: rejects non-existent parent directory', async t => {
+	const filePath = join(testDir, 'nonexistent', 'file.txt');
+
 	if (!writeFileTool.validator) {
 		t.fail('Validator not defined');
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await writeFileTool.validator({
+		path: filePath,
+		content: 'test',
+	});
 
-		const result = await writeFileTool.validator({
-			path: 'nonexistent/file.txt',
-			content: 'test',
-		});
-
-		t.false(result.valid);
-		if (!result.valid) {
-			t.true(result.error.includes('Parent directory does not exist'));
-		}
-	} finally {
-		process.chdir(originalCwd);
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('Parent directory does not exist'));
 	}
 });
 
@@ -308,8 +298,10 @@ test('write_file validator: rejects system directories', async t => {
 
 		t.false(result.valid);
 		if (!result.valid) {
-			// Path validation rejects absolute paths before system directory check
-			t.true(result.error.includes('Invalid file path'));
+			t.true(
+				result.error.includes('system directory') ||
+					result.error.includes('Parent directory does not exist'),
+			);
 		}
 	}
 });
@@ -489,8 +481,7 @@ test('write_file validator: rejects /etc directory', async t => {
 
 	t.false(result.valid);
 	if (!result.valid) {
-		// Path validation rejects absolute paths before system directory check
-		t.true(result.error.includes('Invalid file path'));
+		t.true(result.error.includes('system directory'));
 	}
 });
 
@@ -506,9 +497,13 @@ test('write_file validator: rejects /sys directory', async t => {
 	});
 
 	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /sys doesn't exist
 	if (!result.valid) {
-		// Path validation rejects absolute paths before system directory check
-		t.true(result.error.includes('Invalid file path'));
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
 	}
 });
 
@@ -524,9 +519,13 @@ test('write_file validator: rejects /proc directory', async t => {
 	});
 
 	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /proc doesn't exist
 	if (!result.valid) {
-		// Path validation rejects absolute paths before system directory check
-		t.true(result.error.includes('Invalid file path'));
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
 	}
 });
 
@@ -543,8 +542,7 @@ test('write_file validator: rejects /dev directory', async t => {
 
 	t.false(result.valid);
 	if (!result.valid) {
-		// Path validation rejects absolute paths before system directory check
-		t.true(result.error.includes('Invalid file path'));
+		t.true(result.error.includes('system directory'));
 	}
 });
 
@@ -560,9 +558,13 @@ test('write_file validator: rejects /boot directory', async t => {
 	});
 
 	t.false(result.valid);
+	// On Linux, this should fail with system directory error
+	// On other platforms, it may fail because /boot doesn't exist
 	if (!result.valid) {
-		// Path validation rejects absolute paths before system directory check
-		t.true(result.error.includes('Invalid file path'));
+		t.true(
+			result.error.includes('system directory') ||
+				result.error.includes('does not exist'),
+		);
 	}
 });
 

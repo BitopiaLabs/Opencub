@@ -1,7 +1,4 @@
-import {
-	resolveFilePath as resolveFilePathSafe,
-	isValidFilePath as validateFilePath,
-} from './path-validation';
+import path from 'node:path';
 
 /**
  * Represents a parsed file mention from user input
@@ -80,22 +77,62 @@ export function parseFileMentions(input: string): FileMention[] {
 /**
  * Validate file path to prevent directory traversal attacks
  * and ensure it's within the project directory
- *
- * This is a re-export of the shared validation function from path-validation.ts
- * to maintain backward compatibility with existing code.
  */
 export function isValidFilePath(filePath: string): boolean {
-	return validateFilePath(filePath);
+	// Reject empty paths
+	if (!filePath || filePath.trim().length === 0) {
+		return false;
+	}
+
+	// Reject paths that try to escape parent directories
+	if (filePath.includes('..')) {
+		return false;
+	}
+
+	// Reject absolute paths (outside project)
+	if (path.isAbsolute(filePath)) {
+		return false;
+	}
+
+	// Reject Windows absolute paths (C:\, D:\, etc.) even on Unix systems
+	if (/^[A-Za-z]:[/\\]/.test(filePath)) {
+		return false;
+	}
+
+	// Reject paths with null bytes (security)
+	if (filePath.includes('\0')) {
+		return false;
+	}
+
+	// Reject paths that start with special characters that could be problematic
+	if (filePath.startsWith('/') || filePath.startsWith('\\')) {
+		return false;
+	}
+
+	return true;
 }
 
 /**
  * Resolve a relative file path to an absolute path within the project
- *
- * This is a re-export of the shared validation function from path-validation.ts
- * to maintain backward compatibility with existing code.
  */
 export function resolveFilePath(filePath: string, cwd: string): string {
-	return resolveFilePathSafe(filePath, cwd);
+	// Validate first
+	if (!isValidFilePath(filePath)) {
+		throw new Error(`Invalid file path: ${filePath}`);
+	}
+
+	// Resolve to absolute path
+	const absolutePath = path.resolve(cwd, filePath);
+
+	// Ensure the resolved path is still within the project directory
+	const normalizedCwd = path.resolve(cwd);
+	if (!absolutePath.startsWith(normalizedCwd)) {
+		throw new Error(
+			`File path escapes project directory: ${filePath} -> ${absolutePath}`,
+		);
+	}
+
+	return absolutePath;
 }
 
 /**

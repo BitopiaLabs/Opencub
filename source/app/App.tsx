@@ -1,6 +1,7 @@
-import {createStaticComponents} from '@/app/components/AppContainer';
-import {ChatInterface} from '@/app/components/ChatInterface';
-import {ModalSelectors} from '@/app/components/ModalSelectors';
+import {createStaticComponents} from '@/app/components/app-container';
+import {ChatHistory} from '@/app/components/chat-history';
+import {ChatInput} from '@/app/components/chat-input';
+import {ModalSelectors} from '@/app/components/modal-selectors';
 import {shouldRenderWelcome} from '@/app/helpers';
 import type {AppProps} from '@/app/types';
 import SecurityDisclaimer from '@/components/security-disclaimer';
@@ -58,7 +59,14 @@ export default function App({
 	const {isTrusted, handleConfirmTrust, isTrustLoading, isTrustedError} =
 		useDirectoryTrust();
 
-	// Sync global mode context whenever development mode changes
+	// Sync global mode context whenever development mode changes.
+	// Note: This useEffect serves as a backup synchronization mechanism.
+	// Primary synchronization happens synchronously at the call sites:
+	// - useNonInteractiveMode.ts: setCurrentModeContext() called with setDevelopmentMode()
+	// - useToolHandler.tsx: setCurrentModeContext() called with setDevelopmentMode()
+	// - useAppHandlers.tsx: setCurrentModeContext() called within handleToggleDevelopmentMode()
+	// This effect ensures the global context stays in sync even if new code paths
+	// are added that update React state without updating the global context.
 	React.useEffect(() => {
 		setCurrentModeContext(appState.developmentMode);
 
@@ -474,7 +482,14 @@ export default function App({
 		<ThemeContext.Provider value={themeContextValue}>
 			<UIStateProvider>
 				<Box flexDirection="column" padding={1} width="100%">
-					{/* Modal Selectors */}
+					{/* Chat History - ALWAYS rendered to keep Static content stable */}
+					<ChatHistory
+						startChat={appState.startChat}
+						staticComponents={staticComponents}
+						queuedComponents={appState.chatComponents}
+					/>
+
+					{/* Modal Selectors - rendered below chat history */}
 					{(appState.isModelSelectionMode ||
 						appState.isProviderSelectionMode ||
 						appState.isThemeSelectionMode ||
@@ -508,44 +523,42 @@ export default function App({
 						/>
 					)}
 
-					{/* Chat Interface */}
-					{!(
-						appState.isModelSelectionMode ||
-						appState.isProviderSelectionMode ||
-						appState.isThemeSelectionMode ||
-						appState.isModelDatabaseMode ||
-						appState.isConfigWizardMode ||
-						appState.isCheckpointLoadMode
-					) && (
-						<ChatInterface
-							startChat={appState.startChat}
-							staticComponents={staticComponents}
-							queuedComponents={appState.chatComponents}
-							isCancelling={appState.isCancelling}
-							isToolExecuting={appState.isToolExecuting}
-							isToolConfirmationMode={appState.isToolConfirmationMode}
-							isBashExecuting={appState.isBashExecuting}
-							currentBashCommand={appState.currentBashCommand}
-							pendingToolCalls={appState.pendingToolCalls}
-							currentToolIndex={appState.currentToolIndex}
-							mcpInitialized={appState.mcpInitialized}
-							client={appState.client}
-							nonInteractivePrompt={nonInteractivePrompt}
-							nonInteractiveLoadingMessage={nonInteractiveLoadingMessage}
-							customCommands={Array.from(appState.customCommandCache.keys())}
-							inputDisabled={
-								chatHandler.isGenerating ||
-								appState.isToolExecuting ||
-								appState.isBashExecuting
-							}
-							developmentMode={appState.developmentMode}
-							onToolConfirm={toolHandler.handleToolConfirmation}
-							onToolCancel={toolHandler.handleToolConfirmationCancel}
-							onSubmit={appHandlers.handleMessageSubmit}
-							onCancel={appHandlers.handleCancel}
-							onToggleMode={appHandlers.handleToggleDevelopmentMode}
-						/>
-					)}
+					{/* Chat Input - only rendered when not in modal mode */}
+					{appState.startChat &&
+						!(
+							appState.isModelSelectionMode ||
+							appState.isProviderSelectionMode ||
+							appState.isThemeSelectionMode ||
+							appState.isModelDatabaseMode ||
+							appState.isConfigWizardMode ||
+							appState.isCheckpointLoadMode
+						) && (
+							<ChatInput
+								isCancelling={appState.isCancelling}
+								isToolExecuting={appState.isToolExecuting}
+								isToolConfirmationMode={appState.isToolConfirmationMode}
+								isBashExecuting={appState.isBashExecuting}
+								currentBashCommand={appState.currentBashCommand}
+								pendingToolCalls={appState.pendingToolCalls}
+								currentToolIndex={appState.currentToolIndex}
+								mcpInitialized={appState.mcpInitialized}
+								client={appState.client}
+								nonInteractivePrompt={nonInteractivePrompt}
+								nonInteractiveLoadingMessage={nonInteractiveLoadingMessage}
+								customCommands={Array.from(appState.customCommandCache.keys())}
+								inputDisabled={
+									chatHandler.isGenerating ||
+									appState.isToolExecuting ||
+									appState.isBashExecuting
+								}
+								developmentMode={appState.developmentMode}
+								onToolConfirm={toolHandler.handleToolConfirmation}
+								onToolCancel={toolHandler.handleToolConfirmationCancel}
+								onSubmit={appHandlers.handleMessageSubmit}
+								onCancel={appHandlers.handleCancel}
+								onToggleMode={appHandlers.handleToggleDevelopmentMode}
+							/>
+						)}
 				</Box>
 			</UIStateProvider>
 		</ThemeContext.Provider>

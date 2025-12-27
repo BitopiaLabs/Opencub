@@ -361,27 +361,20 @@ test('string_replace: works with large replacements', async t => {
 // ============================================================================
 
 test('string_replace validator: accepts valid input', async t => {
-	await createTestFile('test.txt', 'Hello World\n');
+	const filePath = await createTestFile('test.txt', 'Hello World\n');
 
 	if (!stringReplaceTool.validator) {
 		t.fail('Validator not defined');
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await stringReplaceTool.validator({
+		path: filePath,
+		old_str: 'Hello',
+		new_str: 'Hi',
+	});
 
-		const result = await stringReplaceTool.validator({
-			path: 'test.txt',
-			old_str: 'Hello',
-			new_str: 'Hi',
-		});
-
-		t.true(result.valid);
-	} finally {
-		process.chdir(originalCwd);
-	}
+	t.true(result.valid);
 });
 
 test('string_replace validator: rejects non-existent file', async t => {
@@ -390,81 +383,60 @@ test('string_replace validator: rejects non-existent file', async t => {
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await stringReplaceTool.validator({
+		path: join(testDir, 'nonexistent.txt'),
+		old_str: 'old',
+		new_str: 'new',
+	});
 
-		const result = await stringReplaceTool.validator({
-			path: 'nonexistent.txt',
-			old_str: 'old',
-			new_str: 'new',
-		});
-
-		t.false(result.valid);
-		if (!result.valid) {
-			t.true(result.error.includes('does not exist'));
-		}
-	} finally {
-		process.chdir(originalCwd);
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('does not exist'));
 	}
 });
 
 test('string_replace validator: rejects empty old_str', async t => {
-	await createTestFile('test.txt', 'content\n');
+	const filePath = await createTestFile('test.txt', 'content\n');
 
 	if (!stringReplaceTool.validator) {
 		t.fail('Validator not defined');
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await stringReplaceTool.validator({
+		path: filePath,
+		old_str: '',
+		new_str: 'new',
+	});
 
-		const result = await stringReplaceTool.validator({
-			path: 'test.txt',
-			old_str: '',
-			new_str: 'new',
-		});
-
-		t.false(result.valid);
-		if (!result.valid) {
-			t.true(result.error.includes('cannot be empty'));
-		}
-	} finally {
-		process.chdir(originalCwd);
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('cannot be empty'));
 	}
 });
 
 test('string_replace validator: rejects when content not found', async t => {
-	await createTestFile('test.txt', 'Hello World\n');
+	const filePath = await createTestFile('test.txt', 'Hello World\n');
 
 	if (!stringReplaceTool.validator) {
 		t.fail('Validator not defined');
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await stringReplaceTool.validator({
+		path: filePath,
+		old_str: 'This does not exist',
+		new_str: 'new',
+	});
 
-		const result = await stringReplaceTool.validator({
-			path: 'test.txt',
-			old_str: 'This does not exist',
-			new_str: 'new',
-		});
-
-		t.false(result.valid);
-		if (!result.valid) {
-			t.true(result.error.includes('Content not found in file'));
-		}
-	} finally {
-		process.chdir(originalCwd);
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('Content not found in file'));
 	}
 });
 
 test('string_replace validator: rejects when multiple matches found', async t => {
-	await createTestFile(
+	const filePath = await createTestFile(
 		'test.txt',
 		'Hello World\nHello World\n',
 	);
@@ -474,22 +446,15 @@ test('string_replace validator: rejects when multiple matches found', async t =>
 		return;
 	}
 
-	const originalCwd = process.cwd();
-	try {
-		process.chdir(testDir);
+	const result = await stringReplaceTool.validator({
+		path: filePath,
+		old_str: 'Hello World',
+		new_str: 'Hi Universe',
+	});
 
-		const result = await stringReplaceTool.validator({
-			path: 'test.txt',
-			old_str: 'Hello World',
-			new_str: 'Hi Universe',
-		});
-
-		t.false(result.valid);
-		if (!result.valid) {
-			t.true(result.error.includes('Found 2 matches'));
-		}
-	} finally {
-		process.chdir(originalCwd);
+	t.false(result.valid);
+	if (!result.valid) {
+		t.true(result.error.includes('Found 2 matches'));
 	}
 });
 
