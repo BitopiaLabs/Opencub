@@ -1,3 +1,6 @@
+import {Box, Text, useApp} from 'ink';
+import Spinner from 'ink-spinner';
+import React, {useEffect, useMemo} from 'react';
 import {createStaticComponents} from '@/app/components/app-container';
 import {ChatHistory} from '@/app/components/chat-history';
 import {ChatInput} from '@/app/components/chat-input';
@@ -6,8 +9,8 @@ import {shouldRenderWelcome} from '@/app/helpers';
 import type {AppProps} from '@/app/types';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import {
-	VSCodeExtensionPrompt,
 	shouldPromptExtensionInstall,
+	VSCodeExtensionPrompt,
 } from '@/components/vscode-extension-prompt';
 import WelcomeMessage from '@/components/welcome-message';
 import {getThemeColors} from '@/config/themes';
@@ -29,9 +32,6 @@ import {
 } from '@/utils/logging';
 import {createPinoLogger} from '@/utils/logging/pino-logger';
 import {setGlobalMessageQueue} from '@/utils/message-queue';
-import {Box, Text, useApp} from 'ink';
-import Spinner from 'ink-spinner';
-import React, {useEffect, useMemo} from 'react';
 
 export default function App({
 	vscodeMode = false,
@@ -192,7 +192,7 @@ export default function App({
 		currentModel: appState.currentModel,
 		setIsCancelling: appState.setIsCancelling,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
+		getNextComponentKey: appState.getNextComponentKey,
 		abortController: appState.abortController,
 		setAbortController: appState.setAbortController,
 		developmentMode: appState.developmentMode,
@@ -232,7 +232,7 @@ export default function App({
 		setIsToolExecuting: appState.setIsToolExecuting,
 		setMessages: appState.updateMessages,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
+		getNextComponentKey: appState.getNextComponentKey,
 		resetToolConfirmationState: appState.resetToolConfirmationState,
 		onProcessAssistantResponse: chatHandler.processAssistantResponse,
 		client: appState.client,
@@ -298,7 +298,7 @@ export default function App({
 		setPreferencesLoaded: appState.setPreferencesLoaded,
 		setCustomCommandsCount: appState.setCustomCommandsCount,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
+		getNextComponentKey: appState.getNextComponentKey,
 		customCommandCache: appState.customCommandCache,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 	});
@@ -320,7 +320,7 @@ export default function App({
 		setIsModelDatabaseMode: appState.setIsModelDatabaseMode,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 		addToChatQueue: appState.addToChatQueue,
-		componentKeyCounter: appState.componentKeyCounter,
+		getNextComponentKey: appState.getNextComponentKey,
 		reinitializeMCPServers: appInitialization.reinitializeMCPServers,
 	});
 
@@ -336,7 +336,7 @@ export default function App({
 		lspServersStatus: appState.lspServersStatus,
 		preferencesLoaded: appState.preferencesLoaded,
 		customCommandsCount: appState.customCommandsCount,
-		componentKeyCounter: appState.componentKeyCounter,
+		getNextComponentKey: appState.getNextComponentKey,
 		customCommandCache: appState.customCommandCache,
 		customCommandLoader: appState.customCommandLoader,
 		customCommandExecutor: appState.customCommandExecutor,

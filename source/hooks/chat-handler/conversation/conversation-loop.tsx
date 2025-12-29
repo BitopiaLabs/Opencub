@@ -1,3 +1,4 @@
+import type React from 'react';
 import type {ConversationStateManager} from '@/app/utils/conversation-state';
 import AssistantMessage from '@/components/assistant-message';
 import {ErrorMessage} from '@/components/message-box';
@@ -9,7 +10,6 @@ import {getLogger} from '@/utils/logging';
 import {MessageBuilder} from '@/utils/message-builder';
 import {parseToolArguments} from '@/utils/tool-args-parser';
 import {displayToolResult} from '@/utils/tool-result-display';
-import type React from 'react';
 import {filterValidToolCalls} from '../utils/tool-filters';
 import {executeToolsDirectly} from './tool-executor';
 
@@ -25,7 +25,7 @@ interface ProcessAssistantResponseParams {
 	setTokenCount: (count: number) => void;
 	setMessages: (messages: Message[]) => void;
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
+	getNextComponentKey: () => number;
 	currentModel: string;
 	developmentMode: 'normal' | 'auto-accept' | 'plan';
 	nonInteractiveMode: boolean;
@@ -63,7 +63,7 @@ export const processAssistantResponse = async (
 		setTokenCount,
 		setMessages,
 		addToChatQueue,
-		componentKeyCounter,
+		getNextComponentKey,
 		currentModel,
 		developmentMode,
 		nonInteractiveMode,
@@ -102,7 +102,7 @@ export const processAssistantResponse = async (
 						toolResult,
 						toolManager,
 						addToChatQueue,
-						componentKeyCounter,
+						getNextComponentKey,
 					);
 				})();
 			},
@@ -176,7 +176,7 @@ export const processAssistantResponse = async (
 	if (cleanedContent.trim()) {
 		addToChatQueue(
 			<AssistantMessage
-				key={`assistant-${componentKeyCounter}`}
+				key={`assistant-${getNextComponentKey()}`}
 				message={cleanedContent}
 				model={currentModel}
 			/>,
@@ -367,7 +367,7 @@ export const processAssistantResponse = async (
 				toolManager,
 				conversationStateManager,
 				addToChatQueue,
-				componentKeyCounter,
+				getNextComponentKey,
 			);
 
 			// If we have results, continue the conversation with them
@@ -455,7 +455,7 @@ export const processAssistantResponse = async (
 		// Display a "continue" message in chat so user knows what happened
 		addToChatQueue(
 			<UserMessage
-				key={`auto-continue-${componentKeyCounter}`}
+				key={`auto-continue-${getNextComponentKey()}`}
 				message="continue"
 			/>,
 		);

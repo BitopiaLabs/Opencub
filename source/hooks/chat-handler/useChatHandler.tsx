@@ -1,10 +1,10 @@
+import React from 'react';
 import {ConversationStateManager} from '@/app/utils/conversation-state';
 import UserMessage from '@/components/user-message';
 import {promptHistory} from '@/prompt-history';
 import type {Message} from '@/types/core';
 import {MessageBuilder} from '@/utils/message-builder';
 import {processPromptTemplate} from '@/utils/prompt-processor';
-import React from 'react';
 import {processAssistantResponse} from './conversation/conversation-loop';
 import {createResetStreamingState} from './state/streaming-state';
 import type {ChatHandlerReturn, UseChatHandlerProps} from './types';
@@ -24,7 +24,7 @@ export function useChatHandler({
 	currentModel,
 	setIsCancelling,
 	addToChatQueue,
-	componentKeyCounter,
+	getNextComponentKey,
 	abortController,
 	setAbortController,
 	developmentMode = 'normal',
@@ -55,9 +55,9 @@ export function useChatHandler({
 	// Helper to display errors in chat queue
 	const displayError = React.useCallback(
 		(error: unknown, keyPrefix: string) => {
-			displayErrorHelper(error, keyPrefix, addToChatQueue, componentKeyCounter);
+			displayErrorHelper(error, keyPrefix, addToChatQueue, getNextComponentKey);
 		},
-		[addToChatQueue, componentKeyCounter],
+		[addToChatQueue, getNextComponentKey],
 	);
 
 	// Reset conversation state when messages are cleared
@@ -85,7 +85,7 @@ export function useChatHandler({
 					setTokenCount,
 					setMessages,
 					addToChatQueue,
-					componentKeyCounter,
+					getNextComponentKey,
 					currentModel,
 					developmentMode,
 					nonInteractiveMode,
@@ -108,7 +108,7 @@ export function useChatHandler({
 			setAbortController,
 			setMessages,
 			addToChatQueue,
-			componentKeyCounter,
+			getNextComponentKey,
 			currentModel,
 			developmentMode,
 			nonInteractiveMode,
@@ -132,7 +132,7 @@ export function useChatHandler({
 		// Add user message to chat using display version (with placeholders)
 		addToChatQueue(
 			<UserMessage
-				key={`user-${componentKeyCounter}`}
+				key={`user-${getNextComponentKey()}`}
 				message={displayMessage}
 			/>,
 		);
@@ -169,7 +169,7 @@ export function useChatHandler({
 				currentProvider,
 				currentModel,
 				addToChatQueue,
-				componentKeyCounter,
+				getNextComponentKey,
 			);
 
 			// Use the conversation loop

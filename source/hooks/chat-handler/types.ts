@@ -1,6 +1,6 @@
+import type React from 'react';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {LLMClient, Message, ToolCall} from '@/types/core';
-import type React from 'react';
 
 export interface UseChatHandlerProps {
 	client: LLMClient | null;
@@ -12,7 +12,7 @@ export interface UseChatHandlerProps {
 	setIsCancelling: (cancelling: boolean) => void;
 
 	addToChatQueue: (component: React.ReactNode) => void;
-	componentKeyCounter: number;
+	getNextComponentKey: () => number;
 	abortController: AbortController | null;
 	setAbortController: (controller: AbortController | null) => void;
 	developmentMode?: 'normal' | 'auto-accept' | 'plan';

@@ -1,6 +1,6 @@
+import React from 'react';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
-import React from 'react';
 import type {CheckpointListItem} from './checkpoint';
 import type {CustomCommand} from './commands';
 import type {Message} from './core';
@@ -24,7 +24,7 @@ export interface MessageSubmissionOptions {
 	onHandleChatMessage: (message: string) => Promise<void>;
 	onAddToChatQueue: (component: React.ReactNode) => void;
 	onCommandComplete?: () => void;
-	componentKeyCounter: number;
+	getNextComponentKey: () => number;
 	setMessages: (messages: Message[]) => void;
 	messages: Message[];
 	setIsBashExecuting: (executing: boolean) => void;

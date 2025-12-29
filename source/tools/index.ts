@@ -1,6 +1,13 @@
+import React from 'react';
 import {executeBashTool} from '@/tools/execute-bash';
 import {fetchUrlTool} from '@/tools/fetch-url';
 import {findFilesTool} from '@/tools/find-files';
+import {
+	gitBranchSuggestTool,
+	gitCreatePRTool,
+	gitSmartCommitTool,
+	gitStatusEnhancedTool,
+} from '@/tools/git';
 import {getDiagnosticsTool} from '@/tools/lsp-get-diagnostics';
 import {readFileTool} from '@/tools/read-file';
 import {searchFileContentsTool} from '@/tools/search-file-contents';
@@ -12,7 +19,6 @@ import type {
 	NanocoderToolExport,
 	ToolHandler,
 } from '@/types/index';
-import React from 'react';
 
 // Array of all tool exports from individual tool files
 // Each tool exports: { name, tool, formatter?, validator? }
@@ -26,6 +32,11 @@ const allTools: NanocoderToolExport[] = [
 	findFilesTool,
 	searchFileContentsTool,
 	getDiagnosticsTool,
+	// Git workflow tools
+	gitSmartCommitTool,
+	gitCreatePRTool,
+	gitBranchSuggestTool,
+	gitStatusEnhancedTool,
 ];
 
 // Export native AI SDK tools registry (for passing directly to AI SDK)
