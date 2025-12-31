@@ -5,6 +5,7 @@
 
 import {ChildProcess, spawn} from 'child_process';
 import {EventEmitter} from 'events';
+import {createChildLogger} from '@/utils/logging';
 import {
 	CodeAction,
 	CodeActionParams,
@@ -41,7 +42,10 @@ interface PendingRequest {
 	resolve: (result: unknown) => void;
 	reject: (error: Error) => void;
 	method: string;
+	timeoutId: NodeJS.Timeout;
 }
+
+const logger = createChildLogger({module: 'lsp-client'});
 
 export class LSPClient extends EventEmitter {
 	private process: ChildProcess | null = null;
@@ -108,13 +112,22 @@ export class LSPClient extends EventEmitter {
 			await this.sendRequest(LSPMethods.Shutdown, null);
 			// Send exit notification
 			this.sendNotification(LSPMethods.Exit, null);
-		} catch {
-			// Ignore errors during shutdown
+		} catch (error) {
+			// Errors during shutdown are expected and non-critical
+			logger.debug(
+				{err: error, server: this.config.name},
+				'LSP shutdown error (non-critical)',
+			);
 		}
 
 		// Force kill if still running
 		if (this.process && !this.process.killed) {
 			this.process.kill();
+		}
+
+		// Clear all pending request timeouts
+		for (const pending of this.pendingRequests.values()) {
+			clearTimeout(pending.timeoutId);
 		}
 
 		this.process = null;
@@ -281,8 +294,12 @@ export class LSPClient extends EventEmitter {
 					textDocument: {uri},
 				})) as {items?: Diagnostic[]} | null;
 				return result?.items || [];
-			} catch {
+			} catch (error) {
 				// Fall back to cached diagnostics if pull not supported
+				logger.debug(
+					{err: error, uri},
+					'Pull diagnostics not supported, using cached',
+				);
 				return [];
 			}
 		}
@@ -382,16 +399,16 @@ export class LSPClient extends EventEmitter {
 				params,
 			};
 
-			this.pendingRequests.set(id, {resolve, reject, method});
-			this.send(request);
-
 			// Timeout after 30 seconds
-			setTimeout(() => {
+			const timeoutId = setTimeout(() => {
 				if (this.pendingRequests.has(id)) {
 					this.pendingRequests.delete(id);
 					reject(new Error(`LSP request timeout: ${method}`));
 				}
 			}, 30000);
+
+			this.pendingRequests.set(id, {resolve, reject, method, timeoutId});
+			this.send(request);
 		});
 	}
 
@@ -446,8 +463,12 @@ export class LSPClient extends EventEmitter {
 					| JsonRpcResponse
 					| JsonRpcNotification;
 				this.handleMessage(message);
-			} catch {
-				// Ignore malformed JSON messages
+			} catch (error) {
+				// Skip malformed JSON messages but log for debugging
+				logger.debug(
+					{err: error, content: content.substring(0, 100)},
+					'Malformed JSON-RPC message',
+				);
 			}
 		}
 	}
@@ -457,6 +478,7 @@ export class LSPClient extends EventEmitter {
 		if ('id' in message && message.id !== null) {
 			const pending = this.pendingRequests.get(message.id);
 			if (pending) {
+				clearTimeout(pending.timeoutId);
 				this.pendingRequests.delete(message.id);
 				if (message.error) {
 					pending.reject(new Error(message.error.message));
