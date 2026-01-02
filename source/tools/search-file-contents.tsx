@@ -1,8 +1,5 @@
 import {execFile} from 'node:child_process';
-import {existsSync, readFileSync} from 'node:fs';
-import {join} from 'node:path';
 import {promisify} from 'node:util';
-import ignore from 'ignore';
 import {Box, Text} from 'ink';
 import React from 'react';
 
@@ -14,7 +11,9 @@ import {
 	MAX_SEARCH_RESULTS,
 } from '@/constants';
 import {ThemeContext} from '@/hooks/useTheme';
+import type {NanocoderToolExport} from '@/types/core';
 import {jsonSchema, tool} from '@/types/core';
+import {loadGitignore} from '@/utils/gitignore-loader';
 
 const execFileAsync = promisify(execFile);
 
@@ -22,40 +21,6 @@ interface SearchMatch {
 	file: string;
 	line: number;
 	content: string;
-}
-
-/**
- * Load and parse .gitignore file, returns an ignore instance
- */
-function loadGitignore(cwd: string): ReturnType<typeof ignore> {
-	const ig = ignore();
-	const gitignorePath = join(cwd, '.gitignore');
-
-	// Always ignore common directories
-	ig.add([
-		'node_modules',
-		'.git',
-		'dist',
-		'build',
-		'coverage',
-		'.next',
-		'.nuxt',
-		'out',
-		'.cache',
-	]);
-
-	// Load .gitignore if it exists
-	if (existsSync(gitignorePath)) {
-		try {
-			const gitignoreContent = readFileSync(gitignorePath, 'utf-8');
-			ig.add(gitignoreContent);
-		} catch {
-			// Silently fail if we can't read .gitignore
-			// The hardcoded ignores above will still apply
-		}
-	}
-
-	return ig;
 }
 
 /**
@@ -175,9 +140,7 @@ const executeSearchFileContents = async (
 		}
 
 		// Format results with clear file:line format
-		let output = `Found ${matches.length} match${
-			matches.length === 1 ? '' : 'es'
-		}${truncated ? ` (showing first ${maxResults})` : ''}:\n\n`;
+		let output = `Found ${matches.length} match${matches.length === 1 ? '' : 'es'}${truncated ? ` (showing first ${maxResults})` : ''}:\n\n`;
 
 		for (const match of matches) {
 			output += `${match.file}:${match.line}\n`;
@@ -194,14 +157,14 @@ const executeSearchFileContents = async (
 
 const searchFileContentsCoreTool = tool({
 	description:
-		'Search for text or code INSIDE file contents. Returns file paths with line numbers and matching content. Use this to find where specific code, functions, variables, or text appears in the codebase. Supports extended regex patterns.',
+		'Search for text or code inside files. AUTO-ACCEPTED (no user approval needed). Use this INSTEAD OF bash grep/rg/ag/ack commands. Supports extended regex (e.g., "foo|bar", "func(tion)?"). Returns file:line with matching content. Use to find: function definitions, variable usage, import statements, TODO comments. Case-insensitive by default (use caseSensitive=true for exact matching).',
 	inputSchema: jsonSchema<SearchFileContentsArgs>({
 		type: 'object',
 		properties: {
 			query: {
 				type: 'string',
 				description:
-					'Text or code to search for inside files. Supports extended regex (e.g., "foo|bar" for alternation, "func(tion)?" for optional groups). Examples: "handleSubmit", "import React", "TODO|FIXME", "class\\s+\\w+". Search is case-insensitive by default.',
+					'Text or code to search for inside files. Supports extended regex (e.g., "foo|bar" for alternation, "func(tion)?" for optional groups). Examples: "handleSubmit", "import React", "TODO|FIXME", "export (interface|type)" (find type exports), "useState\\(" (find React hooks). Case-insensitive by default.',
 			},
 			maxResults: {
 				type: 'number',
@@ -287,7 +250,7 @@ const searchFileContentsFormatter = (
 	return <SearchFileContentsFormatter args={args} result={result} />;
 };
 
-export const searchFileContentsTool = {
+export const searchFileContentsTool: NanocoderToolExport = {
 	name: 'search_file_contents' as const,
 	tool: searchFileContentsCoreTool,
 	formatter: searchFileContentsFormatter,

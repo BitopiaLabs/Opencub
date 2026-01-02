@@ -1,8 +1,9 @@
 import {constants} from 'node:fs';
-import {access} from 'node:fs/promises';
+import {access, lstat, readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {Box, Text} from 'ink';
 import React from 'react';
+
 import ToolMessage from '@/components/tool-message';
 import {
 	CHARS_PER_TOKEN_ESTIMATE,
@@ -14,16 +15,84 @@ import {ThemeContext} from '@/hooks/useTheme';
 import type {NanocoderToolExport} from '@/types/core';
 import {jsonSchema, tool} from '@/types/core';
 import {getCachedFileContent} from '@/utils/file-cache';
+import {getFileType} from '@/utils/file-type-detector';
 import {isValidFilePath, resolveFilePath} from '@/utils/path-validation';
 
 const executeReadFile = async (args: {
 	path: string;
 	start_line?: number;
 	end_line?: number;
+	metadata_only?: boolean;
 }): Promise<string> => {
 	const absPath = resolve(args.path);
 
 	try {
+		// Handle explicit metadata_only request
+		if (args.metadata_only) {
+			const stats = await lstat(absPath);
+
+			// Determine file type
+			let type: 'file' | 'directory' | 'symlink' = 'file';
+			if (stats.isSymbolicLink()) {
+				type = 'symlink';
+			} else if (stats.isDirectory()) {
+				type = 'directory';
+			}
+
+			const lastModified = new Date(stats.mtime).toISOString();
+			const size = stats.size;
+
+			let output = `File Information for "${args.path}"\n`;
+			output += `${'='.repeat(50)}\n\n`;
+
+			output += `Type: ${type}\n`;
+			output += `Size: ${size.toLocaleString()} bytes\n`;
+			output += `Last Modified: ${lastModified}\n`;
+
+			// For regular files, try to get additional info
+			if (type === 'file') {
+				output += `Readable: yes\n`;
+
+				// Try to detect encoding and line count
+				try {
+					const cached = await getCachedFileContent(absPath);
+					const lines = cached.lines;
+					const content = cached.content;
+
+					output += `Lines: ${lines.length.toLocaleString()}\n`;
+					output += `Estimated Tokens: ~${Math.ceil(content.length / CHARS_PER_TOKEN_ESTIMATE).toLocaleString()}\n`;
+
+					// Detect file type from extension
+					const fileType = getFileType(absPath);
+					output += `File Type: ${fileType}\n`;
+
+					// Detect likely encoding (simple heuristic)
+					let encoding = 'UTF-8';
+					try {
+						// Try to read as UTF-8
+						await readFile(absPath, 'utf-8');
+					} catch {
+						encoding = 'Binary/Unknown';
+					}
+					output += `Encoding: ${encoding}\n`;
+				} catch (error: unknown) {
+					// If we can't read it, mark as not readable
+					output += `Readable: no\n`;
+					const errorMessage =
+						error instanceof Error ? error.message : 'Unknown error';
+					output += `Note: Could not read file - ${errorMessage}\n`;
+				}
+			} else if (type === 'directory') {
+				output += `Note: Use list_directory tool to see directory contents\n`;
+			} else if (type === 'symlink') {
+				output += `Note: This is a symbolic link. Size reflects link metadata, not target.\n`;
+			}
+
+			output += `\n[Use read_file to view file contents]\n`;
+
+			return output;
+		}
+
 		const cached = await getCachedFileContent(absPath);
 		const content = cached.content;
 
@@ -46,30 +115,7 @@ const executeReadFile = async (args: {
 		) {
 			// Return metadata only for medium/large files
 			// Detect file type from extension
-			const ext = absPath.split('.').pop() || '';
-			const typeMap: Record<string, string> = {
-				ts: 'TypeScript',
-				tsx: 'TypeScript React',
-				js: 'JavaScript',
-				jsx: 'JavaScript React',
-				py: 'Python',
-				go: 'Go',
-				rs: 'Rust',
-				java: 'Java',
-				cpp: 'C++',
-				c: 'C',
-				md: 'Markdown',
-				json: 'JSON',
-				yaml: 'YAML',
-				yml: 'YAML',
-				toml: 'TOML',
-				html: 'HTML',
-				css: 'CSS',
-				scss: 'SCSS',
-				sh: 'Shell',
-				bash: 'Bash',
-			};
-			const fileType = typeMap[ext] || ext.toUpperCase();
+			const fileType = getFileType(absPath);
 
 			let output = `File: ${args.path}\n`;
 			output += `Type: ${fileType}\n`;
@@ -95,9 +141,7 @@ const executeReadFile = async (args: {
 					output += `   - read_file({path: "${args.path}", start_line: ${start}, end_line: ${end}})\n`;
 				}
 				if (numChunks > 3) {
-					output += `   ... and ${
-						numChunks - 3
-					} more chunks to complete the file\n`;
+					output += `   ... and ${numChunks - 3} more chunks to complete the file\n`;
 				}
 			}
 
@@ -139,11 +183,12 @@ const executeReadFile = async (args: {
 
 const readFileCoreTool = tool({
 	description:
-		'Read file contents with line numbers. PROGRESSIVE DISCLOSURE: First call without line ranges returns metadata (size, lines, tokens). For files >300 lines, you MUST call again with start_line/end_line to read content. Small files (<300 lines) return content directly.',
+		'Read file contents with line numbers. AUTO-ACCEPTED (no user approval needed). Use this INSTEAD OF bash cat/head/tail/less commands. PROGRESSIVE DISCLOSURE: Files ≤300 lines return content directly. Files >300 lines return metadata first - then call again with start_line/end_line to read specific sections. Use metadata_only=true for file info (size, lines, type) without reading content. Always prefer this over bash for any file reading.',
 	inputSchema: jsonSchema<{
 		path: string;
 		start_line?: number;
 		end_line?: number;
+		metadata_only?: boolean;
 	}>({
 		type: 'object',
 		properties: {
@@ -161,17 +206,29 @@ const readFileCoreTool = tool({
 				description:
 					'Optional: Line number to stop reading at (inclusive). Required for files >300 lines. Use with start_line to read specific range.',
 			},
+			metadata_only: {
+				type: 'boolean',
+				description:
+					'Optional: If true, returns only file metadata (size, line count, type, encoding, modification time) without content. Useful for quickly checking file properties.',
+			},
 		},
 		required: ['path'],
 	}),
 	// Low risk: read-only operation, never requires approval
 	needsApproval: false,
-	execute: async (args, _options) => {
+	execute: async (
+		args: {
+			path: string;
+			start_line?: number;
+			end_line?: number;
+			metadata_only?: boolean;
+		},
+		_options: {toolCallId: string; messages: unknown[]},
+	) => {
 		return await executeReadFile(args);
 	},
 });
 
-// Create a component that will re-render when theme changes
 const ReadFileFormatter = React.memo(
 	({
 		args,
@@ -182,6 +239,7 @@ const ReadFileFormatter = React.memo(
 			file_path?: string;
 			start_line?: number;
 			end_line?: number;
+			metadata_only?: boolean;
 		};
 		fileInfo: {
 			totalLines: number;
@@ -251,6 +309,7 @@ const readFileFormatter = async (
 		file_path?: string;
 		start_line?: number;
 		end_line?: number;
+		metadata_only?: boolean;
 	},
 	result?: string,
 ): Promise<React.ReactElement> => {
@@ -321,6 +380,7 @@ const readFileValidator = async (args: {
 	path: string;
 	start_line?: number;
 	end_line?: number;
+	metadata_only?: boolean;
 }): Promise<{valid: true} | {valid: false; error: string}> => {
 	// Validate path boundary first to prevent directory traversal
 	if (!isValidFilePath(args.path)) {
