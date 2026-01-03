@@ -12,7 +12,8 @@ import {
 import {ThemeContext} from '@/hooks/useTheme';
 import type {NanocoderToolExport} from '@/types/core';
 import {jsonSchema, tool} from '@/types/core';
-import {loadGitignore} from '@/utils/gitignore-loader';
+import {DEFAULT_IGNORE_DIRS, loadGitignore} from '@/utils/gitignore-loader';
+import {calculateTokens} from '@/utils/token-calculator';
 
 const execFileAsync = promisify(execFile);
 
@@ -80,18 +81,8 @@ async function findFilesByPattern(
 			findArgs.push('-name', pattern);
 		}
 
-		// Add exclusions
-		const exclusions = [
-			'*/node_modules/*',
-			'*/.git/*',
-			'*/dist/*',
-			'*/build/*',
-			'*/coverage/*',
-			'*/.next/*',
-			'*/.nuxt/*',
-			'*/out/*',
-			'*/.cache/*',
-		];
+		// Add exclusions - dynamically generated from DEFAULT_IGNORE_DIRS
+		const exclusions = DEFAULT_IGNORE_DIRS.map(dir => `*/${dir}/*`);
 
 		for (const exclusion of exclusions) {
 			findArgs.push('-not', '-path', exclusion);
@@ -222,6 +213,9 @@ const FindFilesFormatter = React.memo(
 			}
 		}
 
+		// Calculate tokens
+		const tokens = result ? calculateTokens(result) : 0;
+
 		const messageContent = (
 			<Box flexDirection="column">
 				<Text color={colors.tool}>⚒ find_files</Text>
@@ -235,6 +229,13 @@ const FindFilesFormatter = React.memo(
 					<Text color={colors.secondary}>Results: </Text>
 					<Text color={colors.white}>{fileCount}</Text>
 				</Box>
+
+				{tokens > 0 && (
+					<Box>
+						<Text color={colors.secondary}>Tokens: </Text>
+						<Text color={colors.white}>~{tokens.toLocaleString()}</Text>
+					</Box>
+				)}
 			</Box>
 		);
 

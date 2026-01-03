@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {TitleShape} from '@/components/ui/styled-title';
 import {loadPreferences} from '@/config/preferences';
 import {defaultTheme} from '@/config/themes';
 import {CustomCommandExecutor} from '@/custom-commands/executor';
@@ -38,9 +39,10 @@ export interface ConversationContext {
 }
 
 export function useAppState() {
-	// Initialize theme from preferences
+	// Initialize theme and title shape from preferences
 	const preferences = loadPreferences();
 	const initialTheme = preferences.selectedTheme || defaultTheme;
+	const initialTitleShape = preferences.titleShape || 'pill';
 
 	const [client, setClient] = useState<LLMClient | null>(null);
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -57,6 +59,8 @@ export function useAppState() {
 	const [currentProvider, setCurrentProvider] =
 		useState<string>('openai-compatible');
 	const [currentTheme, setCurrentTheme] = useState<ThemePreset>(initialTheme);
+	const [currentTitleShape, setCurrentTitleShape] =
+		useState<TitleShape>(initialTitleShape);
 	const [toolManager, setToolManager] = useState<ToolManager | null>(null);
 	const [customCommandLoader, setCustomCommandLoader] =
 		useState<CustomCommandLoader | null>(null);
@@ -97,6 +101,8 @@ export function useAppState() {
 		useState<boolean>(false);
 	const [isThemeSelectionMode, setIsThemeSelectionMode] =
 		useState<boolean>(false);
+	const [isTitleShapeSelectionMode, setIsTitleShapeSelectionMode] =
+		useState<boolean>(false);
 	const [isModelDatabaseMode, setIsModelDatabaseMode] =
 		useState<boolean>(false);
 	const [isConfigWizardMode, setIsConfigWizardMode] = useState<boolean>(false);
@@ -109,8 +115,6 @@ export function useAppState() {
 	const [isToolConfirmationMode, setIsToolConfirmationMode] =
 		useState<boolean>(false);
 	const [isToolExecuting, setIsToolExecuting] = useState<boolean>(false);
-	const [isBashExecuting, setIsBashExecuting] = useState<boolean>(false);
-	const [currentBashCommand, setCurrentBashCommand] = useState<string>('');
 
 	// Development mode state
 	const [developmentMode, setDevelopmentMode] =
@@ -127,6 +131,8 @@ export function useAppState() {
 
 	// Chat queue for components
 	const [chatComponents, setChatComponents] = useState<React.ReactNode[]>([]);
+	// Live component that renders outside Static for real-time updates (e.g., BashProgress)
+	const [liveComponent, setLiveComponent] = useState<React.ReactNode>(null);
 	// Use ref for component key counter to avoid stale closure issues
 	// State updates are async/batched, but ref updates are synchronous
 	// This prevents duplicate keys when addToChatQueue is called rapidly
@@ -234,6 +240,7 @@ export function useAppState() {
 		currentModel,
 		currentProvider,
 		currentTheme,
+		currentTitleShape,
 		toolManager,
 		customCommandLoader,
 		customCommandExecutor,
@@ -251,14 +258,13 @@ export function useAppState() {
 		isModelSelectionMode,
 		isProviderSelectionMode,
 		isThemeSelectionMode,
+		isTitleShapeSelectionMode,
 		isModelDatabaseMode,
 		isConfigWizardMode,
 		isCheckpointLoadMode,
 		checkpointLoadData,
 		isToolConfirmationMode,
 		isToolExecuting,
-		isBashExecuting,
-		currentBashCommand,
 		developmentMode,
 		pendingToolCalls,
 		currentToolIndex,
@@ -276,6 +282,7 @@ export function useAppState() {
 		setCurrentModel,
 		setCurrentProvider,
 		setCurrentTheme,
+		setCurrentTitleShape,
 		setToolManager,
 		setCustomCommandLoader,
 		setCustomCommandExecutor,
@@ -293,20 +300,21 @@ export function useAppState() {
 		setIsModelSelectionMode,
 		setIsProviderSelectionMode,
 		setIsThemeSelectionMode,
+		setIsTitleShapeSelectionMode,
 		setIsModelDatabaseMode,
 		setIsConfigWizardMode,
 		setIsCheckpointLoadMode,
 		setCheckpointLoadData,
 		setIsToolConfirmationMode,
 		setIsToolExecuting,
-		setIsBashExecuting,
-		setCurrentBashCommand,
 		setDevelopmentMode,
 		setPendingToolCalls,
 		setCurrentToolIndex,
 		setCompletedToolResults,
 		setCurrentConversationContext,
 		setChatComponents,
+		liveComponent,
+		setLiveComponent,
 
 		// Utilities
 		addToChatQueue,

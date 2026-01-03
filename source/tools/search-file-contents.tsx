@@ -13,7 +13,8 @@ import {
 import {ThemeContext} from '@/hooks/useTheme';
 import type {NanocoderToolExport} from '@/types/core';
 import {jsonSchema, tool} from '@/types/core';
-import {loadGitignore} from '@/utils/gitignore-loader';
+import {DEFAULT_IGNORE_DIRS, loadGitignore} from '@/utils/gitignore-loader';
+import {calculateTokens} from '@/utils/token-calculator';
 
 const execFileAsync = promisify(execFile);
 
@@ -48,17 +49,10 @@ async function searchFileContents(
 
 		// Add include and exclude patterns
 		grepArgs.push('--include=*');
-		grepArgs.push(
-			'--exclude-dir=node_modules',
-			'--exclude-dir=.git',
-			'--exclude-dir=dist',
-			'--exclude-dir=build',
-			'--exclude-dir=coverage',
-			'--exclude-dir=.next',
-			'--exclude-dir=.nuxt',
-			'--exclude-dir=out',
-			'--exclude-dir=.cache',
-		);
+		// Dynamically add exclusions from DEFAULT_IGNORE_DIRS
+		for (const dir of DEFAULT_IGNORE_DIRS) {
+			grepArgs.push(`--exclude-dir=${dir}`);
+		}
 
 		// Add the search query (no escaping needed with array-based args)
 		grepArgs.push(query);
@@ -213,6 +207,9 @@ const SearchFileContentsFormatter = React.memo(
 			}
 		}
 
+		// Calculate tokens
+		const tokens = result ? calculateTokens(result) : 0;
+
 		const messageContent = (
 			<Box flexDirection="column">
 				<Text color={colors.tool}>⚒ search_file_contents</Text>
@@ -233,6 +230,13 @@ const SearchFileContentsFormatter = React.memo(
 					<Text color={colors.secondary}>Matches: </Text>
 					<Text color={colors.white}>{matchCount}</Text>
 				</Box>
+
+				{tokens > 0 && (
+					<Box>
+						<Text color={colors.secondary}>Tokens: </Text>
+						<Text color={colors.white}>~{tokens.toLocaleString()}</Text>
+					</Box>
+				)}
 			</Box>
 		);
 

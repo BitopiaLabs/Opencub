@@ -8,6 +8,7 @@ import {ModalSelectors} from '@/app/components/modal-selectors';
 import {shouldRenderWelcome} from '@/app/helpers';
 import type {AppProps} from '@/app/types';
 import SecurityDisclaimer from '@/components/security-disclaimer';
+import type {TitleShape} from '@/components/ui/styled-title';
 import {
 	shouldPromptExtensionInstall,
 	VSCodeExtensionPrompt,
@@ -23,6 +24,7 @@ import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
 import {useModeHandlers} from '@/hooks/useModeHandlers';
 import {useNonInteractiveMode} from '@/hooks/useNonInteractiveMode';
 import {ThemeContext} from '@/hooks/useTheme';
+import {TitleShapeContext, updateTitleShape} from '@/hooks/useTitleShape';
 import {useToolHandler} from '@/hooks/useToolHandler';
 import {UIStateProvider} from '@/hooks/useUIState';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
@@ -140,6 +142,15 @@ export default function App({
 		setCurrentTheme: appState.setCurrentTheme,
 	};
 
+	// Create title shape context value
+	const titleShapeContextValue = {
+		currentTitleShape: appState.currentTitleShape,
+		setCurrentTitleShape: (shape: TitleShape) => {
+			appState.setCurrentTitleShape(shape);
+			updateTitleShape(shape);
+		},
+	};
+
 	// Initialize global message queue on component mount
 	React.useEffect(() => {
 		setGlobalMessageQueue(appState.addToChatQueue);
@@ -235,6 +246,7 @@ export default function App({
 		setIsToolExecuting: appState.setIsToolExecuting,
 		setMessages: appState.updateMessages,
 		addToChatQueue: appState.addToChatQueue,
+		setLiveComponent: appState.setLiveComponent,
 		getNextComponentKey: appState.getNextComponentKey,
 		resetToolConfirmationState: appState.resetToolConfirmationState,
 		onProcessAssistantResponse: chatHandler.processAssistantResponse,
@@ -263,10 +275,7 @@ export default function App({
 						hasPendingToolCalls: appState.pendingToolCalls.length > 0,
 						clientInitialized: !!appState.client,
 						mcpServersConnected: appState.mcpInitialized,
-						inputDisabled:
-							chatHandler.isGenerating ||
-							appState.isToolExecuting ||
-							appState.isBashExecuting,
+						inputDisabled: chatHandler.isGenerating || appState.isToolExecuting,
 					},
 				});
 			}, correlationId);
@@ -281,7 +290,6 @@ export default function App({
 		logger,
 		appState.developmentMode,
 		chatHandler.isGenerating,
-		appState.isBashExecuting,
 	]);
 
 	// Setup initialization
@@ -320,6 +328,7 @@ export default function App({
 		setIsModelSelectionMode: appState.setIsModelSelectionMode,
 		setIsProviderSelectionMode: appState.setIsProviderSelectionMode,
 		setIsThemeSelectionMode: appState.setIsThemeSelectionMode,
+		setIsTitleShapeSelectionMode: appState.setIsTitleShapeSelectionMode,
 		setIsModelDatabaseMode: appState.setIsModelDatabaseMode,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
 		addToChatQueue: appState.addToChatQueue,
@@ -347,16 +356,17 @@ export default function App({
 		setIsCancelling: appState.setIsCancelling,
 		setDevelopmentMode: appState.setDevelopmentMode,
 		setIsConversationComplete: appState.setIsConversationComplete,
-		setIsBashExecuting: appState.setIsBashExecuting,
-		setCurrentBashCommand: appState.setCurrentBashCommand,
+		setIsToolExecuting: appState.setIsToolExecuting,
 		setIsCheckpointLoadMode: appState.setIsCheckpointLoadMode,
 		setCheckpointLoadData: appState.setCheckpointLoadData,
 		addToChatQueue: appState.addToChatQueue,
+		setLiveComponent: appState.setLiveComponent,
 		client: appState.client,
 		getMessageTokens: appState.getMessageTokens,
 		enterModelSelectionMode: modeHandlers.enterModelSelectionMode,
 		enterProviderSelectionMode: modeHandlers.enterProviderSelectionMode,
 		enterThemeSelectionMode: modeHandlers.enterThemeSelectionMode,
+		enterTitleShapeSelectionMode: modeHandlers.enterTitleShapeSelectionMode,
 		enterModelDatabaseMode: modeHandlers.enterModelDatabaseMode,
 		enterConfigWizardMode: modeHandlers.enterConfigWizardMode,
 		handleChatMessage: chatHandler.handleChatMessage,
@@ -370,7 +380,6 @@ export default function App({
 		client: appState.client,
 		appState: {
 			isToolExecuting: appState.isToolExecuting,
-			isBashExecuting: appState.isBashExecuting,
 			isToolConfirmationMode: appState.isToolConfirmationMode,
 			isConversationComplete: appState.isConversationComplete,
 			messages: appState.messages,
@@ -489,87 +498,95 @@ export default function App({
 	// Main application render
 	return (
 		<ThemeContext.Provider value={themeContextValue}>
-			<UIStateProvider>
-				<Box flexDirection="column" padding={1} width="100%">
-					{/* Chat History - ALWAYS rendered to keep Static content stable */}
-					<ChatHistory
-						startChat={appState.startChat}
-						staticComponents={staticComponents}
-						queuedComponents={appState.chatComponents}
-					/>
-
-					{/* Modal Selectors - rendered below chat history */}
-					{(appState.isModelSelectionMode ||
-						appState.isProviderSelectionMode ||
-						appState.isThemeSelectionMode ||
-						appState.isModelDatabaseMode ||
-						appState.isConfigWizardMode ||
-						appState.isCheckpointLoadMode) && (
-						<ModalSelectors
-							isModelSelectionMode={appState.isModelSelectionMode}
-							isProviderSelectionMode={appState.isProviderSelectionMode}
-							isThemeSelectionMode={appState.isThemeSelectionMode}
-							isModelDatabaseMode={appState.isModelDatabaseMode}
-							isConfigWizardMode={appState.isConfigWizardMode}
-							isCheckpointLoadMode={appState.isCheckpointLoadMode}
-							client={appState.client}
-							currentModel={appState.currentModel}
-							currentProvider={appState.currentProvider}
-							checkpointLoadData={appState.checkpointLoadData}
-							onModelSelect={modeHandlers.handleModelSelect}
-							onModelSelectionCancel={modeHandlers.handleModelSelectionCancel}
-							onProviderSelect={modeHandlers.handleProviderSelect}
-							onProviderSelectionCancel={
-								modeHandlers.handleProviderSelectionCancel
-							}
-							onThemeSelect={modeHandlers.handleThemeSelect}
-							onThemeSelectionCancel={modeHandlers.handleThemeSelectionCancel}
-							onModelDatabaseCancel={modeHandlers.handleModelDatabaseCancel}
-							onConfigWizardComplete={modeHandlers.handleConfigWizardComplete}
-							onConfigWizardCancel={modeHandlers.handleConfigWizardCancel}
-							onCheckpointSelect={appHandlers.handleCheckpointSelect}
-							onCheckpointCancel={appHandlers.handleCheckpointCancel}
+			<TitleShapeContext.Provider value={titleShapeContextValue}>
+				<UIStateProvider>
+					<Box flexDirection="column" padding={1} width="100%">
+						{/* Chat History - ALWAYS rendered to keep Static content stable */}
+						<ChatHistory
+							startChat={appState.startChat}
+							staticComponents={staticComponents}
+							queuedComponents={appState.chatComponents}
+							liveComponent={appState.liveComponent}
 						/>
-					)}
 
-					{/* Chat Input - only rendered when not in modal mode */}
-					{appState.startChat &&
-						!(
-							appState.isModelSelectionMode ||
+						{/* Modal Selectors - rendered below chat history */}
+						{(appState.isModelSelectionMode ||
 							appState.isProviderSelectionMode ||
 							appState.isThemeSelectionMode ||
 							appState.isModelDatabaseMode ||
 							appState.isConfigWizardMode ||
-							appState.isCheckpointLoadMode
-						) && (
-							<ChatInput
-								isCancelling={appState.isCancelling}
-								isToolExecuting={appState.isToolExecuting}
-								isToolConfirmationMode={appState.isToolConfirmationMode}
-								isBashExecuting={appState.isBashExecuting}
-								currentBashCommand={appState.currentBashCommand}
-								pendingToolCalls={appState.pendingToolCalls}
-								currentToolIndex={appState.currentToolIndex}
-								mcpInitialized={appState.mcpInitialized}
+							appState.isTitleShapeSelectionMode ||
+							appState.isCheckpointLoadMode) && (
+							<ModalSelectors
+								isModelSelectionMode={appState.isModelSelectionMode}
+								isProviderSelectionMode={appState.isProviderSelectionMode}
+								isThemeSelectionMode={appState.isThemeSelectionMode}
+								isModelDatabaseMode={appState.isModelDatabaseMode}
+								isConfigWizardMode={appState.isConfigWizardMode}
+								isCheckpointLoadMode={appState.isCheckpointLoadMode}
+								isTitleShapeSelectionMode={appState.isTitleShapeSelectionMode}
 								client={appState.client}
-								nonInteractivePrompt={nonInteractivePrompt}
-								nonInteractiveLoadingMessage={nonInteractiveLoadingMessage}
-								customCommands={Array.from(appState.customCommandCache.keys())}
-								inputDisabled={
-									chatHandler.isGenerating ||
-									appState.isToolExecuting ||
-									appState.isBashExecuting
+								currentModel={appState.currentModel}
+								currentProvider={appState.currentProvider}
+								checkpointLoadData={appState.checkpointLoadData}
+								onModelSelect={modeHandlers.handleModelSelect}
+								onModelSelectionCancel={modeHandlers.handleModelSelectionCancel}
+								onProviderSelect={modeHandlers.handleProviderSelect}
+								onProviderSelectionCancel={
+									modeHandlers.handleProviderSelectionCancel
 								}
-								developmentMode={appState.developmentMode}
-								onToolConfirm={toolHandler.handleToolConfirmation}
-								onToolCancel={toolHandler.handleToolConfirmationCancel}
-								onSubmit={appHandlers.handleMessageSubmit}
-								onCancel={appHandlers.handleCancel}
-								onToggleMode={appHandlers.handleToggleDevelopmentMode}
+								onThemeSelect={modeHandlers.handleThemeSelect}
+								onTitleShapeSelect={modeHandlers.handleTitleShapeSelect}
+								onTitleShapeSelectionCancel={
+									modeHandlers.handleTitleShapeSelectionCancel
+								}
+								onThemeSelectionCancel={modeHandlers.handleThemeSelectionCancel}
+								onModelDatabaseCancel={modeHandlers.handleModelDatabaseCancel}
+								onConfigWizardComplete={modeHandlers.handleConfigWizardComplete}
+								onConfigWizardCancel={modeHandlers.handleConfigWizardCancel}
+								onCheckpointSelect={appHandlers.handleCheckpointSelect}
+								onCheckpointCancel={appHandlers.handleCheckpointCancel}
 							/>
 						)}
-				</Box>
-			</UIStateProvider>
+
+						{/* Chat Input - only rendered when not in modal mode */}
+						{appState.startChat &&
+							!(
+								appState.isModelSelectionMode ||
+								appState.isProviderSelectionMode ||
+								appState.isThemeSelectionMode ||
+								appState.isModelDatabaseMode ||
+								appState.isConfigWizardMode ||
+								appState.isTitleShapeSelectionMode ||
+								appState.isCheckpointLoadMode
+							) && (
+								<ChatInput
+									isCancelling={appState.isCancelling}
+									isToolExecuting={appState.isToolExecuting}
+									isToolConfirmationMode={appState.isToolConfirmationMode}
+									pendingToolCalls={appState.pendingToolCalls}
+									currentToolIndex={appState.currentToolIndex}
+									mcpInitialized={appState.mcpInitialized}
+									client={appState.client}
+									nonInteractivePrompt={nonInteractivePrompt}
+									nonInteractiveLoadingMessage={nonInteractiveLoadingMessage}
+									customCommands={Array.from(
+										appState.customCommandCache.keys(),
+									)}
+									inputDisabled={
+										chatHandler.isGenerating || appState.isToolExecuting
+									}
+									developmentMode={appState.developmentMode}
+									onToolConfirm={toolHandler.handleToolConfirmation}
+									onToolCancel={toolHandler.handleToolConfirmationCancel}
+									onSubmit={appHandlers.handleMessageSubmit}
+									onCancel={appHandlers.handleCancel}
+									onToggleMode={appHandlers.handleToggleDevelopmentMode}
+								/>
+							)}
+					</Box>
+				</UIStateProvider>
+			</TitleShapeContext.Provider>
 		</ThemeContext.Provider>
 	);
 }

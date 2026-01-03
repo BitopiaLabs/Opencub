@@ -14,6 +14,7 @@ export interface MessageSubmissionOptions {
 	onEnterModelSelectionMode: () => void;
 	onEnterProviderSelectionMode: () => void;
 	onEnterThemeSelectionMode: () => void;
+	onEnterTitleShapeSelectionMode: () => void;
 	onEnterModelDatabaseMode: () => void;
 	onEnterConfigWizardMode: () => void;
 	onEnterCheckpointLoadMode: (
@@ -23,12 +24,12 @@ export interface MessageSubmissionOptions {
 	onShowStatus: () => void;
 	onHandleChatMessage: (message: string) => Promise<void>;
 	onAddToChatQueue: (component: React.ReactNode) => void;
+	setLiveComponent: (component: React.ReactNode) => void;
+	setIsToolExecuting: (value: boolean) => void;
 	onCommandComplete?: () => void;
 	getNextComponentKey: () => number;
 	setMessages: (messages: Message[]) => void;
 	messages: Message[];
-	setIsBashExecuting: (executing: boolean) => void;
-	setCurrentBashCommand: (command: string) => void;
 	provider: string;
 	model: string;
 	theme: string;
