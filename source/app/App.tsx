@@ -93,12 +93,20 @@ export default function App({
 	};
 
 	// VS Code server integration
+	// Reference to handleMessageSubmit that will be set after appHandlers is created
+	const handleMessageSubmitRef = React.useRef<
+		((message: string) => void) | null
+	>(null);
+
 	const handleVSCodePrompt = React.useCallback(
 		(
 			prompt: string,
 			context?: {
 				filePath?: string;
 				selection?: string;
+				fileName?: string;
+				startLine?: number;
+				endLine?: number;
 				cursorPosition?: {line: number; character: number};
 			},
 		) => {
@@ -113,16 +121,35 @@ export default function App({
 				correlationId,
 			});
 
-			let enhancedPrompt = prompt;
-			if (context?.filePath) {
-				enhancedPrompt = `[Context: ${context.filePath}${
-					context.selection ? ` (selection)` : ''
-				}]\n\n${prompt}`;
+			// Build the full prompt with code context for the LLM
+			let fullPrompt = prompt;
+			if (context?.selection && context?.fileName) {
+				const lineInfo =
+					context.startLine && context.endLine
+						? ` (lines ${context.startLine}-${context.endLine})`
+						: '';
+				// Format: question + placeholder tag (for display) + hidden code block (for LLM)
+				// The placeholder tag [@filename] will be highlighted in the UI
+				// The code block is included for the LLM but won't clutter the display
+				fullPrompt = `${prompt}\n\n[@${context.fileName}${lineInfo}]<!--vscode-context-->\n\`\`\`\n${context.selection}\n\`\`\`<!--/vscode-context-->`;
 			}
+
 			logger.debug('VS Code enhanced prompt prepared', {
-				enhancedPromptLength: enhancedPrompt.length,
+				enhancedPromptLength: fullPrompt.length,
 				correlationId,
 			});
+
+			// Submit the prompt to the chat
+			if (handleMessageSubmitRef.current) {
+				handleMessageSubmitRef.current(fullPrompt);
+			} else {
+				logger.warn(
+					'VS Code prompt received but handleMessageSubmit not ready',
+					{
+						correlationId,
+					},
+				);
+			}
 		},
 		[logger],
 	);
@@ -372,6 +399,11 @@ export default function App({
 		handleChatMessage: chatHandler.handleChatMessage,
 	});
 
+	// Update the ref so VS Code prompts can be submitted
+	React.useEffect(() => {
+		handleMessageSubmitRef.current = appHandlers.handleMessageSubmit;
+	}, [appHandlers.handleMessageSubmit]);
+
 	// Setup non-interactive mode
 	const {nonInteractiveLoadingMessage} = useNonInteractiveMode({
 		nonInteractivePrompt,
@@ -428,11 +460,13 @@ export default function App({
 		logger.debug('Directory trust check in progress');
 
 		return (
-			<Box flexDirection="column" padding={1}>
-				<Text color={themeContextValue.colors.secondary}>
-					<Spinner type="dots" /> Checking directory trust...
-				</Text>
-			</Box>
+			<ThemeContext.Provider value={themeContextValue}>
+				<Box flexDirection="column" padding={1}>
+					<Text color={themeContextValue.colors.secondary}>
+						<Spinner type="dots" /> Checking directory trust...
+					</Text>
+				</Box>
+			</ThemeContext.Provider>
 		);
 	}
 
@@ -444,14 +478,16 @@ export default function App({
 		});
 
 		return (
-			<Box flexDirection="column" padding={1}>
-				<Text color={themeContextValue.colors.error}>
-					⚠️ Error checking directory trust: {isTrustedError}
-				</Text>
-				<Text color={themeContextValue.colors.secondary}>
-					Please restart the application or check your permissions.
-				</Text>
-			</Box>
+			<ThemeContext.Provider value={themeContextValue}>
+				<Box flexDirection="column" padding={1}>
+					<Text color={themeContextValue.colors.error}>
+						⚠️ Error checking directory trust: {isTrustedError}
+					</Text>
+					<Text color={themeContextValue.colors.secondary}>
+						Please restart the application or check your permissions.
+					</Text>
+				</Box>
+			</ThemeContext.Provider>
 		);
 	}
 
@@ -460,7 +496,14 @@ export default function App({
 		logger.info('Directory not trusted, showing security disclaimer');
 
 		return (
-			<SecurityDisclaimer onConfirm={handleConfirmTrust} onExit={handleExit} />
+			<ThemeContext.Provider value={themeContextValue}>
+				<TitleShapeContext.Provider value={titleShapeContextValue}>
+					<SecurityDisclaimer
+						onConfirm={handleConfirmTrust}
+						onExit={handleExit}
+					/>
+				</TitleShapeContext.Provider>
+			</ThemeContext.Provider>
 		);
 	}
 
@@ -476,21 +519,23 @@ export default function App({
 
 		return (
 			<ThemeContext.Provider value={themeContextValue}>
-				<Box flexDirection="column" padding={1}>
-					<WelcomeMessage />
-					<VSCodeExtensionPrompt
-						onComplete={() => {
-							logger.info('VS Code extension prompt completed');
-							setShowExtensionPrompt(false);
-							setExtensionPromptComplete(true);
-						}}
-						onSkip={() => {
-							logger.info('VS Code extension prompt skipped');
-							setShowExtensionPrompt(false);
-							setExtensionPromptComplete(true);
-						}}
-					/>
-				</Box>
+				<TitleShapeContext.Provider value={titleShapeContextValue}>
+					<Box flexDirection="column" padding={1}>
+						<WelcomeMessage />
+						<VSCodeExtensionPrompt
+							onComplete={() => {
+								logger.info('VS Code extension prompt completed');
+								setShowExtensionPrompt(false);
+								setExtensionPromptComplete(true);
+							}}
+							onSkip={() => {
+								logger.info('VS Code extension prompt skipped');
+								setShowExtensionPrompt(false);
+								setExtensionPromptComplete(true);
+							}}
+						/>
+					</Box>
+				</TitleShapeContext.Provider>
 			</ThemeContext.Provider>
 		);
 	}

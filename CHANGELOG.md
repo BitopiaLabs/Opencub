@@ -1,5 +1,11 @@
 # 1.20.0
 
+Happy New Year! We all hope you had a great holidays and are feeling refreshed ready for 2026 🌟
+
+- Added Catpuccin themes (Latte, Frappe, Macchiato, Mocha) with gradient color support. Thanks to @Avtrkrb.
+
+- Added VS Code context menu integration - you can now right-click selected code and ask Nanocoder about it directly.
+
 - Added comprehensive testing achieving 90%+ code coverage across components, hooks, tools, and utilities. Tests now include unit and integration coverage for critical paths.
 
 - Added automated PR checks workflow with format, type, lint, and test validation. Pull requests now get automatic quality checks. Thanks to @Avtrkrb.
@@ -113,6 +119,8 @@
 - Fix: Duplicate SIGINT handler issues resolved.
 
 - Fix: High severity qs vulnerability patched via pnpm override. Thanks to @Pahari47.
+
+- Fix: Removed line numbers from tagging files and read_file tool as it confused models when pattern matching content changes.
 
 If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
 
