@@ -55,12 +55,12 @@ export const FILE_READ_METADATA_THRESHOLD_LINES = 300;
 export const FILE_READ_CHUNKING_HINT_THRESHOLD_LINES = 500;
 export const FILE_READ_CHUNK_SIZE_LINES = 250;
 export const CHARS_PER_TOKEN_ESTIMATE = 4;
+export const MAX_LINE_LENGTH_CHARS = 10_000; // Lines longer than this are likely minified/binary
 
 // === TERMINAL AND UI ===
 export const PATH_LENGTH_NARROW_TERMINAL = 30;
 export const PATH_LENGTH_NORMAL_TERMINAL = 60;
 export const TABLE_COLUMN_MIN_WIDTH = 10;
-export const WEB_SEARCH_DISPLAY_RESULTS = 5;
 
 // === TOKEN THRESHOLDS (percentages - useChatHandler) ===
 export const TOKEN_THRESHOLD_WARNING_PERCENT = 80;

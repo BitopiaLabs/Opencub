@@ -167,101 +167,86 @@ async function formatStringReplacePreview(
 		const language = getLanguageFromExtension(ext);
 
 		// In result mode, skip validation since file has already been modified
-		if (isResult) {
-			const messageContent = (
-				<Box flexDirection="column">
-					<Text color={themeColors.tool}>⚒ string_replace</Text>
-
-					<Box>
-						<Text color={themeColors.secondary}>Path: </Text>
-						<Text color={themeColors.primary}>{path}</Text>
-					</Box>
-
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={themeColors.success}>
-							✓ String replacement completed successfully
-						</Text>
-					</Box>
-				</Box>
-			);
-
-			return <ToolMessage message={messageContent} hideBox={true} />;
-		}
-
 		// Preview mode - validate old_str exists and is unique
-		const occurrences = fileContent.split(old_str).length - 1;
+		if (!isResult) {
+			const occurrences = fileContent.split(old_str).length - 1;
 
-		if (occurrences === 0) {
-			const errorContent = (
-				<Box flexDirection="column">
-					<Text color={themeColors.tool}>⚒ string_replace</Text>
+			if (occurrences === 0) {
+				const errorContent = (
+					<Box flexDirection="column" marginBottom={1}>
+						<Text color={themeColors.tool}>⚒ string_replace</Text>
 
-					<Box>
-						<Text color={themeColors.secondary}>Path: </Text>
-						<Text color={themeColors.primary}>{path}</Text>
-					</Box>
+						<Box>
+							<Text color={themeColors.secondary}>Path: </Text>
+							<Text color={themeColors.primary}>{path}</Text>
+						</Box>
 
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={themeColors.error}>
-							✗ Error: Content not found in file. The file may have changed
-							since you last read it.
-						</Text>
-					</Box>
-
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={themeColors.secondary}>Searching for:</Text>
-						{old_str.split('\n').map((line, i) => (
-							<Text key={i} color={themeColors.text}>
-								{line}
+						<Box flexDirection="column" marginTop={1}>
+							<Text color={themeColors.error}>
+								✗ Error: Content not found in file. The file may have changed
+								since you last read it.
 							</Text>
-						))}
+						</Box>
+
+						<Box flexDirection="column" marginTop={1}>
+							<Text color={themeColors.secondary}>Searching for:</Text>
+							{old_str.split('\n').map((line, i) => (
+								<Text key={i} color={themeColors.text}>
+									{line}
+								</Text>
+							))}
+						</Box>
 					</Box>
-				</Box>
-			);
-			return <ToolMessage message={errorContent} hideBox={true} />;
-		}
+				);
+				return <ToolMessage message={errorContent} hideBox={true} />;
+			}
 
-		if (occurrences > 1) {
-			const errorContent = (
-				<Box flexDirection="column">
-					<Text color={themeColors.tool}>⚒ string_replace</Text>
+			if (occurrences > 1) {
+				const errorContent = (
+					<Box flexDirection="column">
+						<Text color={themeColors.tool}>⚒ string_replace</Text>
 
-					<Box>
-						<Text color={themeColors.secondary}>Path: </Text>
-						<Text color={themeColors.primary}>{path}</Text>
-					</Box>
+						<Box>
+							<Text color={themeColors.secondary}>Path: </Text>
+							<Text color={themeColors.primary}>{path}</Text>
+						</Box>
 
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={themeColors.error}>
-							✗ Error: Found {occurrences} matches
-						</Text>
-						<Text color={themeColors.secondary}>
-							Add more surrounding context to make the match unique.
-						</Text>
-					</Box>
-
-					<Box flexDirection="column" marginTop={1}>
-						<Text color={themeColors.secondary}>Searching for:</Text>
-						{old_str.split('\n').map((line, i) => (
-							<Text key={i} color={themeColors.text}>
-								{line}
+						<Box flexDirection="column" marginTop={1}>
+							<Text color={themeColors.error}>
+								✗ Error: Found {occurrences} matches
 							</Text>
-						))}
+							<Text color={themeColors.secondary}>
+								Add more surrounding context to make the match unique.
+							</Text>
+						</Box>
+
+						<Box flexDirection="column" marginTop={1}>
+							<Text color={themeColors.secondary}>Searching for:</Text>
+							{old_str.split('\n').map((line, i) => (
+								<Text key={i} color={themeColors.text}>
+									{line}
+								</Text>
+							))}
+						</Box>
 					</Box>
-				</Box>
-			);
-			return <ToolMessage message={errorContent} hideBox={true} />;
+				);
+				return <ToolMessage message={errorContent} hideBox={true} />;
+			}
 		}
 
 		// Find location of the match in the file
-		const matchIndex = fileContent.indexOf(old_str);
+		// In result mode, old_str no longer exists - find new_str instead
+		const searchStr = isResult ? new_str : old_str;
+		const matchIndex = fileContent.indexOf(searchStr);
 		const beforeContent = fileContent.substring(0, matchIndex);
 		const beforeLines = beforeContent.split('\n');
 		const startLine = beforeLines.length;
 
 		const oldStrLines = old_str.split('\n');
 		const newStrLines = new_str.split('\n');
-		const endLine = startLine + oldStrLines.length - 1;
+		// In result mode, the file contains new_str, so use its length for endLine
+		const contentLines = isResult ? newStrLines : oldStrLines;
+		const endLine = startLine + contentLines.length - 1;
 
 		const allLines = fileContent.split('\n');
 		const contextLines = 3;
@@ -271,23 +256,32 @@ async function formatStringReplacePreview(
 		// Collect all lines to be displayed for normalization
 		const linesToNormalize: string[] = [];
 
-		// Context before
+		// Context before - always from file
 		for (let i = showStart; i < startLine - 1; i++) {
 			linesToNormalize.push(allLines[i] || '');
 		}
 
-		// Old lines
+		// Old lines - always from old_str (not in file after execution)
 		for (let i = 0; i < oldStrLines.length; i++) {
 			linesToNormalize.push(oldStrLines[i] || '');
 		}
 
-		// New lines
-		for (let i = 0; i < newStrLines.length; i++) {
-			linesToNormalize.push(newStrLines[i] || '');
+		// New lines - in result mode, read from file; in preview mode, use new_str
+		if (isResult) {
+			for (let i = 0; i < newStrLines.length; i++) {
+				linesToNormalize.push(allLines[startLine - 1 + i] || '');
+			}
+		} else {
+			for (let i = 0; i < newStrLines.length; i++) {
+				linesToNormalize.push(newStrLines[i] || '');
+			}
 		}
 
-		// Context after
-		for (let i = endLine; i <= showEnd; i++) {
+		// Context after - in result mode, start after new content
+		const contextAfterStart = isResult
+			? startLine - 1 + newStrLines.length
+			: endLine;
+		for (let i = contextAfterStart; i <= showEnd; i++) {
 			linesToNormalize.push(allLines[i] || '');
 		}
 
