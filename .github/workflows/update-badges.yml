@@ -6,11 +6,6 @@ on:
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours
 
-# Allow this workflow to be called by other workflows and inherit secrets
-# Also inherit secrets when triggered manually or by schedule
-# Note: PAT_TOKEN must be in repository secrets
-secrets: inherit
-
 permissions:
   contents: write
 
@@ -20,8 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -141,8 +134,8 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add badges/ README.md
-          # Only commit if there are staged changes
-          if ! git diff --cached --quiet; then
+          # Only commit if there are changes
+          if ! git diff --quiet; then
             git commit -m "Update status badges [skip ci]" || echo "No changes to commit"
             git push
           else

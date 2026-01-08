@@ -26,6 +26,63 @@ Nanocoder supports three transport types for MCP servers:
 
 ## Configuration Examples
 
+### Project-Level Configuration
+
+Nanocoder now supports project-level MCP configuration files for team collaboration:
+
+- **`.mcp.json`** - Primary project-level config in project root
+- **`mcp.json`** - Alternative project-level config in project root
+- **`.nanocoder/mcp.json`** - Nanocoder-specific directory config
+- **`.claude/mcp.json`** - Claude Code compatibility config
+- **`.nanocoder/mcp.local.json`** - Local overrides (gitignored, highest priority)
+
+Project-level configs take precedence over the global `agents.config.json`.
+
+**Example `.mcp.json` (Array Format):**
+```json
+{
+  "mcpServers": [
+    {
+      "name": "filesystem",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "./src"],
+      "description": "Project filesystem access",
+      "env": {
+        "ALLOWED_PATHS": "./src"
+      }
+    }
+  ]
+}
+```
+
+**Example `.mcp.json` (Claude Code Object Format):**
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "./src"],
+      "description": "Project filesystem access",
+      "env": {
+        "ALLOWED_PATHS": "./src"
+      }
+    },
+    "github": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "$GITHUB_TOKEN"
+      }
+    }
+  }
+}
+```
+
+The Claude Code format (object with named keys) is fully supported alongside the traditional array format.
+
 ### Local stdio Servers
 
 #### File System Access
@@ -262,3 +319,21 @@ This provides:
 ```
 
 For more examples and community-maintained configurations, see the [MCP servers repository](https://github.com/modelcontextprotocol/servers).
+
+## Hierarchical Configuration Loading
+
+Nanocoder supports hierarchical MCP server configuration loading with the following precedence order (highest to lowest):
+
+1. **Project-level** (highest priority):
+   - `.mcp.json` - Primary project-level config in project root
+   - `mcp.json` - Alternative project-level config in project root
+   - `.nanocoder/mcp.json` - Nanocoder-specific directory config
+   - `.claude/mcp.json` - Claude Code compatibility config
+   - `.nanocoder/mcp.local.json` - Local overrides (gitignored, highest priority)
+
+2. **Global-level** (lowest priority):
+   - Global `agents.config.json` in user config directory
+
+Both project-level and global configurations are loaded and merged together, with project-level configurations taking precedence over global ones. This allows teams to collaborate on project-specific MCP server configurations while maintaining global settings.
+
+The `/mcp` command displays the source level (e.g., [project], [global]) next to each server name to indicate where each configuration originated.
