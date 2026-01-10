@@ -32,7 +32,7 @@ export function MCP({toolManager}: MCPProps) {
 
 	return (
 		<TitledBoxWithPreferences
-			title="/mcp"
+			title="Model Context Protocol Servers"
 			reversePowerline={true}
 			width={boxWidth}
 			borderColor={colors.primary}
@@ -51,30 +51,23 @@ export function MCP({toolManager}: MCPProps) {
 
 					<Text color={colors.text}>
 						To connect MCP servers, add them to your{' '}
-						<Text color={colors.primary}>agents.config.json</Text> file:
+						<Text color={colors.primary}>.mcp.json</Text> file:
 					</Text>
 
 					<Box marginTop={1} marginBottom={1}>
 						<Text color={colors.secondary}>
 							{`{
-  "nanocoder": {
-    "mcpServers": [
-      {
-        "name": "example-server",
-        "transport": "stdio",
-        "command": "node",
-        "args": ["path/to/server.js"],
-        "env": {
-          "API_KEY": "your-key"
-        }
-      },
-      {
-        "name": "remote-server",
-        "transport": "http",
-        "url": "https://example.com/mcp",
-        "timeout": 30000
-      }
-    ]
+  "mcpServers": {
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "description": "Project filesystem access"
+    },
+    "http-server": {
+      "transport": "http",
+      "url": "http://localhost:3000/mcp"
+    }
   }
 }`}
 						</Text>
@@ -114,23 +107,21 @@ export function MCP({toolManager}: MCPProps) {
 									</Text>
 
 									{serverInfo?.url && (
-										<Text color={colors.secondary}>URL: {serverInfo.url}</Text>
+										<Text color={colors.info}>URL: {serverInfo.url}</Text>
 									)}
 
 									{serverInfo?.description && (
-										<Text color={colors.secondary}>
-											{serverInfo.description}
-										</Text>
+										<Text color={colors.success}>{serverInfo.description}</Text>
 									)}
 
-									{serverInfo?.tags && serverInfo.tags.length > 0 && (
+									{/* {serverInfo?.tags && serverInfo.tags.length > 0 && (
 										<Text color={colors.secondary}>
 											Tags: {serverInfo.tags.map(tag => `#${tag}`).join(' ')}
 										</Text>
-									)}
+									)} */}
 
 									{serverTools.length > 0 && (
-										<Text color={colors.secondary}>
+										<Text color={colors.tool}>
 											Tools:{' '}
 											{serverTools
 												.map((t: {name: string}) => t.name)
