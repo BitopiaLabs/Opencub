@@ -55,7 +55,32 @@ export interface AppConfig {
 		[key: string]: unknown; // Allow additional provider-specific config
 	}[];
 
-	mcpServers?: MCPServerConfig[];
+	mcpServers?: {
+		name: string;
+		transport: 'stdio' | 'websocket' | 'http';
+		command?: string;
+		args?: string[];
+		env?: Record<string, string>;
+		url?: string;
+		headers?: Record<string, string>;
+		auth?: {
+			type: 'bearer' | 'basic' | 'api-key' | 'custom';
+			token?: string;
+			username?: string;
+			password?: string;
+			apiKey?: string;
+			customHeaders?: Record<string, string>;
+		};
+		timeout?: number;
+		reconnect?: {
+			enabled: boolean;
+			maxAttempts: number;
+			backoffMs: number;
+		};
+		description?: string;
+		tags?: string[];
+		enabled?: boolean;
+	}[];
 
 	// LSP server configurations (optional - auto-discovery enabled by default)
 	lspServers?: {
@@ -65,42 +90,6 @@ export interface AppConfig {
 		languages: string[]; // File extensions this server handles
 		env?: Record<string, string>;
 	}[];
-}
-
-// MCP Server configuration with source tracking
-export interface MCPServerConfig {
-	name: string;
-	transport: 'stdio' | 'websocket' | 'http';
-	command?: string;
-	args?: string[];
-	env?: Record<string, string>;
-	url?: string;
-	headers?: Record<string, string>;
-	auth?: {
-		type: 'bearer' | 'basic' | 'api-key' | 'custom';
-		token?: string;
-		username?: string;
-		password?: string;
-		apiKey?: string;
-		customHeaders?: Record<string, string>;
-	};
-	timeout?: number;
-	reconnect?: {
-		enabled: boolean;
-		maxAttempts: number;
-		backoffMs: number;
-	};
-	description?: string;
-	tags?: string[];
-	enabled?: boolean;
-	// Optional source information for display purposes
-	source?:
-		| 'project-root'
-		| 'project-alternative'
-		| 'nanocoder-dir'
-		| 'claude-dir'
-		| 'local-overrides'
-		| 'global-config';
 }
 
 export interface UserPreferences {
