@@ -1,5 +1,4 @@
 import test from 'ava';
-import stripAnsi from 'strip-ansi';
 import type {Colors} from '../types/markdown-parser.js';
 import {parseMarkdown} from './index.js';
 
@@ -105,9 +104,8 @@ test('parseMarkdown handles nested/indented bullet lists', t => {
     - Double nested
 - Another top level`;
 	const result = parseMarkdown(text, mockColors);
-	const plainResult = stripAnsi(result);
-	t.true(plainResult.includes('  • Nested item 1'));
-	t.true(plainResult.includes('    • Double nested'));
+	t.true(result.includes('  • Nested item 1'));
+	t.true(result.includes('    • Double nested'));
 });
 
 test('parseMarkdown handles nested numbered lists', t => {
@@ -116,9 +114,8 @@ test('parseMarkdown handles nested numbered lists', t => {
   2. Nested second
 2. Back to first level`;
 	const result = parseMarkdown(text, mockColors);
-	const plainResult = stripAnsi(result);
-	t.true(plainResult.includes('  1. Nested first'));
-	t.true(plainResult.includes('  2. Nested second'));
+	t.true(result.includes('  1. Nested first'));
+	t.true(result.includes('  2. Nested second'));
 });
 
 // HTML entity tests
@@ -155,8 +152,7 @@ test('parseMarkdown renders tables with plain text (no markdown)', t => {
 test('parseMarkdown handles code blocks with language', t => {
 	const text = '```javascript\nconst x = 5;\n```';
 	const result = parseMarkdown(text, mockColors);
-	const plainResult = stripAnsi(result);
-	t.true(plainResult.includes('const x = 5'));
+	t.true(result.includes('const x = 5'));
 });
 
 test('parseMarkdown handles code blocks without language', t => {

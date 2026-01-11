@@ -44,7 +44,7 @@ function Help({
 	const {colors} = useTheme();
 	return (
 		<TitledBoxWithPreferences
-			title="Help"
+			title="/help"
 			reversePowerline={true}
 			width={boxWidth}
 			borderColor={colors.primary}

@@ -68,8 +68,7 @@ function getConnectionDetails(
 }
 
 interface SummaryStepProps {
-	providerConfigPath: string;
-	mcpConfigPath: string;
+	configPath: string;
 	providers: ProviderConfig[];
 	mcpServers: Record<string, McpServerConfig>;
 	onSave: () => void;
@@ -80,8 +79,7 @@ interface SummaryStepProps {
 }
 
 export function SummaryStep({
-	providerConfigPath,
-	mcpConfigPath,
+	configPath,
 	providers,
 	mcpServers,
 	onSave,
@@ -145,13 +143,10 @@ export function SummaryStep({
 
 			<Box marginBottom={1} flexDirection="column">
 				<Text bold color={colors.primary}>
-					Configuration files:
+					Location:
 				</Text>
 				<Text color={colors.success}>
-					{isNarrow ? truncatePath(providerConfigPath, 40) : providerConfigPath}
-				</Text>
-				<Text color={colors.success}>
-					{isNarrow ? truncatePath(mcpConfigPath, 40) : mcpConfigPath}
+					{isNarrow ? truncatePath(configPath, 40) : configPath}
 				</Text>
 			</Box>
 

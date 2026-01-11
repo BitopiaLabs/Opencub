@@ -19,10 +19,11 @@ test('Status component with MCP status renders', async t => {
 	);
 
 	const output = lastFrame();
-	// Component should render without errors
-	t.truthy(output);
-	// Should render some content related to the status
-	t.truthy(output!.trim().length > 0);
+	t.true(output!.includes('Status'));
+	t.true(output!.includes('MCP:'));
+	t.true(output!.includes('1/1 connected'));
+	// Fully connected MCP should show checkmark
+	t.true(output!.includes('✓'));
 });
 
 test('Status component with preferencesLoaded renders', async t => {
@@ -36,10 +37,7 @@ test('Status component with preferencesLoaded renders', async t => {
 	);
 
 	const output = lastFrame();
-	// Component should render without errors
-	t.truthy(output);
-	// Should render some content related to the status
-	t.truthy(output!.trim().length > 0);
+	t.true(output!.includes('✓ Preferences loaded'));
 });
 
 test('Status component with customCommandsCount renders', async t => {
@@ -53,10 +51,8 @@ test('Status component with customCommandsCount renders', async t => {
 	);
 
 	const output = lastFrame();
-	// Component should render without errors
-	t.truthy(output);
-	// Should render some content related to the status
-	t.truthy(output!.trim().length > 0);
+	t.true(output!.includes('Status'));
+	t.true(output!.includes('✓ 6 custom commands'));
 });
 
 test('Status component does not render custom commands when count is 0', async t => {
@@ -89,10 +85,9 @@ test('Status component with LSP status renders', async t => {
 	);
 
 	const output = lastFrame();
-	// Component should render without errors
-	t.truthy(output);
-	// Should render some content related to the status
-	t.truthy(output!.trim().length > 0);
+	t.true(output!.includes('Status'));
+	t.true(output!.includes('LSP:'));
+	t.true(output!.includes('✓'));
 });
 
 test('Status component without MCP/LSP still renders', async t => {
@@ -129,8 +124,10 @@ test('Status component renders with connection status props', async t => {
 	);
 
 	const output = lastFrame();
-	// Component should render without errors
-	t.truthy(output);
-	// Should render some content related to the status
-	t.truthy(output!.trim().length > 0);
+	t.true(output!.includes('Status'));
+	t.true(output!.includes('MCP:'));
+	t.true(output!.includes('1/2 connected')); // 1 of 2 MCP servers connected
+	t.true(output!.includes('LSP:'));
+	t.true(output!.includes('2/2 connected')); // 2 of 2 LSP servers connected
+	t.true(output!.includes('Connection timeout')); // Error message should be shown
 });

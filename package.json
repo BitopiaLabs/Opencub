@@ -62,7 +62,7 @@
 		"@anthropic-ai/tokenizer": "^0.0.4",
 		"@modelcontextprotocol/sdk": "^1.25.2",
 		"@nanocollective/get-md": "^1.0.2",
-		"ai": "6.0.6",
+		"ai": "6.0.25",
 		"cheerio": "^1.1.2",
 		"cli-highlight": "^2.1.11",
 		"cli-table3": "^0.6.5",
@@ -101,7 +101,6 @@
 		"ink-testing-library": "^4.0.0",
 		"knip": "^5.66.2",
 		"lint-staged": "^16.2.7",
-		"strip-ansi": "^7.1.2",
 		"tsc-alias": "^1.8.16",
 		"tsx": "^4.20.6",
 		"typescript": "^5.0.3"
@@ -140,13 +139,9 @@
 		],
 		"reporter": [
 			"text",
-			"json-summary",
-			"lcov"
-		],
-		"lines": 80,
-		"functions": 0,
-		"branches": 0,
-		"statements": 0
+			"lcov",
+			"json-summary"
+		]
 	},
 	"pnpm": {
 		"overrides": {

@@ -1,5 +1,4 @@
 import test from 'ava';
-import stripAnsi from 'strip-ansi';
 import {render} from 'ink-testing-library';
 import React from 'react';
 import {themes} from '../config/themes';
@@ -695,15 +694,14 @@ test('parseMarkdown handles nested/indented bullet lists', t => {
     - Double nested
 - Another top level`;
 	const result = parseMarkdown(text, mockColors);
-	const plainResult = stripAnsi(result);
 	// Should have bullets
-	t.true(plainResult.includes('•'));
-	t.true(plainResult.includes('Top level item'));
-	t.true(plainResult.includes('Nested item 1'));
-	t.true(plainResult.includes('Double nested'));
+	t.true(result.includes('•'));
+	t.true(result.includes('Top level item'));
+	t.true(result.includes('Nested item 1'));
+	t.true(result.includes('Double nested'));
 	// Check indentation is preserved (should have 2 spaces before nested bullets)
-	t.true(plainResult.includes('  • Nested item 1'));
-	t.true(plainResult.includes('    • Double nested'));
+	t.true(result.includes('  • Nested item 1'));
+	t.true(result.includes('    • Double nested'));
 });
 
 test('parseMarkdown handles nested numbered lists', t => {
@@ -712,12 +710,11 @@ test('parseMarkdown handles nested numbered lists', t => {
   2. Nested second
 2. Second item`;
 	const result = parseMarkdown(text, mockColors);
-	const plainResult = stripAnsi(result);
-	t.true(plainResult.includes('1. First item'));
-	t.true(plainResult.includes('2. Second item'));
+	t.true(result.includes('1. First item'));
+	t.true(result.includes('2. Second item'));
 	// Check nested numbering preserved
-	t.true(plainResult.includes('  1. Nested first'));
-	t.true(plainResult.includes('  2. Nested second'));
+	t.true(result.includes('  1. Nested first'));
+	t.true(result.includes('  2. Nested second'));
 });
 
 test('parseMarkdown restores inline code placeholders correctly', t => {

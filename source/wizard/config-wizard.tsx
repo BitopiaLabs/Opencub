@@ -1,21 +1,20 @@
 import {spawnSync} from 'node:child_process';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
-import {dirname, join} from 'node:path';
+import {dirname} from 'node:path';
 import {Box, Text, useFocus, useInput} from 'ink';
 import Spinner from 'ink-spinner';
 import {useEffect, useState} from 'react';
 import {TitledBoxWithPreferences} from '@/components/ui/titled-box';
 import {colors} from '@/config/index';
-import {getConfigPath} from '@/config/paths';
 import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
-import {logError, logWarning} from '@/utils/message-queue';
+import {logError} from '@/utils/message-queue';
 import type {ProviderConfig} from '../types/config';
 import {type ConfigLocation, LocationStep} from './steps/location-step';
 import {McpStep} from './steps/mcp-step';
 import {ProviderStep} from './steps/provider-step';
 import {SummaryStep} from './steps/summary-step';
 import type {McpServerConfig} from './templates/mcp-templates';
-import {buildMcpConfigObject, buildProviderConfigObject} from './validation';
+import {buildConfigObject} from './validation';
 
 interface ConfigWizardProps {
 	projectDir: string;
@@ -38,8 +37,7 @@ export function ConfigWizard({
 	onCancel,
 }: ConfigWizardProps) {
 	const [step, setStep] = useState<WizardStep>('location');
-	const [providerConfigPath, setProviderConfigPath] = useState('');
-	const [mcpConfigPath, setMcpConfigPath] = useState('');
+	const [configPath, setConfigPath] = useState('');
 	const [providers, setProviders] = useState<ProviderConfig[]>([]);
 	const [mcpServers, setMcpServers] = useState<Record<string, McpServerConfig>>(
 		{},
@@ -52,91 +50,37 @@ export function ConfigWizard({
 
 	// Load existing config if editing
 	useEffect(() => {
-		if (!providerConfigPath || !mcpConfigPath) {
+		if (!configPath || !existsSync(configPath)) {
 			return;
 		}
 
 		// Use a microtask to defer state updates
 		void Promise.resolve().then(() => {
 			try {
-				let loadedProviders: ProviderConfig[] = [];
-				let loadedMcpServers: Record<string, McpServerConfig> = {};
+				const configContent = readFileSync(configPath, 'utf-8');
+				const config = JSON.parse(configContent) as {
+					nanocoder?: {
+						providers?: ProviderConfig[];
+						mcpServers?: Record<string, McpServerConfig>;
+					};
+				};
 
-				// Try to load providers from agents.config.json
-				if (existsSync(providerConfigPath)) {
-					try {
-						const providerContent = readFileSync(providerConfigPath, 'utf-8');
-						const providerConfig = JSON.parse(providerContent) as {
-							nanocoder?: {
-								providers?: ProviderConfig[];
-								mcpServers?:
-									| McpServerConfig[]
-									| Record<string, McpServerConfig>;
-							};
-						};
-						loadedProviders = providerConfig.nanocoder?.providers || [];
+				const newProviders = config.nanocoder?.providers || [];
+				const newMcpServers = config.nanocoder?.mcpServers || {};
 
-						// Check if old-style MCP servers exist in provider config
-						if (providerConfig.nanocoder?.mcpServers) {
-							const mcpServersData = providerConfig.nanocoder.mcpServers;
-							if (Array.isArray(mcpServersData)) {
-								// Old array format - convert to object format
-								for (const server of mcpServersData) {
-									loadedMcpServers[server.name] = server;
-								}
-								logWarning(
-									`MCP servers found in ${providerConfigPath}. ` +
-										'They will be migrated to .mcp.json when you save.',
-								);
-							} else {
-								// Already object format
-								loadedMcpServers = mcpServersData;
-							}
-						}
-					} catch (err) {
-						logError('Failed to load provider configuration', true, {
-							context: {providerConfigPath},
-							error: err instanceof Error ? err.message : String(err),
-						});
-					}
-				}
-
-				// Try to load MCP servers from .mcp.json (new location)
-				if (existsSync(mcpConfigPath)) {
-					try {
-						const mcpContent = readFileSync(mcpConfigPath, 'utf-8');
-						const mcpConfig = JSON.parse(mcpContent) as {
-							mcpServers?: Record<string, McpServerConfig>;
-						};
-						// New format takes precedence over migrated data
-						if (mcpConfig.mcpServers) {
-							loadedMcpServers = mcpConfig.mcpServers;
-						}
-					} catch (err) {
-						logError('Failed to load MCP configuration', true, {
-							context: {mcpConfigPath},
-							error: err instanceof Error ? err.message : String(err),
-						});
-					}
-				}
-
-				setProviders(loadedProviders);
-				setMcpServers(loadedMcpServers);
+				setProviders(newProviders);
+				setMcpServers(newMcpServers);
 			} catch (err) {
 				logError('Failed to load existing configuration', true, {
-					context: {providerConfigPath, mcpConfigPath},
+					context: {configPath},
 					error: err instanceof Error ? err.message : String(err),
 				});
 			}
 		});
-	}, [providerConfigPath, mcpConfigPath]);
+	}, [configPath]);
 
-	const handleLocationComplete = (location: ConfigLocation) => {
-		// Determine the base directory based on location
-		const baseDir = location === 'project' ? process.cwd() : getConfigPath();
-
-		setProviderConfigPath(join(baseDir, 'agents.config.json'));
-		setMcpConfigPath(join(baseDir, '.mcp.json'));
+	const handleLocationComplete = (_location: ConfigLocation, path: string) => {
+		setConfigPath(path);
 		setStep('providers');
 	};
 
@@ -157,33 +101,17 @@ export function ConfigWizard({
 		setError(null);
 
 		try {
-			// Build and save provider config
-			if (providers.length > 0) {
-				const providerConfig = buildProviderConfigObject(providers);
-				const providerDir = dirname(providerConfigPath);
-				if (!existsSync(providerDir)) {
-					mkdirSync(providerDir, {recursive: true});
-				}
-				writeFileSync(
-					providerConfigPath,
-					JSON.stringify(providerConfig, null, 2),
-					'utf-8',
-				);
+			// Build config object
+			const config = buildConfigObject(providers, mcpServers);
+
+			// Ensure directory exists
+			const dir = dirname(configPath);
+			if (!existsSync(dir)) {
+				mkdirSync(dir, {recursive: true});
 			}
 
-			// Build and save MCP config
-			if (Object.keys(mcpServers).length > 0) {
-				const mcpConfig = buildMcpConfigObject(mcpServers);
-				const mcpDir = dirname(mcpConfigPath);
-				if (!existsSync(mcpDir)) {
-					mkdirSync(mcpDir, {recursive: true});
-				}
-				writeFileSync(
-					mcpConfigPath,
-					JSON.stringify(mcpConfig, null, 2),
-					'utf-8',
-				);
-			}
+			// Write config file
+			writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
 
 			setStep('complete');
 			// Don't auto-complete - wait for user to press Enter
@@ -211,32 +139,17 @@ export function ConfigWizard({
 
 	const openInEditor = () => {
 		try {
-			// Save current progress to both files
-			if (providers.length > 0) {
-				const providerConfig = buildProviderConfigObject(providers);
-				const providerDir = dirname(providerConfigPath);
-				if (!existsSync(providerDir)) {
-					mkdirSync(providerDir, {recursive: true});
-				}
-				writeFileSync(
-					providerConfigPath,
-					JSON.stringify(providerConfig, null, 2),
-					'utf-8',
-				);
+			// Save current progress to file
+			const config = buildConfigObject(providers, mcpServers);
+
+			// Ensure directory exists
+			const dir = dirname(configPath);
+			if (!existsSync(dir)) {
+				mkdirSync(dir, {recursive: true});
 			}
 
-			if (Object.keys(mcpServers).length > 0) {
-				const mcpConfig = buildMcpConfigObject(mcpServers);
-				const mcpDir = dirname(mcpConfigPath);
-				if (!existsSync(mcpDir)) {
-					mkdirSync(mcpDir, {recursive: true});
-				}
-				writeFileSync(
-					mcpConfigPath,
-					JSON.stringify(mcpConfig, null, 2),
-					'utf-8',
-				);
-			}
+			// Write config file
+			writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
 
 			// Detect editor (respect $EDITOR or $VISUAL environment variables)
 			// Fall back to nano on Unix/Mac (much friendlier than vi!)
@@ -250,8 +163,8 @@ export function ConfigWizard({
 			process.stdout.write('\x1B[?25h'); // Show cursor
 			process.stdin.setRawMode?.(false); // Disable raw mode
 
-			// Open provider config in editor (primary config file)
-			const result = spawnSync(editor, [providerConfigPath], {
+			// Open editor and wait for it to close
+			const result = spawnSync(editor, [configPath], {
 				stdio: 'inherit', // Give editor full control of terminal
 			});
 
@@ -260,67 +173,33 @@ export function ConfigWizard({
 			process.stdout.write('\x1B[?25l'); // Hide cursor (Ink will manage it)
 
 			if (result.status === 0) {
-				// Reload both configs to get updated values
-				let loadedProviders: ProviderConfig[] = [];
-				let loadedMcpServers: Record<string, McpServerConfig> = {};
-
-				// Reload provider config
-				if (existsSync(providerConfigPath)) {
-					try {
-						const editedContent = readFileSync(providerConfigPath, 'utf-8');
-						const editedConfig = JSON.parse(editedContent) as {
-							nanocoder?: {
-								providers?: ProviderConfig[];
-								mcpServers?:
-									| McpServerConfig[]
-									| Record<string, McpServerConfig>;
-							};
-						};
-						loadedProviders = editedConfig.nanocoder?.providers || [];
-
-						// Check if MCP servers were edited in provider config
-						if (editedConfig.nanocoder?.mcpServers) {
-							const mcpServersData = editedConfig.nanocoder.mcpServers;
-							if (Array.isArray(mcpServersData)) {
-								for (const server of mcpServersData) {
-									loadedMcpServers[server.name] = server;
-								}
-							} else {
-								loadedMcpServers = mcpServersData;
-							}
-						}
-					} catch (parseErr) {
-						setError(
-							parseErr instanceof Error
-								? `Invalid JSON: ${parseErr.message}`
-								: 'Failed to parse edited configuration',
-						);
-						setStep('summary');
-						return;
-					}
-				}
-
-				// Also reload MCP config if it exists (takes precedence)
-				if (existsSync(mcpConfigPath)) {
-					try {
-						const mcpContent = readFileSync(mcpConfigPath, 'utf-8');
-						const mcpConfig = JSON.parse(mcpContent) as {
+				// Reload the edited config
+				try {
+					const editedContent = readFileSync(configPath, 'utf-8');
+					const editedConfig = JSON.parse(editedContent) as {
+						nanocoder?: {
+							providers?: ProviderConfig[];
 							mcpServers?: Record<string, McpServerConfig>;
 						};
-						if (mcpConfig.mcpServers) {
-							loadedMcpServers = mcpConfig.mcpServers;
-						}
-					} catch {
-						// Ignore MCP config parse errors, use loaded values
+					};
+
+					// Update state with edited values
+					if (editedConfig.nanocoder) {
+						setProviders(editedConfig.nanocoder.providers || []);
+						setMcpServers(editedConfig.nanocoder.mcpServers || {});
 					}
+
+					// Return to summary to review changes
+					setStep('summary');
+					setError(null);
+				} catch (parseErr) {
+					setError(
+						parseErr instanceof Error
+							? `Invalid JSON: ${parseErr.message}`
+							: 'Failed to parse edited configuration',
+					);
+					setStep('summary');
 				}
-
-				setProviders(loadedProviders);
-				setMcpServers(loadedMcpServers);
-
-				// Return to summary to review changes
-				setStep('summary');
-				setError(null);
 			} else {
 				setError('Editor exited with an error. Changes may not be saved.');
 				setStep('summary');
@@ -343,7 +222,7 @@ export function ConfigWizard({
 	useInput((input, key) => {
 		// In complete step, wait for Enter to finish
 		if (step === 'complete' && key.return) {
-			onComplete(providerConfigPath);
+			onComplete(configPath);
 			return;
 		}
 
@@ -359,7 +238,7 @@ export function ConfigWizard({
 		if (
 			key.ctrl &&
 			input === 'e' &&
-			providerConfigPath &&
+			configPath &&
 			(step === 'providers' || step === 'mcp' || step === 'summary')
 		) {
 			openInEditor();
@@ -398,8 +277,7 @@ export function ConfigWizard({
 			case 'summary': {
 				return (
 					<SummaryStep
-						providerConfigPath={providerConfigPath}
-						mcpConfigPath={mcpConfigPath}
+						configPath={configPath}
 						providers={providers}
 						mcpServers={mcpServers}
 						onSave={handleSave}
@@ -417,13 +295,7 @@ export function ConfigWizard({
 							<Text color={colors.primary}>Opening editor...</Text>
 						</Box>
 						<Box marginBottom={1}>
-							<Text dimColor>Configuration files:</Text>
-						</Box>
-						<Box marginBottom={1}>
-							<Text dimColor> Providers: {providerConfigPath}</Text>
-						</Box>
-						<Box marginBottom={1}>
-							<Text dimColor> MCP: {mcpConfigPath}</Text>
+							<Text dimColor>Configuration saved to: {configPath}</Text>
 						</Box>
 						<Box>
 							<Text color={colors.secondary}>
@@ -453,13 +325,7 @@ export function ConfigWizard({
 							</Text>
 						</Box>
 						<Box marginBottom={1}>
-							<Text dimColor>Saved to:</Text>
-						</Box>
-						<Box marginBottom={1}>
-							<Text dimColor> Providers: {providerConfigPath}</Text>
-						</Box>
-						<Box marginBottom={1}>
-							<Text dimColor> MCP: {mcpConfigPath}</Text>
+							<Text dimColor>Saved to: {configPath}</Text>
 						</Box>
 						<Box>
 							<Text color={colors.secondary}>Press Enter to continue</Text>
@@ -500,7 +366,7 @@ export function ConfigWizard({
 					<Box marginTop={1} flexDirection="column">
 						<Text color={colors.secondary}>Esc: Exit wizard</Text>
 						<Text color={colors.secondary}>Shift+Tab: Go back</Text>
-						{providerConfigPath && (
+						{configPath && (
 							<Text color={colors.secondary}>Ctrl+E: Edit manually</Text>
 						)}
 					</Box>
@@ -508,7 +374,7 @@ export function ConfigWizard({
 					<Box marginTop={1}>
 						<Text color={colors.secondary}>
 							Esc: Exit wizard | Shift+Tab: Go back
-							{providerConfigPath && ' | Ctrl+E: Edit manually'}
+							{configPath && ' | Ctrl+E: Edit manually'}
 						</Text>
 					</Box>
 				))}
