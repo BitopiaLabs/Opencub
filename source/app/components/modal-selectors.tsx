@@ -1,3 +1,4 @@
+import React from 'react';
 import {ModelDatabaseDisplay} from '@/commands/model-database';
 import CheckpointSelector from '@/components/checkpoint-selector';
 import ModelSelector from '@/components/model-selector';
@@ -8,8 +9,6 @@ import TitleShapeSelector from '@/components/title-shape-selector';
 import type {CheckpointListItem, LLMClient} from '@/types';
 import {McpWizard} from '@/wizards/mcp-wizard';
 import {ProviderWizard} from '@/wizards/provider-wizard';
-import React from 'react';
-import {SettingsSelector} from './settings-selector';
 
 export interface ModalSelectorsProps {
 	// State flags
@@ -22,7 +21,6 @@ export interface ModalSelectorsProps {
 	isCheckpointLoadMode: boolean;
 	isTitleShapeSelectionMode: boolean;
 	isNanocoderShapeSelectionMode: boolean;
-	isSettingsMode: boolean;
 
 	// Current values
 	client: LLMClient | null;
@@ -67,10 +65,6 @@ export interface ModalSelectorsProps {
 	// Handlers - Checkpoint
 	onCheckpointSelect: (name: string, backup: boolean) => Promise<void>;
 	onCheckpointCancel: () => void;
-
-	// Handlers - Settings
-	onSettingsSelect: (command: string) => void;
-	onSettingsCancel: () => void;
 }
 
 /**
@@ -87,7 +81,6 @@ export function ModalSelectors({
 	isCheckpointLoadMode,
 	isTitleShapeSelectionMode,
 	isNanocoderShapeSelectionMode,
-	isSettingsMode,
 	client,
 	currentModel,
 	currentProvider,
@@ -109,8 +102,6 @@ export function ModalSelectors({
 	onTitleShapeSelectionCancel,
 	onNanocoderShapeSelect,
 	onNanocoderShapeSelectionCancel,
-	onSettingsSelect,
-	onSettingsCancel,
 }: ModalSelectorsProps): React.ReactElement | null {
 	if (isModelSelectionMode) {
 		return (
@@ -147,15 +138,6 @@ export function ModalSelectors({
 			<TitleShapeSelector
 				onComplete={onTitleShapeSelect}
 				onCancel={onTitleShapeSelectionCancel}
-			/>
-		);
-	}
-
-	if (isSettingsMode) {
-		return (
-			<SettingsSelector
-				onSelect={onSettingsSelect}
-				onCancel={onSettingsCancel}
 			/>
 		);
 	}

@@ -1,3 +1,6 @@
+import {Box, Text, useApp} from 'ink';
+import Spinner from 'ink-spinner';
+import React, {useEffect, useMemo} from 'react';
 import {createStaticComponents} from '@/app/components/app-container';
 import {ChatHistory} from '@/app/components/chat-history';
 import {ChatInput} from '@/app/components/chat-input';
@@ -7,8 +10,8 @@ import type {AppProps} from '@/app/types';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import type {TitleShape} from '@/components/ui/styled-title';
 import {
-	VSCodeExtensionPrompt,
 	shouldPromptExtensionInstall,
+	VSCodeExtensionPrompt,
 } from '@/components/vscode-extension-prompt';
 import WelcomeMessage from '@/components/welcome-message';
 import {getThemeColors} from '@/config/themes';
@@ -31,9 +34,6 @@ import {
 } from '@/utils/logging';
 import {createPinoLogger} from '@/utils/logging/pino-logger';
 import {setGlobalMessageQueue} from '@/utils/message-queue';
-import {Box, Text, useApp} from 'ink';
-import Spinner from 'ink-spinner';
-import React, {useEffect, useMemo} from 'react';
 
 export default function App({
 	vscodeMode = false,
@@ -361,7 +361,6 @@ export default function App({
 		setIsNanocoderShapeSelectionMode: appState.setIsNanocoderShapeSelectionMode,
 		setIsModelDatabaseMode: appState.setIsModelDatabaseMode,
 		setIsConfigWizardMode: appState.setIsConfigWizardMode,
-		setIsSettingsMode: appState.setIsSettingsMode,
 		setIsMcpWizardMode: appState.setIsMcpWizardMode,
 		addToChatQueue: appState.addToChatQueue,
 		getNextComponentKey: appState.getNextComponentKey,
@@ -403,7 +402,6 @@ export default function App({
 			modeHandlers.enterNanocoderShapeSelectionMode,
 		enterModelDatabaseMode: modeHandlers.enterModelDatabaseMode,
 		enterConfigWizardMode: modeHandlers.enterConfigWizardMode,
-		enterSettingsMode: modeHandlers.enterSettingsMode,
 		enterMcpWizardMode: modeHandlers.enterMcpWizardMode,
 		handleChatMessage: chatHandler.handleChatMessage,
 	});
@@ -580,7 +578,6 @@ export default function App({
 								isModelDatabaseMode={appState.isModelDatabaseMode}
 								isConfigWizardMode={appState.isConfigWizardMode}
 								isMcpWizardMode={appState.isMcpWizardMode}
-								isSettingsMode={appState.isSettingsMode}
 								isCheckpointLoadMode={appState.isCheckpointLoadMode}
 								isTitleShapeSelectionMode={appState.isTitleShapeSelectionMode}
 								isNanocoderShapeSelectionMode={
@@ -611,13 +608,6 @@ export default function App({
 								onConfigWizardCancel={modeHandlers.handleConfigWizardCancel}
 								onMcpWizardComplete={modeHandlers.handleMcpWizardComplete}
 								onMcpWizardCancel={modeHandlers.handleMcpWizardCancel}
-								onSettingsSelect={commandName => {
-									modeHandlers.handleSettingsCancel();
-									setTimeout(() => {
-										handleMessageSubmitRef.current?.(`/${commandName}`);
-									}, 0);
-								}}
-								onSettingsCancel={modeHandlers.handleSettingsCancel}
 								onCheckpointSelect={appHandlers.handleCheckpointSelect}
 								onCheckpointCancel={appHandlers.handleCheckpointCancel}
 							/>
@@ -631,7 +621,6 @@ export default function App({
 								appState.isThemeSelectionMode ||
 								appState.isModelDatabaseMode ||
 								appState.isConfigWizardMode ||
-								appState.isSettingsMode ||
 								appState.isMcpWizardMode ||
 								appState.isTitleShapeSelectionMode ||
 								appState.isNanocoderShapeSelectionMode ||
