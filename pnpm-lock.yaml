@@ -21,8 +21,8 @@ importers:
         specifier: ^3.0.13
         version: 3.0.13(zod@4.3.5)
       '@ai-sdk/openai-compatible':
-        specifier: 2.0.18
-        version: 2.0.18(zod@4.3.5)
+        specifier: 2.0.24
+        version: 2.0.24(zod@4.3.5)
       '@anthropic-ai/tokenizer':
         specifier: ^0.0.4
         version: 0.0.4
@@ -33,8 +33,8 @@ importers:
         specifier: ^1.0.2
         version: 1.0.3
       ai:
-        specifier: 6.0.49
-        version: 6.0.49(zod@4.3.5)
+        specifier: 6.0.62
+        version: 6.0.62(zod@4.3.5)
       cheerio:
         specifier: ^1.1.2
         version: 1.1.2
@@ -55,25 +55,25 @@ importers:
         version: 7.0.5
       ink:
         specifier: ^6.3.1
-        version: 6.6.0(@types/react@19.2.10)(react@19.2.4)
+        version: 6.6.0(@types/react@19.2.8)(react@19.2.3)
       ink-big-text:
         specifier: ^2.0.0
-        version: 2.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4)
+        version: 2.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3)
       ink-gradient:
         specifier: ^3.0.0
-        version: 3.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))
+        version: 3.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))
       ink-select-input:
         specifier: ^6.2.0
-        version: 6.2.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4)
+        version: 6.2.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3)
       ink-spinner:
         specifier: ^5.0.0
-        version: 5.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4)
+        version: 5.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3)
       ink-tab:
         specifier: ^5.2.0
-        version: 5.2.0(@types/react@19.2.10)(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4)
+        version: 5.2.0(@types/react@19.2.8)(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3)
       ink-text-input:
         specifier: ^6.0.0
-        version: 6.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4)
+        version: 6.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3)
       llama-tokenizer-js:
         specifier: ^1.2.2
         version: 1.2.2
@@ -88,7 +88,7 @@ importers:
         version: 4.0.0
       react:
         specifier: ^19.0.0
-        version: 19.2.4
+        version: 19.2.3
       sonic-boom:
         specifier: ^4.0.0
         version: 4.2.0
@@ -119,7 +119,7 @@ importers:
         version: 25.0.10
       '@types/react':
         specifier: ^19.0.0
-        version: 19.2.10
+        version: 19.2.8
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
@@ -137,7 +137,7 @@ importers:
         version: 9.1.7
       ink-testing-library:
         specifier: ^4.0.0
-        version: 4.0.0(@types/react@19.2.10)
+        version: 4.0.0(@types/react@19.2.8)
       knip:
         specifier: ^5.66.2
         version: 5.81.0(@types/node@25.0.10)(typescript@5.9.3)
@@ -187,8 +187,8 @@ importers:
 
 packages:
 
-  '@ai-sdk/gateway@3.0.22':
-    resolution: {integrity: sha512-NgnlY73JNuooACHqUIz5uMOEWvqR1MMVbb2soGLMozLY1fgwEIF5iJFDAGa5/YArlzw2ATVU7zQu7HkR/FUjgA==}
+  '@ai-sdk/gateway@3.0.29':
+    resolution: {integrity: sha512-zf6yXT+7DcVGWG7ntxVCYC48X/opsWlO5ePvgH8W9DaEVUtkemqKUEzBqowQ778PkZo8sqMnRfD0+fi9HamRRQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -199,8 +199,14 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/openai-compatible@2.0.18':
-    resolution: {integrity: sha512-CMbsSDWzQT5y0woUWRqom+eUDsyB+btFyA68MGkrUOBWDDsmcCWt/DHUAAIWC5GO+hwcX4WXT2Q9KJQrQJ9RQg==}
+  '@ai-sdk/openai-compatible@2.0.24':
+    resolution: {integrity: sha512-3QrCKpQCn3g6sIMoFGuEroaqk7Xg+qfsohRp4dKszjto5stjBg4SdtOKqHg+CpE3X4woj2O62w2qr5dSekMZeQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider-utils@4.0.11':
+    resolution: {integrity: sha512-y/WOPpcZaBjvNaogy83mBsCRPvbtaK0y1sY9ckRrrbTGMvG2HC/9Y/huqNXKnLAxUIME2PGa2uvF2CDwIsxoXQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -213,6 +219,10 @@ packages:
 
   '@ai-sdk/provider@3.0.5':
     resolution: {integrity: sha512-2Xmoq6DBJqmSl80U6V9z5jJSJP7ehaJJQMy2iFUqTay06wdCqTnPVBBQbtEL8RCChenL+q5DC5H5WzU3vV3v8w==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/provider@3.0.6':
+    resolution: {integrity: sha512-hSfoJtLtpMd7YxKM+iTqlJ0ZB+kJ83WESMiWuWrNVey3X8gg97x0OdAAaeAeclZByCX3UdPOTqhvJdK8qYA3ww==}
     engines: {node: '>=18'}
 
   '@alcalzone/ansi-tokenize@0.2.3':
@@ -865,8 +875,8 @@ packages:
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
-  '@types/react@19.2.10':
-    resolution: {integrity: sha512-WPigyYuGhgZ/cTPRXB2EwUw+XvsRA3GqHlsP4qteqrnnjDrApbS7MxcGr/hke5iUoeB7E/gQtrs9I37zAJ0Vjw==}
+  '@types/react@19.2.8':
+    resolution: {integrity: sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==}
 
   '@types/sarif@2.1.7':
     resolution: {integrity: sha512-kRz0VEkJqWLf1LLVN4pT1cg1Z9wAuvI6L97V3m2f5B76Tg8d413ddvLBPTEHAZJlnn4XSvu0FkZtViCQGVyrXQ==}
@@ -977,8 +987,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  ai@6.0.49:
-    resolution: {integrity: sha512-LABniBX/0R6Tv+iUK5keUZhZLaZUe4YjP5M2rZ4wAdZ8iKV3EfTAoJxuL1aaWTSJKIilKa9QUEkCgnp89/32bw==}
+  ai@6.0.62:
+    resolution: {integrity: sha512-0ArQPYmSnwoDG1nQ7GQ2XyEtYEWMSK4pVV9S9nsChRY2D6P2H2ntMEDV/CqTF6GTSwJpBJHAOSvsgEqSc7dx5g==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -2644,8 +2654,8 @@ packages:
     peerDependencies:
       react: ^19.2.0
 
-  react@19.2.4:
-    resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
+  react@19.2.3:
+    resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
     engines: {node: '>=0.10.0'}
 
   read-pkg@9.0.1:
@@ -2934,7 +2944,6 @@ packages:
   tar@7.5.4:
     resolution: {integrity: sha512-AN04xbWGrSTDmVwlI4/GTlIIwMFk/XEv7uL8aa57zuvRy6s4hdBed+lVq2fAZ89XDa7Us3ANXcE3Tvqvja1kTA==}
     engines: {node: '>=18'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   temp-dir@3.0.0:
     resolution: {integrity: sha512-nHc6S/bwIilKHNRgK/3jlhDoIHcp45YgyiwcAk46Tr0LfEqGBVpmiAyuiuxeVE44m3mXnEeVhaipLOEWmH+Njw==}
@@ -3271,10 +3280,10 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@3.0.22(zod@4.3.5)':
+  '@ai-sdk/gateway@3.0.29(zod@4.3.5)':
     dependencies:
-      '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.5)
+      '@ai-sdk/provider': 3.0.6
+      '@ai-sdk/provider-utils': 4.0.11(zod@4.3.5)
       '@vercel/oidc': 3.1.0
       zod: 4.3.5
 
@@ -3284,10 +3293,17 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.9(zod@4.3.5)
       zod: 4.3.5
 
-  '@ai-sdk/openai-compatible@2.0.18(zod@4.3.5)':
+  '@ai-sdk/openai-compatible@2.0.24(zod@4.3.5)':
     dependencies:
-      '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.5)
+      '@ai-sdk/provider': 3.0.6
+      '@ai-sdk/provider-utils': 4.0.11(zod@4.3.5)
+      zod: 4.3.5
+
+  '@ai-sdk/provider-utils@4.0.11(zod@4.3.5)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.6
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
       zod: 4.3.5
 
   '@ai-sdk/provider-utils@4.0.9(zod@4.3.5)':
@@ -3298,6 +3314,10 @@ snapshots:
       zod: 4.3.5
 
   '@ai-sdk/provider@3.0.5':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@ai-sdk/provider@3.0.6':
     dependencies:
       json-schema: 0.4.0
 
@@ -3925,7 +3945,7 @@ snapshots:
 
   '@types/prop-types@15.7.15': {}
 
-  '@types/react@19.2.10':
+  '@types/react@19.2.8':
     dependencies:
       csstype: 3.2.3
 
@@ -4066,11 +4086,11 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.49(zod@4.3.5):
+  ai@6.0.62(zod@4.3.5):
     dependencies:
-      '@ai-sdk/gateway': 3.0.22(zod@4.3.5)
-      '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.5)
+      '@ai-sdk/gateway': 3.0.29(zod@4.3.5)
+      '@ai-sdk/provider': 3.0.6
+      '@ai-sdk/provider-utils': 4.0.11(zod@4.3.5)
       '@opentelemetry/api': 1.9.0
       zod: 4.3.5
 
@@ -5073,53 +5093,53 @@ snapshots:
   ini@1.3.8:
     optional: true
 
-  ink-big-text@2.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4):
+  ink-big-text@2.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3):
     dependencies:
       cfonts: 3.3.1
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
       prop-types: 15.8.1
-      react: 19.2.4
+      react: 19.2.3
 
-  ink-gradient@3.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4)):
+  ink-gradient@3.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3)):
     dependencies:
       '@types/gradient-string': 1.1.6
       gradient-string: 2.0.2
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
       prop-types: 15.8.1
       strip-ansi: 7.1.2
 
-  ink-select-input@6.2.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4):
+  ink-select-input@6.2.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3):
     dependencies:
       figures: 6.1.0
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
-      react: 19.2.4
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
+      react: 19.2.3
       to-rotated: 1.0.0
 
-  ink-spinner@5.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4):
+  ink-spinner@5.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3):
     dependencies:
       cli-spinners: 2.9.2
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
-      react: 19.2.4
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
+      react: 19.2.3
 
-  ink-tab@5.2.0(@types/react@19.2.10)(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4):
+  ink-tab@5.2.0(@types/react@19.2.8)(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3):
     dependencies:
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
-      react: 19.2.4
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
+      react: 19.2.3
     optionalDependencies:
-      '@types/react': 19.2.10
+      '@types/react': 19.2.8
 
-  ink-testing-library@4.0.0(@types/react@19.2.10):
+  ink-testing-library@4.0.0(@types/react@19.2.8):
     optionalDependencies:
-      '@types/react': 19.2.10
+      '@types/react': 19.2.8
 
-  ink-text-input@6.0.0(ink@6.6.0(@types/react@19.2.10)(react@19.2.4))(react@19.2.4):
+  ink-text-input@6.0.0(ink@6.6.0(@types/react@19.2.8)(react@19.2.3))(react@19.2.3):
     dependencies:
       chalk: 5.6.2
-      ink: 6.6.0(@types/react@19.2.10)(react@19.2.4)
-      react: 19.2.4
+      ink: 6.6.0(@types/react@19.2.8)(react@19.2.3)
+      react: 19.2.3
       type-fest: 4.41.0
 
-  ink@6.6.0(@types/react@19.2.10)(react@19.2.4):
+  ink@6.6.0(@types/react@19.2.8)(react@19.2.3):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.2.3
       ansi-escapes: 7.2.0
@@ -5134,8 +5154,8 @@ snapshots:
       indent-string: 5.0.0
       is-in-ci: 2.0.0
       patch-console: 2.0.0
-      react: 19.2.4
-      react-reconciler: 0.33.0(react@19.2.4)
+      react: 19.2.3
+      react-reconciler: 0.33.0(react@19.2.3)
       signal-exit: 3.0.7
       slice-ansi: 7.1.2
       stack-utils: 2.0.6
@@ -5146,7 +5166,7 @@ snapshots:
       ws: 8.19.0
       yoga-layout: 3.2.1
     optionalDependencies:
-      '@types/react': 19.2.10
+      '@types/react': 19.2.8
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -5840,12 +5860,12 @@ snapshots:
 
   react-is@16.13.1: {}
 
-  react-reconciler@0.33.0(react@19.2.4):
+  react-reconciler@0.33.0(react@19.2.3):
     dependencies:
-      react: 19.2.4
+      react: 19.2.3
       scheduler: 0.27.0
 
-  react@19.2.4: {}
+  react@19.2.3: {}
 
   read-pkg@9.0.1:
     dependencies:
