@@ -210,20 +210,20 @@ function GitPullFormatter({
 					</Box>
 
 					{preview.behind > 0 && (
-						<Box>
+						<Box marginTop={1}>
 							<Text color={colors.secondary}>Incoming: </Text>
 							<Text color={colors.text}>{preview.behind} commit(s)</Text>
 						</Box>
 					)}
 
 					{preview.behind === 0 && !result && (
-						<Box>
-							<Text color={colors.success}>Already up to date</Text>
+						<Box marginTop={1}>
+							<Text color={colors.success}>✓ Already up to date</Text>
 						</Box>
 					)}
 
 					{preview.hasChanges && (
-						<Box>
+						<Box marginTop={1}>
 							<Text color={colors.warning}>Uncommitted changes detected</Text>
 						</Box>
 					)}
@@ -231,26 +231,26 @@ function GitPullFormatter({
 			)}
 
 			{result?.includes('Pulled from') && (
-				<Box>
-					<Text color={colors.success}>Pull completed successfully</Text>
+				<Box marginTop={1}>
+					<Text color={colors.success}>✓ Pull completed successfully</Text>
 				</Box>
 			)}
 
 			{result?.includes('Already up to date') && (
-				<Box>
-					<Text color={colors.success}>Already up to date</Text>
+				<Box marginTop={1}>
+					<Text color={colors.success}>✓ Already up to date</Text>
 				</Box>
 			)}
 
 			{result?.includes('CONFLICT') && (
-				<Box>
-					<Text color={colors.error}>Merge conflicts detected!</Text>
+				<Box marginTop={1}>
+					<Text color={colors.error}>✗ Merge conflicts detected!</Text>
 				</Box>
 			)}
 
 			{result?.includes('Error:') && !result.includes('CONFLICT') && (
-				<Box>
-					<Text color={colors.error}>{result}</Text>
+				<Box marginTop={1}>
+					<Text color={colors.error}>✗ {result}</Text>
 				</Box>
 			)}
 		</Box>

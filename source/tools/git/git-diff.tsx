@@ -186,8 +186,8 @@ function GitDiffFormatter({
 			)}
 
 			{isEmpty && (
-				<Box>
-					<Text color={colors.success}>No changes</Text>
+				<Box marginTop={1}>
+					<Text color={colors.success}>✓ No changes</Text>
 				</Box>
 			)}
 

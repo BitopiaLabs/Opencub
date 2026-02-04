@@ -329,19 +329,10 @@ function GitPrFormatter({
 
 			{action === 'create' && args.create && (
 				<>
-					<Box flexDirection="column">
-						<Text color={colors.secondary}>Title:</Text>
-						<Box marginLeft={2}>
-							<Text color={colors.primary}>{args.create.title}</Text>
-						</Box>
-					</Box>
-
 					{preview && (
 						<Box>
 							<Text color={colors.secondary}>Branch: </Text>
-							<Text color={colors.text}>
-								{preview.base} ← {preview.branch}
-							</Text>
+							<Text color={colors.text}>{preview.branch}</Text>
 						</Box>
 					)}
 
@@ -359,15 +350,18 @@ function GitPrFormatter({
 						</Box>
 					)}
 
+					<Box flexDirection="column">
+						<Text color={colors.secondary}>Title:</Text>
+						<Box marginLeft={2}>
+							<Text color={colors.primary}>{args.create.title}</Text>
+						</Box>
+					</Box>
+
 					{args.create.body && (
 						<Box flexDirection="column">
 							<Text color={colors.secondary}>Body:</Text>
 							<Box marginLeft={2} flexDirection="column">
-								<Text color={colors.text}>
-									{args.create.body.length > 200
-										? `${args.create.body.substring(0, 200)}...`
-										: args.create.body}
-								</Text>
+								<Text color={colors.text}>{args.create.body}</Text>
 							</Box>
 						</Box>
 					)}
@@ -395,14 +389,14 @@ function GitPrFormatter({
 			)}
 
 			{result?.includes('created successfully') && (
-				<Box>
-					<Text color={colors.success}>PR created successfully</Text>
+				<Box marginTop={1}>
+					<Text color={colors.success}>✓ PR created successfully</Text>
 				</Box>
 			)}
 
 			{result?.includes('Error:') && (
-				<Box>
-					<Text color={colors.error}>{result}</Text>
+				<Box marginTop={1}>
+					<Text color={colors.error}>✗ {result}</Text>
 				</Box>
 			)}
 		</Box>
