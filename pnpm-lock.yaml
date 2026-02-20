@@ -19,7 +19,7 @@ importers:
         version: 3.0.43(zod@4.3.5)
       '@ai-sdk/google':
         specifier: ^3.0.13
-        version: 3.0.13(zod@4.3.5)
+        version: 3.0.30(zod@4.3.5)
       '@ai-sdk/openai-compatible':
         specifier: 2.0.27
         version: 2.0.27(zod@4.3.5)
@@ -35,6 +35,9 @@ importers:
       ai:
         specifier: 6.0.62
         version: 6.0.62(zod@4.3.5)
+      chalk:
+        specifier: ^5.2.0
+        version: 5.6.2
       cheerio:
         specifier: ^1.1.2
         version: 1.1.2
@@ -44,6 +47,9 @@ importers:
       cli-table3:
         specifier: ^0.6.5
         version: 0.6.5
+      croner:
+        specifier: ^10.0.1
+        version: 10.0.1
       diff:
         specifier: ^8.0.2
         version: 8.0.3
@@ -71,9 +77,6 @@ importers:
       ink-tab:
         specifier: ^5.2.0
         version: 5.2.0(@types/react@19.2.14)(ink@6.6.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4)
-      ink-text-input:
-        specifier: ^6.0.0
-        version: 6.0.0(ink@6.6.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4)
       llama-tokenizer-js:
         specifier: ^1.2.2
         version: 1.2.2
@@ -114,9 +117,6 @@ importers:
       '@biomejs/biome':
         specifier: ^2.3.10
         version: 2.3.14
-      '@types/ink-text-input':
-        specifier: ^2.0.5
-        version: 2.0.5
       '@types/node':
         specifier: ^25.0.3
         version: 25.2.1
@@ -132,9 +132,6 @@ importers:
       c8:
         specifier: ^10.1.3
         version: 10.1.3
-      chalk:
-        specifier: ^5.2.0
-        version: 5.6.2
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -202,8 +199,8 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/google@3.0.13':
-    resolution: {integrity: sha512-HYCh8miS4FLxOIpjo/BmoFVMO5BuxNpHVVDQkoJotoH8ZSFftkJJGGayIxQT/Lwx9GGvVVCOQ+lCdBBAnkl1sA==}
+  '@ai-sdk/google@3.0.30':
+    resolution: {integrity: sha512-ZzG6dU0XUSSXbxQJJTQUFpWeKkfzdpR7IykEZwaiaW5d+3u3RZ/zkRiGwAOcUpLp6k0eMd+IJF4looJv21ecxw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -231,16 +228,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider-utils@4.0.9':
-    resolution: {integrity: sha512-bB4r6nfhBOpmoS9mePxjRoCy+LnzP3AfhyMGCkGL4Mn9clVNlqEeKj26zEKEtB6yoSVcT1IQ0Zh9fytwMCDnow==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider@3.0.5':
-    resolution: {integrity: sha512-2Xmoq6DBJqmSl80U6V9z5jJSJP7ehaJJQMy2iFUqTay06wdCqTnPVBBQbtEL8RCChenL+q5DC5H5WzU3vV3v8w==}
-    engines: {node: '>=18'}
 
   '@ai-sdk/provider@3.0.6':
     resolution: {integrity: sha512-hSfoJtLtpMd7YxKM+iTqlJ0ZB+kJ83WESMiWuWrNVey3X8gg97x0OdAAaeAeclZByCX3UdPOTqhvJdK8qYA3ww==}
@@ -1126,12 +1113,6 @@ packages:
   '@types/gradient-string@1.1.6':
     resolution: {integrity: sha512-LkaYxluY4G5wR1M4AKQUal2q61Di1yVVCw42ImFTuaIoQVgmV0WP1xUaLB8zwb47mp82vWTpePI9JmrjEnJ7nQ==}
 
-  '@types/ink-text-input@2.0.5':
-    resolution: {integrity: sha512-dp6qIrf/VKQyiJfLSOTk7XhbAG3SkGLMrL/5QwaOpYae20+/+VFLuEgpfjpAWOITVL7uyiE9nKdQ4pk03T2F+Q==}
-
-  '@types/ink@0.5.2':
-    resolution: {integrity: sha512-yEuhWTRMXJkIWiaM58c5kuRot5HFccv9kjjgy0fBZG0+tYb+sMBaxHNPVqyZXspGGlmwDOQ1d3BsygWpWlW17w==}
-
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
@@ -1146,9 +1127,6 @@ packages:
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
-
-  '@types/prop-types@15.7.15':
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
@@ -1658,6 +1636,10 @@ packages:
   cors@2.8.6:
     resolution: {integrity: sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==}
     engines: {node: '>= 0.10'}
+
+  croner@10.0.1:
+    resolution: {integrity: sha512-ixNtAJndqh173VQ4KodSdJEI6nuioBWI0V1ITNKhZZsO0pEMoDxz539T4FTTbSZ/xIOSuDnzxLVRqBVSvPNE2g==}
+    engines: {node: '>=18.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -2303,13 +2285,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  ink-text-input@6.0.0:
-    resolution: {integrity: sha512-Fw64n7Yha5deb1rHY137zHTAbSTNelUKuB5Kkk2HACXEtwIHBCf9OH2tP/LQ9fRYTl1F0dZgbW0zPnZk6FA9Lw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      ink: '>=5'
-      react: '>=18'
 
   ink@6.6.0:
     resolution: {integrity: sha512-QDt6FgJxgmSxAelcOvOHUvFxbIUjVpCH5bx+Slvc5m7IEcpGt3dYwbz/L+oRnqEGeRvwy1tineKK4ect3nW1vQ==}
@@ -3039,6 +3014,7 @@ packages:
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -3820,10 +3796,10 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 4.3.5
 
-  '@ai-sdk/google@3.0.13(zod@4.3.5)':
+  '@ai-sdk/google@3.0.30(zod@4.3.5)':
     dependencies:
-      '@ai-sdk/provider': 3.0.5
-      '@ai-sdk/provider-utils': 4.0.9(zod@4.3.5)
+      '@ai-sdk/provider': 3.0.8
+      '@ai-sdk/provider-utils': 4.0.15(zod@4.3.5)
       zod: 4.3.5
 
   '@ai-sdk/openai-compatible@2.0.27(zod@4.3.5)':
@@ -3852,17 +3828,6 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
       zod: 4.3.5
-
-  '@ai-sdk/provider-utils@4.0.9(zod@4.3.5)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.5
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.6
-      zod: 4.3.5
-
-  '@ai-sdk/provider@3.0.5':
-    dependencies:
-      json-schema: 0.4.0
 
   '@ai-sdk/provider@3.0.6':
     dependencies:
@@ -4710,15 +4675,6 @@ snapshots:
     dependencies:
       '@types/tinycolor2': 1.4.6
 
-  '@types/ink-text-input@2.0.5':
-    dependencies:
-      '@types/ink': 0.5.2
-
-  '@types/ink@0.5.2':
-    dependencies:
-      '@types/node': 25.2.1
-      '@types/prop-types': 15.7.15
-
   '@types/istanbul-lib-coverage@2.0.6': {}
 
   '@types/json-schema@7.0.15': {}
@@ -4732,8 +4688,6 @@ snapshots:
       undici-types: 7.16.0
 
   '@types/normalize-package-data@2.4.4': {}
-
-  '@types/prop-types@15.7.15': {}
 
   '@types/react@19.2.14':
     dependencies:
@@ -5319,6 +5273,8 @@ snapshots:
     dependencies:
       object-assign: 4.1.1
       vary: 1.1.2
+
+  croner@10.0.1: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -6007,13 +5963,6 @@ snapshots:
   ink-testing-library@4.0.0(@types/react@19.2.14):
     optionalDependencies:
       '@types/react': 19.2.14
-
-  ink-text-input@6.0.0(ink@6.6.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4):
-    dependencies:
-      chalk: 5.6.2
-      ink: 6.6.0(@types/react@19.2.14)(react@19.2.4)
-      react: 19.2.4
-      type-fest: 4.41.0
 
   ink@6.6.0(@types/react@19.2.14)(react@19.2.4):
     dependencies:
