@@ -1,6 +1,7 @@
 import React from 'react';
 import {ConversationStateManager} from '@/app/utils/conversation-state';
 import UserMessage from '@/components/user-message';
+import {CommandIntegration} from '@/custom-commands/command-integration';
 import {promptHistory} from '@/prompt-history';
 import type {Message} from '@/types/core';
 import {MessageBuilder} from '@/utils/message-builder';
@@ -17,6 +18,7 @@ import {displayError as displayErrorHelper} from './utils/message-helpers';
 export function useChatHandler({
 	client,
 	toolManager,
+	customCommandLoader,
 	messages,
 	setMessages,
 	currentProvider,
@@ -36,6 +38,12 @@ export function useChatHandler({
 
 	// Track when the current conversation started for elapsed time display
 	const conversationStartTimeRef = React.useRef<number>(Date.now());
+
+	// Memoize CommandIntegration to avoid recreating on every message
+	const commandIntegration = React.useMemo(() => {
+		if (!toolManager || !customCommandLoader) return null;
+		return new CommandIntegration(customCommandLoader, toolManager);
+	}, [toolManager, customCommandLoader]);
 
 	// State for streaming message content
 	const [streamingContent, setStreamingContent] = React.useState<string>('');
@@ -170,7 +178,15 @@ export function useChatHandler({
 
 		try {
 			// Load and process system prompt
-			const systemPrompt = processPromptTemplate();
+			let systemPrompt = processPromptTemplate();
+
+			// Enhance with relevant commands (progressive disclosure)
+			if (commandIntegration) {
+				systemPrompt = commandIntegration.enhanceSystemPrompt(
+					systemPrompt,
+					message,
+				);
+			}
 
 			// Create stream request
 			const systemMessage: Message = {
