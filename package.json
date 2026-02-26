@@ -1,7 +1,7 @@
 {
 	"name": "@nanocollective/nanocoder",
 	"main": "dist/cli.js",
-	"version": "1.22.5",
+	"version": "1.23.0",
 	"description": "A local-first CLI coding agent that brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter",
 	"keywords": [
 		"cli",
@@ -155,7 +155,8 @@
 			"glob@>=10.2.0 <10.5.0": ">=10.5.0",
 			"tar@<7.5.4": ">=7.5.4",
 			"tar@>=7.4.0 <7.5.4": ">=7.5.4",
-			"minimatch@<10.2.1": ">=10.2.1"
+			"minimatch@<10.2.1": ">=10.2.1",
+			"@vscode/vsce>minimatch": "^3.0.5"
 		}
 	}
 }
