@@ -18,7 +18,6 @@ export interface MessageSubmissionOptions {
 	onEnterSettingsMode: () => void;
 	onEnterMcpWizardMode: () => void;
 	onEnterExplorerMode: () => void;
-	onEnterIdeSelectionMode: () => void;
 	onEnterCheckpointLoadMode: (
 		checkpoints: CheckpointListItem[],
 		currentMessageCount: number,

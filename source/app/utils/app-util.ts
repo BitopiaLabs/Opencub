@@ -36,7 +36,6 @@ const SPECIAL_COMMANDS = {
 	STATUS: 'status',
 	CHECKPOINT: 'checkpoint',
 	EXPLORER: 'explorer',
-	IDE: 'ide',
 	SCHEDULE: 'schedule',
 	COMMANDS: 'commands',
 } as const;
@@ -254,11 +253,6 @@ async function handleSpecialCommand(
 
 		case SPECIAL_COMMANDS.EXPLORER:
 			onEnterExplorerMode();
-			onCommandComplete?.();
-			return true;
-
-		case SPECIAL_COMMANDS.IDE:
-			options.onEnterIdeSelectionMode();
 			onCommandComplete?.();
 			return true;
 
