@@ -1,12 +1,14 @@
 import {Box, Text, useInput} from 'ink';
 import SelectInput from 'ink-select-input';
 import React, {useEffect, useState} from 'react';
+import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
 import type {SessionMetadata} from '@/session/session-manager';
 import {sessionManager} from '@/session/session-manager';
 
 interface SessionSelectorProps {
 	onSelect: (session: SessionMetadata | null) => void;
 	onCancel: () => void;
+	showAll?: boolean;
 }
 
 export function formatTimeAgo(dateString: string): string {
@@ -41,14 +43,18 @@ export function formatMessageCount(count: number): string {
 const SessionSelector: React.FC<SessionSelectorProps> = ({
 	onSelect,
 	onCancel,
+	showAll,
 }) => {
 	const [sessions, setSessions] = useState<SessionMetadata[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [hasOtherSessions, setHasOtherSessions] = useState(false);
+	const {actualWidth, truncate} = useResponsiveTerminal();
 
 	useEffect(() => {
 		const loadSessions = async () => {
 			try {
-				const sessionList = await sessionManager.listSessions();
+				const filter = showAll ? undefined : {workingDirectory: process.cwd()};
+				const sessionList = await sessionManager.listSessions(filter);
 				// Sort by lastAccessedAt descending (most recent first)
 				const sortedSessions = sessionList.sort(
 					(a, b) =>
@@ -56,6 +62,12 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
 						new Date(a.lastAccessedAt).getTime(),
 				);
 				setSessions(sortedSessions);
+
+				// Check if there are sessions in other projects
+				if (!showAll && sortedSessions.length === 0) {
+					const allSessions = await sessionManager.listSessions();
+					setHasOtherSessions(allSessions.length > 0);
+				}
 			} catch (error) {
 				console.error('Failed to load sessions:', error);
 			} finally {
@@ -64,7 +76,7 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
 		};
 
 		loadSessions();
-	}, []);
+	}, [showAll]);
 
 	useInput((_input, key) => {
 		if (key.escape) {
@@ -89,16 +101,34 @@ const SessionSelector: React.FC<SessionSelectorProps> = ({
 	if (sessions.length === 0) {
 		return (
 			<Box flexDirection="column" marginY={1}>
-				<Text>No saved sessions found.</Text>
+				{hasOtherSessions ? (
+					<>
+						<Text>No sessions for this project.</Text>
+						<Text dimColor>Use /resume --all to see all sessions.</Text>
+					</>
+				) : (
+					<Text>No saved sessions found.</Text>
+				)}
 				<Text dimColor>Press any key to continue...</Text>
 			</Box>
 		);
 	}
 
-	const items = sessions.map((session, index) => ({
-		label: `[${index + 1}] ${session.title} (${formatMessageCount(session.messageCount)}) - ${formatTimeAgo(session.lastAccessedAt)}`,
-		value: session.id,
-	}));
+	const items = sessions.map((session, index) => {
+		const prefix = `[${index + 1}] `;
+		const suffix = ` (${formatMessageCount(session.messageCount)}) - ${formatTimeAgo(session.lastAccessedAt)}`;
+		// 4 accounts for the `> ` selector indicator + margin
+		const maxTitleLength = actualWidth - prefix.length - suffix.length - 4;
+		const truncatedTitle =
+			maxTitleLength > 10
+				? truncate(session.title, maxTitleLength)
+				: session.title;
+
+		return {
+			label: `${prefix}${truncatedTitle}${suffix}`,
+			value: session.id,
+		};
+	});
 
 	const handleSelect = (item: {value: string}) => {
 		const selectedSession = sessions.find(s => s.id === item.value);

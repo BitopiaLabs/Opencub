@@ -117,10 +117,24 @@ export function useAppState() {
 	} | null>(null);
 	const [isSessionSelectorMode, setIsSessionSelectorMode] =
 		useState<boolean>(false);
+	const [showAllSessions, setShowAllSessions] = useState<boolean>(false);
 	const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 	const [isToolConfirmationMode, setIsToolConfirmationMode] =
 		useState<boolean>(false);
 	const [isToolExecuting, setIsToolExecuting] = useState<boolean>(false);
+
+	// Compact tool display state
+	const [compactToolDisplay, setCompactToolDisplay] = useState<boolean>(true);
+	// Ref keeps current value accessible to long-running async loops
+	const compactToolDisplayRef = useRef(true);
+	compactToolDisplayRef.current = compactToolDisplay;
+	const [compactToolCounts, setCompactToolCounts] = useState<Record<
+		string,
+		number
+	> | null>(null);
+	// Mutable ref for the compact counts accumulator - shared between
+	// the async conversation loop and the toggle handler
+	const compactToolCountsRef = useRef<Record<string, number>>({});
 
 	// Question mode state (ask_question tool)
 	const [isQuestionMode, setIsQuestionMode] = useState<boolean>(false);
@@ -285,9 +299,14 @@ export function useAppState() {
 		isSchedulerMode,
 		checkpointLoadData,
 		isSessionSelectorMode,
+		showAllSessions,
 		currentSessionId,
 		isToolConfirmationMode,
 		isToolExecuting,
+		compactToolDisplay,
+		compactToolDisplayRef,
+		compactToolCounts,
+		compactToolCountsRef,
 		isQuestionMode,
 		pendingQuestion,
 		developmentMode,
@@ -337,9 +356,12 @@ export function useAppState() {
 		setIsSchedulerMode,
 		setCheckpointLoadData,
 		setIsSessionSelectorMode,
+		setShowAllSessions,
 		setCurrentSessionId,
 		setIsToolConfirmationMode,
 		setIsToolExecuting,
+		setCompactToolDisplay,
+		setCompactToolCounts,
 		setIsQuestionMode,
 		setPendingQuestion,
 		setDevelopmentMode,

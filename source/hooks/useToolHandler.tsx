@@ -41,6 +41,7 @@ interface UseToolHandlerProps {
 	client?: LLMClient | null;
 	currentProvider?: string;
 	setDevelopmentMode?: (mode: DevelopmentMode) => void;
+	compactToolDisplay?: boolean;
 }
 
 export function useToolHandler({
@@ -63,6 +64,7 @@ export function useToolHandler({
 	client: _client,
 	currentProvider: _currentProvider,
 	setDevelopmentMode,
+	compactToolDisplay,
 }: UseToolHandlerProps) {
 	// Continue conversation with tool results - maintains the proper loop
 	const continueConversationWithToolResults = async (
@@ -300,14 +302,27 @@ export function useToolHandler({
 
 				// Clear live component and add static completed result to chat queue
 				setLiveComponent(null);
-				addToChatQueue(
-					<BashProgress
-						key={`streaming-tool-complete-${currentTool.id}-${getNextComponentKey()}-${Date.now()}`}
-						executionId={executionId}
-						command={commandStr}
-						completedState={bashResult}
-					/>,
-				);
+
+				if (compactToolDisplay) {
+					// In compact mode, use displayToolResult for consistent one-liner display
+					await displayToolResult(
+						currentTool,
+						result,
+						toolManager,
+						addToChatQueue,
+						getNextComponentKey,
+						true,
+					);
+				} else {
+					addToChatQueue(
+						<BashProgress
+							key={`streaming-tool-complete-${currentTool.id}-${getNextComponentKey()}-${Date.now()}`}
+							executionId={executionId}
+							command={commandStr}
+							completedState={bashResult}
+						/>,
+					);
+				}
 			} else {
 				// Regular tool - use standard flow
 				result = await processToolUse(currentTool);
@@ -319,6 +334,7 @@ export function useToolHandler({
 					toolManager,
 					addToChatQueue,
 					getNextComponentKey,
+					compactToolDisplay,
 				);
 			}
 
