@@ -216,6 +216,11 @@ function tryLoadSessionsFromPath(
 					1,
 					defaults.maxSessions ?? 100,
 				),
+				maxMessages: normalizeSessionNumber(
+					sessions.maxMessages,
+					1,
+					defaults.maxMessages ?? 1000,
+				),
 				retentionDays: normalizeSessionNumber(
 					sessions.retentionDays,
 					1,
@@ -239,8 +244,9 @@ function loadSessionConfig(): AppConfig['sessions'] {
 		autoSave: true,
 		saveInterval: 30000, // 30 seconds
 		maxSessions: 100,
+		maxMessages: 1000,
 		retentionDays: 30,
-		directory: '~/.nanocoder-sessions',
+		directory: '',
 	};
 
 	// Try to load from project-level config first
@@ -297,13 +303,6 @@ export function getAppConfig(): AppConfig {
 	return _appConfig;
 }
 
-// Legacy export for backward compatibility - use a getter
-export const appConfig = new Proxy({} as AppConfig, {
-	get(_target, prop) {
-		return getAppConfig()[prop as keyof AppConfig];
-	},
-});
-
 // Function to reload the app configuration (useful after config file changes)
 export function reloadAppConfig(): void {
 	_appConfig = loadAppConfig();
@@ -324,13 +323,6 @@ export function getColors(): Colors {
 	}
 	return cachedColors;
 }
-
-// Legacy export for backwards compatibility - use a getter to avoid circular dependency
-export const colors = new Proxy({} as Colors, {
-	get(_target, prop) {
-		return getColors()[prop as keyof Colors];
-	},
-});
 
 // Get the package root directory (where this module is installed)
 const __filename = fileURLToPath(import.meta.url);
