@@ -350,8 +350,6 @@ export default function App({
 		currentProvider: appState.currentProvider,
 		setDevelopmentMode: appState.setDevelopmentMode,
 		compactToolDisplay: appState.compactToolDisplay,
-		activeSubagent: appState.activeSubagent,
-		setActiveSubagent: appState.setActiveSubagent,
 	});
 
 	// Log when application is fully ready
@@ -710,7 +708,6 @@ export default function App({
 							staticComponents={staticComponents}
 							queuedComponents={appState.chatComponents}
 							liveComponent={appState.liveComponent}
-							activeSubagent={appState.activeSubagent}
 						/>
 
 						{/* File Explorer - rendered below chat history */}

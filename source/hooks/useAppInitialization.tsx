@@ -2,7 +2,6 @@ import React, {useEffect} from 'react';
 import {ConfigurationError, createLLMClient} from '@/client-factory';
 import {commandRegistry} from '@/commands';
 import {
-	agentsCommand,
 	checkpointCommand,
 	clearCommand,
 	commandsCommand,
@@ -43,9 +42,6 @@ import {CustomCommandExecutor} from '@/custom-commands/executor';
 import {CustomCommandLoader} from '@/custom-commands/loader';
 import {getLSPManager, type LSPInitResult} from '@/lsp/index';
 import {setToolManagerGetter, setToolRegistryGetter} from '@/message-handler';
-import {SubagentExecutor} from '@/subagents/subagent-executor';
-import {getSubagentLoader} from '@/subagents/subagent-loader';
-import {setAgentToolExecutor} from '@/tools/agent-tool';
 import {clearAllTasks} from '@/tools/tasks';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CustomCommand} from '@/types/commands';
@@ -106,7 +102,7 @@ export function useAppInitialization({
 	const initializeClient = async (
 		preferredProvider?: string,
 		preferredModel?: string,
-	): Promise<LLMClient | null> => {
+	) => {
 		const {client, actualProvider} = await createLLMClient(
 			preferredProvider,
 			preferredModel,
@@ -139,8 +135,6 @@ export function useAppInitialization({
 
 		// Save the preference - use actualProvider and the model that was actually set
 		updateLastUsed(actualProvider, finalModel);
-
-		return client;
 	};
 
 	// Load and cache custom commands
@@ -327,7 +321,7 @@ export function useAppInitialization({
 	};
 
 	const start = async (
-		toolManager: ToolManager,
+		_newToolManager: ToolManager,
 		newCustomCommandLoader: CustomCommandLoader,
 		preferences: UserPreferences,
 	): Promise<void> => {
@@ -335,13 +329,7 @@ export function useAppInitialization({
 			// Use CLI provider/model if provided, otherwise use preferences
 			const provider = cliProvider || preferences.lastProvider;
 			const model = cliModel || undefined;
-			const client = await initializeClient(provider, model);
-
-			// Create and initialize the SubagentExecutor if client was successfully created
-			if (client) {
-				const executor = new SubagentExecutor(toolManager, client);
-				setAgentToolExecutor(executor);
-			}
+			await initializeClient(provider, model);
 		} catch (error) {
 			// Check if it's a ConfigurationError
 			if (error instanceof ConfigurationError) {
@@ -454,15 +442,10 @@ export function useAppInitialization({
 				tasksCommand,
 				settingsCommand,
 				scheduleCommand,
-				agentsCommand,
 			]);
 
 			// Now start with the properly initialized objects (excluding MCP)
 			await start(newToolManager, newCustomCommandLoader, preferences);
-
-			// Initialize subagent loader
-			const subagentLoader = getSubagentLoader();
-			await subagentLoader.initialize();
 
 			// Check for updates before showing UI
 			try {

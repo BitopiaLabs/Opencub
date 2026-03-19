@@ -1,4 +1,3 @@
-export * from '@/commands/agents';
 export * from '@/commands/checkpoint';
 export * from '@/commands/clear';
 export * from '@/commands/compact';
