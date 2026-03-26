@@ -63,7 +63,7 @@
 		"@ai-sdk/anthropic": "^3.0.58",
 		"@ai-sdk/google": "^3.0.43",
 		"@ai-sdk/openai": "^3.0.41",
-		"@ai-sdk/openai-compatible": "2.0.31",
+		"@ai-sdk/openai-compatible": "2.0.35",
 		"@anthropic-ai/tokenizer": "^0.0.4",
 		"@modelcontextprotocol/sdk": "^1.26.0",
 		"@nanocollective/get-md": "^1.0.2",
@@ -104,7 +104,7 @@
 		"c8": "^11.0.0",
 		"husky": "^9.1.7",
 		"ink-testing-library": "^4.0.0",
-		"knip": "^5.66.2",
+		"knip": "^6.0.0",
 		"lint-staged": "^16.2.7",
 		"strip-ansi": "^7.1.2",
 		"tsc-alias": "^1.8.16",
@@ -163,7 +163,7 @@
 			"@modelcontextprotocol/sdk>@hono/node-server": ">=1.19.10",
 			"express-rate-limit": ">=8.2.2",
 			"simple-git": ">=3.32.3",
-			"flatted": ">=3.4.0",
+			"flatted": ">=3.4.2",
 			"tinyexec": ">=1.0.4"
 		}
 	}
