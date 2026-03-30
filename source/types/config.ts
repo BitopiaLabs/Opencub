@@ -109,6 +109,14 @@ export interface AppConfig {
 		alwaysAllow?: string[];
 	};
 
+	// Subagent configuration
+	subagents?: {
+		enabled?: boolean;
+		autoDelegate?: boolean;
+		maxConcurrent?: number;
+		customAgentsPath?: string;
+	};
+
 	// Auto-compact configuration
 	autoCompact?: AutoCompactConfig;
 

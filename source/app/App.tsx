@@ -359,6 +359,8 @@ export default function App({
 		currentProvider: appState.currentProvider,
 		setDevelopmentMode: appState.setDevelopmentMode,
 		compactToolDisplay: appState.compactToolDisplay,
+		activeSubagent: appState.activeSubagent,
+		setActiveSubagent: appState.setActiveSubagent,
 	});
 
 	// Log when application is fully ready
@@ -716,6 +718,7 @@ export default function App({
 							startChat={appState.startChat}
 							staticComponents={staticComponents}
 							queuedComponents={appState.chatComponents}
+							activeSubagent={appState.activeSubagent}
 							liveComponent={
 								appState.liveComponent ??
 								(chatHandler.isGenerating && chatHandler.streamingContent ? (
