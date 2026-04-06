@@ -3,11 +3,13 @@ import Spinner from 'ink-spinner';
 import React from 'react';
 import CancellingIndicator from '@/components/cancelling-indicator';
 import QuestionPrompt from '@/components/question-prompt';
+import {TaskListDisplay} from '@/components/task-list-display';
 import ToolConfirmation from '@/components/tool-confirmation';
 import ToolExecutionIndicator from '@/components/tool-execution-indicator';
 import UserInput from '@/components/user-input';
 import {useTheme} from '@/hooks/useTheme';
-import type {DevelopmentMode, ToolCall} from '@/types';
+import type {Task} from '@/tools/tasks/types';
+import type {DevelopmentMode, ToolCall, TuneConfig} from '@/types';
 import type {PendingQuestion} from '@/utils/question-queue';
 import {LiveCompactCounts} from '@/utils/tool-result-display';
 
@@ -44,6 +46,7 @@ export interface ChatInputProps {
 	compactToolCounts?: Record<string, number> | null;
 	onToggleCompactDisplay?: () => void;
 	compactToolDisplay?: boolean;
+	liveTaskList?: Task[] | null;
 
 	// Handlers
 	onToolConfirm: (confirmed: boolean) => void;
@@ -51,6 +54,7 @@ export interface ChatInputProps {
 	onSubmit: (message: string) => Promise<void>;
 	onCancel: () => void;
 	onToggleMode: () => void;
+	tune?: TuneConfig;
 }
 
 /**
@@ -80,11 +84,13 @@ export function ChatInput({
 	compactToolCounts,
 	onToggleCompactDisplay,
 	compactToolDisplay,
+	liveTaskList,
 	onToolConfirm,
 	onToolCancel,
 	onSubmit,
 	onCancel,
 	onToggleMode,
+	tune,
 }: ChatInputProps): React.ReactElement {
 	const {colors} = useTheme();
 
@@ -99,6 +105,11 @@ export function ChatInput({
 				<LiveCompactCounts counts={compactToolCounts} />
 			)}
 
+			{/* Live task list - updates in-place below tool counts, above spinner */}
+			{liveTaskList && liveTaskList.length > 0 && (
+				<TaskListDisplay tasks={liveTaskList} title="Tasks" />
+			)}
+
 			{isCancelling && <CancellingIndicator />}
 
 			{/* Tool Confirmation */}
@@ -111,7 +122,8 @@ export function ChatInput({
 			) : /* Tool Execution - skip indicator for streaming tools (they show their own progress) */
 			isToolExecuting &&
 				pendingToolCalls[currentToolIndex] &&
-				pendingToolCalls[currentToolIndex].function.name !== 'execute_bash' ? (
+				pendingToolCalls[currentToolIndex].function.name !== 'execute_bash' &&
+				pendingToolCalls[currentToolIndex].function.name !== 'agent' ? (
 				<ToolExecutionIndicator
 					toolName={pendingToolCalls[currentToolIndex].function.name}
 					currentIndex={currentToolIndex}
@@ -135,6 +147,7 @@ export function ChatInput({
 					compactToolDisplay={compactToolDisplay}
 					developmentMode={developmentMode}
 					contextPercentUsed={contextPercentUsed}
+					tune={tune}
 				/>
 			) : /* Client Missing */
 			mcpInitialized && !client ? (

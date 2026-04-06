@@ -1,3 +1,4 @@
+export * from '@/commands/agents';
 export * from '@/commands/checkpoint';
 export * from '@/commands/clear';
 export * from '@/commands/codex-login-command';
@@ -24,5 +25,6 @@ export * from '@/commands/setup-mcp';
 export * from '@/commands/setup-providers';
 export * from '@/commands/status';
 export * from '@/commands/tasks';
+export * from '@/commands/tune';
 export * from '@/commands/update';
 export * from '@/commands/usage';

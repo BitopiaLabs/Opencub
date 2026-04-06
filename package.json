@@ -51,11 +51,12 @@
 		"format:check": "biome check .",
 		"build:vscode": "cd plugins/vscode && pnpm run build && pnpm exec vsce package --allow-missing-repository --skip-license --no-dependencies -o ../../assets/nanocoder-vscode.vsix",
 		"prepublishOnly": "pnpm run build && pnpm run build:vscode",
+		"generate:system-prompts": "tsx scripts/generate-system-prompts.ts",
 		"prepare": "husky"
 	},
 	"files": [
 		"dist",
-		"source/app/prompts/main-prompt.md",
+		"source/app/prompts/sections",
 		"source/config/themes.json",
 		"assets/nanocoder-vscode.vsix"
 	],
@@ -91,7 +92,8 @@
 		"undici": "^7.16.0",
 		"wrap-ansi": "^10.0.0",
 		"ws": "^8.18.0",
-		"xdg-basedir": "^5.1.0"
+		"xdg-basedir": "^5.1.0",
+		"yaml": "^2.8.3"
 	},
 	"devDependencies": {
 		"@ava/typescript": "^6.0.0",
@@ -163,7 +165,8 @@
 			"express-rate-limit": ">=8.2.2",
 			"simple-git": ">=3.32.3",
 			"flatted": ">=3.4.2",
-			"tinyexec": ">=1.0.4"
+			"tinyexec": ">=1.0.4",
+			"path-to-regexp": ">=8.4.0"
 		},
 		"auditConfig": {}
 	}

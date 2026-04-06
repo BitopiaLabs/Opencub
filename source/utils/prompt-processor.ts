@@ -1,114 +1,34 @@
-import {existsSync, readFileSync} from 'fs';
-import {homedir, platform, release} from 'os';
-import {join} from 'path';
-import {promptPath} from '../config/index';
 import type {InputState} from '../types/hooks';
 import {PlaceholderType} from '../types/hooks';
-import {getLogger} from './logging';
 
 /**
- * Get the default shell for the current platform
+ * Cached subagent descriptions for injection into the system prompt.
+ * Set via setAvailableSubagents() during app initialization.
  */
-function getDefaultShell(): string {
-	const shellEnv = process.env.SHELL;
-	if (shellEnv) {
-		return shellEnv;
+let cachedSubagentDescriptions = 'No subagents available.';
+
+/**
+ * Set the available subagents for system prompt injection.
+ * Call this during app initialization after the subagent loader is ready.
+ */
+export function setAvailableSubagents(
+	agents: Array<{name: string; description: string}>,
+): void {
+	if (agents.length === 0) {
+		cachedSubagentDescriptions = 'No subagents available.';
+		return;
 	}
-	switch (platform()) {
-		case 'win32':
-			return process.env.COMSPEC || 'cmd.exe';
-		case 'darwin':
-			return '/bin/zsh';
-		default:
-			return '/bin/bash';
-	}
+
+	cachedSubagentDescriptions = agents
+		.map(a => `- **${a.name}**: ${a.description}`)
+		.join('\n');
 }
 
 /**
- * Get a human-readable OS name
+ * Get the current subagent descriptions for prompt building.
  */
-function getOSName(): string {
-	const plat = platform();
-	switch (plat) {
-		case 'darwin':
-			return 'macOS';
-		case 'win32':
-			return 'Windows';
-		case 'linux':
-			return 'Linux';
-		default:
-			return plat;
-	}
-}
-
-/**
- * Generate system information string
- */
-function generateSystemInfo(): string {
-	const now = new Date();
-	const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-
-	return `Operating System: ${getOSName()}
-OS Version: ${release()}
-Platform: ${platform()}
-Default Shell: ${getDefaultShell()}
-Home Directory: ${homedir()}
-Current Working Directory: ${process.cwd()}
-Current Date: ${dateStr}`;
-}
-
-/**
- * Inject system information into the prompt template
- */
-function injectSystemInfo(prompt: string): string {
-	const systemInfo = generateSystemInfo();
-
-	return prompt.replace(
-		/<!-- DYNAMIC_SYSTEM_INFO_START -->[\s\S]*?<!-- DYNAMIC_SYSTEM_INFO_END -->/,
-		systemInfo,
-	);
-}
-
-/**
- * Process the main prompt template by injecting system info
- */
-export function processPromptTemplate(): string {
-	let systemPrompt = 'You are a helpful AI assistant.'; // fallback
-
-	// Load base prompt
-	if (existsSync(promptPath)) {
-		try {
-			systemPrompt = readFileSync(promptPath, 'utf-8');
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error);
-			const logger = getLogger();
-			logger.warn(
-				`Failed to load system prompt from ${promptPath}: ${errorMessage}`,
-			);
-		}
-	}
-
-	// Inject system information
-	systemPrompt = injectSystemInfo(systemPrompt);
-
-	// Check for AGENTS.md in current working directory and append it
-	const agentsPath = join(process.cwd(), 'AGENTS.md');
-	if (existsSync(agentsPath)) {
-		try {
-			const agentsContent = readFileSync(agentsPath, 'utf-8');
-			systemPrompt += `\n\nAdditional Context...\n\n${agentsContent}`;
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : String(error);
-			const logger = getLogger();
-			logger.warn(
-				`Failed to load AGENTS.md from ${agentsPath}: ${errorMessage}`,
-			);
-		}
-	}
-
-	return systemPrompt;
+export function getSubagentDescriptions(): string {
+	return cachedSubagentDescriptions;
 }
 
 /**
@@ -142,10 +62,7 @@ export function assemblePrompt(inputState: InputState): string {
 					break;
 				}
 				default: {
-					// TypeScript will ensure this is unreachable with proper enum usage
-					// Exhaustiveness check to ensure all enum cases are handled
 					placeholderContent satisfies never;
-					// Fallback for safety, though this should never be reached
 					replacementContent = '';
 					break;
 				}

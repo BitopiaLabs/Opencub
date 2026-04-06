@@ -1,7 +1,6 @@
 import {config as loadEnv} from 'dotenv';
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
-import {dirname, join} from 'path';
-import {fileURLToPath} from 'url';
+import {join} from 'path';
 import {substituteEnvVars} from '@/config/env-substitution';
 import {
 	loadAllMCPConfigs,
@@ -15,8 +14,10 @@ import type {
 	AutoCompactConfig,
 	Colors,
 	CompressionMode,
+	PasteConfig,
 } from '@/types/index';
 import {logError} from '@/utils/message-queue';
+import {DEFAULT_SINGLE_LINE_PASTE_THRESHOLD} from '@/utils/paste-utils';
 
 // Load .env file from working directory (shell environment takes precedence)
 // Suppress dotenv console output by temporarily redirecting stdout
@@ -268,6 +269,63 @@ function loadSessionConfig(): AppConfig['sessions'] {
 	return defaults;
 }
 
+// Try to load paste config from a specific path
+// Returns the config if found and valid, null otherwise
+function tryLoadPasteFromPath(
+	configPath: string,
+	defaults: PasteConfig,
+): PasteConfig | null {
+	if (!existsSync(configPath)) {
+		return null;
+	}
+
+	try {
+		const rawData = readFileSync(configPath, 'utf-8');
+		const config = JSON.parse(rawData);
+		const paste = config.nanocoder?.paste;
+		if (paste && typeof paste === 'object') {
+			return {
+				singleLineThreshold:
+					typeof paste.singleLineThreshold === 'number' &&
+					Number.isFinite(paste.singleLineThreshold) &&
+					paste.singleLineThreshold > 0
+						? Math.round(paste.singleLineThreshold)
+						: defaults.singleLineThreshold,
+			};
+		}
+	} catch (error) {
+		logError(
+			`Failed to load paste config from ${configPath}: ${String(error)}`,
+		);
+	}
+
+	return null;
+}
+
+// Load paste configuration and Returns default config if not specified
+function loadPasteConfig(): PasteConfig {
+	const defaults: PasteConfig = {
+		singleLineThreshold: DEFAULT_SINGLE_LINE_PASTE_THRESHOLD,
+	};
+
+	// Try to load from project-level config first
+	const projectConfigPath = join(process.cwd(), 'agents.config.json');
+	const projectConfig = tryLoadPasteFromPath(projectConfigPath, defaults);
+	if (projectConfig) {
+		return projectConfig;
+	}
+
+	// Try global config
+	const configDir = getConfigPath();
+	const globalConfigPath = join(configDir, 'agents.config.json');
+	const globalConfig = tryLoadPasteFromPath(globalConfigPath, defaults);
+	if (globalConfig) {
+		return globalConfig;
+	}
+
+	return defaults;
+}
+
 function loadNanocoderToolsConfig(): AppConfig['nanocoderTools'] {
 	// Try project-level config first
 	const projectConfigPath = join(process.cwd(), 'agents.config.json');
@@ -320,6 +378,9 @@ function loadAppConfig(): AppConfig {
 	// Load session configuration
 	const sessions = loadSessionConfig();
 
+	// Load paste configuration
+	const paste = loadPasteConfig();
+
 	// Load nanocoder tools configuration
 	const nanocoderTools = loadNanocoderToolsConfig();
 
@@ -328,6 +389,7 @@ function loadAppConfig(): AppConfig {
 		mcpServers,
 		autoCompact,
 		sessions,
+		paste,
 		nanocoderTools,
 	};
 }
@@ -365,13 +427,3 @@ export function getColors(): Colors {
 	}
 	return cachedColors;
 }
-
-// Get the package root directory (where this module is installed)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-// Go up from dist/config to package root, then to source/app/prompts/main-prompt.md
-// This works because source/app/prompts/main-prompt.md is included in the package.json files array
-export const promptPath = join(
-	__dirname,
-	'../../source/app/prompts/main-prompt.md',
-);

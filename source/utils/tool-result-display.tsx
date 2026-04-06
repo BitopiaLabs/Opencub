@@ -19,6 +19,17 @@ export const ALWAYS_EXPANDED_TOOLS = new Set([
 ]);
 
 /**
+ * Task tools that should render in the live area (updating in-place)
+ * instead of appending to the static chat queue each time.
+ */
+export const LIVE_TASK_TOOLS = new Set([
+	'create_task',
+	'list_tasks',
+	'update_task',
+	'delete_task',
+]);
+
+/**
  * Compact tool result display - shows "⚒ toolName  description" in tool color.
  */
 function CompactToolResult({
@@ -69,6 +80,8 @@ function getGroupedCompactDescription(toolName: string, count: number): string {
 			return `Got diagnostics ${count} time${s}`;
 		case 'ask_question':
 			return `Asked ${count} question${s}`;
+		case 'agent':
+			return `Delegated ${count} task${s} to subagent${s}`;
 		default:
 			return `Executed ${toolName} \u00d7 ${count}`;
 	}

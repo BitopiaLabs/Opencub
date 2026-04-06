@@ -1,6 +1,5 @@
 import {Box, Text} from 'ink';
 import React from 'react';
-import {fetch} from 'undici';
 
 import {getBraveSearchApiKey} from '@/config/nanocoder-tools-config';
 import {
@@ -31,8 +30,11 @@ interface BraveSearchResponse {
 	};
 }
 
-export const executeWebSearch = async (args: SearchArgs): Promise<string> => {
-	const apiKey = getBraveSearchApiKey();
+export const executeWebSearch = async (
+	args: SearchArgs,
+	apiKeyOverride?: string,
+): Promise<string> => {
+	const apiKey = apiKeyOverride ?? getBraveSearchApiKey();
 	if (!apiKey) {
 		throw new Error(
 			'Brave Search API key not configured. Add it to agents.config.json under nanocoderTools.webSearch.apiKey',
@@ -102,7 +104,7 @@ export const executeWebSearch = async (args: SearchArgs): Promise<string> => {
 
 const webSearchCoreTool = tool({
 	description:
-		'Search the web for information using the Brave Search API (returns markdown formatted results)',
+		'Search the web and return results as markdown. Use for finding documentation, API references, error solutions, and current information.',
 	inputSchema: jsonSchema<SearchArgs>({
 		type: 'object',
 		properties: {

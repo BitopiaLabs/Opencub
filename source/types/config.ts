@@ -26,6 +26,8 @@ export interface AIProviderConfig {
 	disableToolModels?: string[]; // List of model names to disable tools for
 	// SDK provider package to use (default: 'openai-compatible')
 	sdkProvider?: SdkProvider;
+	// Model mode defaults for this provider
+	tune?: Partial<TuneConfig>;
 	config: {
 		baseURL?: string;
 		apiKey?: string;
@@ -66,6 +68,11 @@ export interface AutoCompactConfig {
 	threshold: number;
 	mode: CompressionMode;
 	notifyUser: boolean;
+}
+
+// Paste handling configuration
+export interface PasteConfig {
+	singleLineThreshold: number;
 }
 
 export interface AppConfig {
@@ -115,6 +122,12 @@ export interface AppConfig {
 	// Auto-compact configuration
 	autoCompact?: AutoCompactConfig;
 
+	// Paste handling configuration
+	paste?: PasteConfig;
+
+	// Model mode defaults (global)
+	tune?: Partial<TuneConfig>;
+
 	// Session configuration
 	sessions?: {
 		autoSave?: boolean;
@@ -144,6 +157,34 @@ export interface MCPServerConfig {
 	source?: 'project' | 'global' | 'env';
 }
 
+// Tune configuration for runtime model tuning via /tune command
+export type ToolProfile = 'full' | 'minimal';
+
+// Model parameters passed directly to AI SDK streamText/generateText
+export interface ModelParameters {
+	temperature?: number;
+	topP?: number;
+	topK?: number;
+	maxTokens?: number;
+	frequencyPenalty?: number;
+	presencePenalty?: number;
+	stop?: string[];
+}
+
+export interface TuneConfig {
+	enabled: boolean;
+	toolProfile: ToolProfile;
+	aggressiveCompact: boolean;
+	disableNativeTools?: boolean;
+	modelParameters?: ModelParameters;
+}
+
+export const TUNE_DEFAULTS: TuneConfig = {
+	enabled: false,
+	toolProfile: 'full',
+	aggressiveCompact: false,
+};
+
 export interface UserPreferences {
 	lastProvider?: string;
 	lastModel?: string;
@@ -155,4 +196,5 @@ export interface UserPreferences {
 	trustedDirectories?: string[];
 	titleShape?: TitleShape;
 	nanocoderShape?: NanocoderShape;
+	tune?: TuneConfig;
 }
