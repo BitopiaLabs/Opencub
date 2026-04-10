@@ -2,12 +2,15 @@
  * Subagent Executor
  *
  * Handles execution of subagent tasks with isolated context and tool filtering.
+ * Supports concurrent execution via unique agentId for progress isolation.
  */
 
 import {createLLMClient} from '@/client-factory';
 import {
+	getSubagentProgress,
 	subagentProgress,
 	updateSubagentProgress,
+	updateSubagentProgressById,
 } from '@/services/subagent-events';
 import type {ToolManager} from '@/tools/tool-manager';
 import type {
@@ -15,7 +18,9 @@ import type {
 	DevelopmentMode,
 	LLMClient,
 	Message,
+	ToolCall,
 } from '@/types/core';
+import {signalToolApproval} from '@/utils/tool-approval-queue';
 import {parseToolArguments} from '@/utils/tool-args-parser';
 import {getSubagentLoader} from './subagent-loader.js';
 import type {
@@ -27,6 +32,9 @@ import type {
 
 /** Maximum recursion depth for subagent delegation */
 const MAX_SUBAGENT_DEPTH = 2;
+
+/** Maximum number of concurrent subagents */
+export const MAX_CONCURRENT_AGENTS = 5;
 
 /**
  * SubagentExecutor manages the execution of delegated tasks to subagents.
@@ -59,11 +67,19 @@ export class SubagentExecutor {
 
 	/**
 	 * Execute a subagent task.
+	 *
+	 * @param task - The task to execute
+	 * @param signal - Optional abort signal for cancellation
+	 * @param depth - Recursion depth (prevents infinite delegation)
+	 * @param agentId - Optional unique ID for concurrent progress tracking.
+	 *                  When provided, progress is written to the agent-specific
+	 *                  slot in the progress map instead of the global singleton.
 	 */
 	async execute(
 		task: SubagentTask,
 		signal?: AbortSignal,
 		depth = 0,
+		agentId?: string,
 	): Promise<SubagentResult> {
 		const startTime = Date.now();
 
@@ -91,17 +107,6 @@ export class SubagentExecutor {
 				};
 			}
 
-			// In plan mode, only allow read-only subagents
-			if (this.parentMode === 'plan' && config.permissionMode !== 'readOnly') {
-				return {
-					subagentName: task.subagent_type,
-					output: '',
-					success: false,
-					error: `Subagent '${config.name}' cannot run in plan mode because it is not read-only. Only subagents with permissionMode: readOnly are allowed in plan mode.`,
-					executionTimeMs: Date.now() - startTime,
-				};
-			}
-
 			const context = this.createSubagentContext(config, task);
 			const filteredTools = this.filterTools(config);
 
@@ -111,24 +116,34 @@ export class SubagentExecutor {
 			];
 
 			// Get the client for this subagent — either a new one for a
-			// different provider, or the parent client with model switching
-			const {client, restoreParent} = await this.prepareClient(config);
+			// different provider, or the parent client with model switching.
+			// When agentId is set (concurrent mode), always create a new client
+			// for non-inherit models to avoid mutating the shared parent.
+			const {client, restoreParent} = await this.prepareClient(
+				config,
+				!!agentId,
+			);
 
 			try {
 				const output = await this.runSubagentConversation(
 					client,
 					messages,
 					filteredTools,
-					config.maxTurns,
 					config,
 					signal,
+					agentId,
 				);
+
+				// Read final token count from the correct progress source
+				const finalTokenCount = agentId
+					? getSubagentProgress(agentId).tokenCount
+					: subagentProgress.tokenCount;
 
 				return {
 					subagentName: config.name,
 					output,
 					success: true,
-					tokensUsed: subagentProgress.tokenCount,
+					tokensUsed: finalTokenCount,
 					executionTimeMs: Date.now() - startTime,
 				};
 			} finally {
@@ -162,7 +177,6 @@ export class SubagentExecutor {
 			availableTools,
 			systemMessage: config.systemPrompt,
 			initialMessages,
-			permissionMode: config.permissionMode || 'normal',
 		};
 	}
 
@@ -203,7 +217,8 @@ export class SubagentExecutor {
 
 	/**
 	 * Filter tools based on subagent configuration.
-	 * In readOnly mode, only read-only tools are included.
+	 * Only includes tools in the allow list (or all if no list specified),
+	 * minus any in the disallow list, and always excludes the agent tool.
 	 */
 	private filterTools(
 		config: SubagentConfigWithSource,
@@ -217,15 +232,6 @@ export class SubagentExecutor {
 		>;
 		for (const name of availableNames) {
 			if (!(name in allTools)) continue;
-
-			// In readOnly mode, only include read-only tools in the LLM's tool set
-			if (
-				config.permissionMode === 'readOnly' &&
-				!this.toolManager.isReadOnly(name)
-			) {
-				continue;
-			}
-
 			filtered[name] = allTools[name] as AISDKCoreTool;
 		}
 
@@ -240,8 +246,14 @@ export class SubagentExecutor {
 	 * backend (e.g. local Ollama for research, cloud API for the main agent).
 	 *
 	 * If no provider is set, reuses the parent client (switching model if needed).
+	 *
+	 * @param concurrent - When true, creates a new client instead of mutating
+	 *                     the parent client's model (safe for parallel execution).
 	 */
-	private async prepareClient(config: SubagentConfigWithSource): Promise<{
+	private async prepareClient(
+		config: SubagentConfigWithSource,
+		concurrent = false,
+	): Promise<{
 		client: LLMClient;
 		restoreParent: () => void;
 	}> {
@@ -256,6 +268,13 @@ export class SubagentExecutor {
 
 		// Same provider, different model
 		if (config.model && config.model !== 'inherit') {
+			// In concurrent mode, create a new client to avoid mutating the
+			// shared parent client (which would race with other agents)
+			if (concurrent) {
+				const {client} = await createLLMClient(undefined, config.model);
+				return {client, restoreParent: () => {}};
+			}
+
 			const availableModels = await this.parentClient.getAvailableModels();
 			if (!availableModels.includes(config.model)) {
 				throw new Error(
@@ -277,16 +296,18 @@ export class SubagentExecutor {
 
 	/**
 	 * Run the subagent conversation loop.
+	 *
+	 * @param agentId - When provided, writes progress to the agent-specific
+	 *                  slot instead of the global singleton.
 	 */
 	private async runSubagentConversation(
 		client: LLMClient,
 		messages: Message[],
 		tools: Record<string, AISDKCoreTool>,
-		maxTurns: number | undefined,
 		config: SubagentConfigWithSource,
 		signal?: AbortSignal,
+		agentId?: string,
 	): Promise<string> {
-		const maxIterations = maxTurns ?? 10;
 		let iterations = 0;
 		let totalToolCalls = 0;
 		let totalTokens = 0;
@@ -298,19 +319,35 @@ export class SubagentExecutor {
 			status: 'running' | 'tool_call' | 'complete' | 'error',
 			currentTool?: string,
 		) => {
-			updateSubagentProgress({
+			const event = {
 				subagentName: config.name,
 				status,
 				currentTool,
 				toolCallCount: totalToolCalls,
 				turnCount: iterations,
 				tokenCount: totalTokens,
-			});
+			};
+
+			if (agentId) {
+				updateSubagentProgressById(agentId, event);
+			} else {
+				updateSubagentProgress(event);
+			}
 		};
 
 		emitProgress('running');
 
-		while (iterations < maxIterations) {
+		// Keep a direct reference to the mutable progress object for the
+		// onToken callback (which fires frequently and must be fast).
+		const progressRef = agentId ? getSubagentProgress(agentId) : null;
+
+		while (true) {
+			// Check for cancellation before each turn
+			if (signal?.aborted) {
+				emitProgress('error');
+				throw new Error('Aborted');
+			}
+
 			iterations++;
 
 			// Yield to event loop so Ink can render current state
@@ -323,7 +360,16 @@ export class SubagentExecutor {
 				{
 					onToken: () => {
 						totalTokens++;
-						subagentProgress.tokenCount = totalTokens;
+						// Update the live token count directly on the mutable
+						// progress object so the UI polls the latest value.
+						if (agentId) {
+							const progress = progressRef;
+							if (progress) {
+								progress.tokenCount = totalTokens;
+							}
+						} else {
+							subagentProgress.tokenCount = totalTokens;
+						}
 					},
 				},
 				signal,
@@ -354,6 +400,12 @@ export class SubagentExecutor {
 
 			// Execute each tool call — yield between each so Ink can render
 			for (const toolCall of toolCalls) {
+				// Check for cancellation before each tool call
+				if (signal?.aborted) {
+					emitProgress('error');
+					throw new Error('Aborted');
+				}
+
 				const toolName = toolCall.function.name;
 				totalToolCalls++;
 				emitProgress('tool_call', toolName);
@@ -362,6 +414,7 @@ export class SubagentExecutor {
 				const toolResult = await this.executeToolCall(
 					toolName,
 					toolCall.function.arguments,
+					toolCall.id,
 					config,
 					signal,
 				);
@@ -381,36 +434,84 @@ export class SubagentExecutor {
 			}
 		}
 
-		// Hit max iterations
-		for (let i = messages.length - 1; i >= 0; i--) {
-			if (messages[i]?.role === 'assistant' && messages[i]?.content) {
-				return messages[i].content;
-			}
-		}
+		// Unreachable — loop exits via return when model stops calling tools
 		return '';
 	}
 
 	/**
-	 * Execute a single tool call with permission enforcement and argument parsing.
+	 * Check if a tool needs user approval.
+	 * Uses the same logic as the main conversation loop.
+	 */
+	private async toolNeedsApproval(
+		toolName: string,
+		rawArguments: unknown,
+	): Promise<boolean> {
+		const toolEntry = this.toolManager.getToolEntry(toolName);
+		if (!toolEntry?.tool) return true; // Unknown tools need approval
+
+		const needsApprovalProp = (
+			toolEntry.tool as unknown as {
+				needsApproval?:
+					| boolean
+					| ((args: unknown) => boolean | Promise<boolean>);
+			}
+		).needsApproval;
+
+		if (typeof needsApprovalProp === 'boolean') {
+			return needsApprovalProp;
+		}
+
+		if (typeof needsApprovalProp === 'function') {
+			try {
+				const parsedArgs = parseToolArguments(rawArguments);
+				return await needsApprovalProp(parsedArgs);
+			} catch {
+				return true;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Execute a single tool call with permission enforcement, approval, and argument parsing.
 	 */
 	private async executeToolCall(
 		toolName: string,
 		rawArguments: unknown,
+		toolCallId: string,
 		config: SubagentConfigWithSource,
 		signal?: AbortSignal,
 	): Promise<string> {
 		if (signal?.aborted) {
 			return 'Error: Execution was cancelled';
 		}
-		if (config.permissionMode === 'readOnly') {
-			if (!this.toolManager.isReadOnly(toolName)) {
-				return `Error: Tool '${toolName}' is not read-only. Subagent is in read-only mode.`;
-			}
-		}
 
 		const toolHandler = this.toolManager.getToolHandler(toolName);
 		if (!toolHandler) {
 			return `Error: Tool '${toolName}' not found`;
+		}
+
+		// Check if this tool needs user approval
+		const needsApproval = await this.toolNeedsApproval(toolName, rawArguments);
+		if (needsApproval) {
+			const parsedArgs = parseToolArguments(rawArguments);
+			const toolCall: ToolCall = {
+				id: toolCallId,
+				function: {
+					name: toolName,
+					arguments: parsedArgs,
+				},
+			};
+
+			const approved = await signalToolApproval({
+				toolCall,
+				subagentName: config.name,
+			});
+
+			if (!approved) {
+				return 'Tool execution was denied by the user.';
+			}
 		}
 
 		try {

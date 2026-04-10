@@ -40,7 +40,7 @@ interface ProcessAssistantResponseParams {
 	getNextComponentKey: () => number;
 	currentProvider: string;
 	currentModel: string;
-	developmentMode: 'normal' | 'auto-accept' | 'plan' | 'scheduler';
+	developmentMode: 'normal' | 'auto-accept' | 'yolo' | 'plan' | 'scheduler';
 	nonInteractiveMode: boolean;
 	conversationStateManager: React.MutableRefObject<ConversationStateManager>;
 	onStartToolConfirmationFlow: (
@@ -55,6 +55,7 @@ interface ProcessAssistantResponseParams {
 	onSetCompactToolCounts?: (counts: Record<string, number> | null) => void;
 	compactToolCountsRef?: React.MutableRefObject<Record<string, number>>;
 	onSetLiveTaskList?: (tasks: Task[] | null) => void;
+	setLiveComponent?: (component: React.ReactNode) => void;
 	tune?: TuneConfig;
 }
 
@@ -102,6 +103,7 @@ export const processAssistantResponse = async (
 		onSetCompactToolCounts,
 		compactToolCountsRef,
 		onSetLiveTaskList,
+		setLiveComponent,
 		tune,
 		developmentMode,
 	} = params;
@@ -449,7 +451,14 @@ export const processAssistantResponse = async (
 
 			// Evaluate needsApproval from tool definition
 			let toolNeedsApproval = true;
-			if (toolManager) {
+
+			// In non-interactive mode, check the nonInteractiveAlwaysAllow list
+			if (
+				nonInteractiveMode &&
+				nonInteractiveAlwaysAllow.includes(toolCall.function.name)
+			) {
+				toolNeedsApproval = false;
+			} else if (toolManager) {
 				const toolEntry = toolManager.getToolEntry(toolCall.function.name);
 				if (toolEntry?.tool) {
 					const needsApprovalProp = (
@@ -509,6 +518,7 @@ export const processAssistantResponse = async (
 							onSetLiveTaskList?.(tasks);
 						});
 					},
+					setLiveComponent,
 				},
 			);
 

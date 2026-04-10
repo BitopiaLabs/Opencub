@@ -1,15 +1,9 @@
-import React from 'react';
-import AgentProgress from '@/components/agent-progress';
+import React, {useRef} from 'react';
 import BashProgress from '@/components/bash-progress';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
 import {ConversationContext} from '@/hooks/useAppState';
 import {getToolManager, processToolUse} from '@/message-handler';
-import {
-	resetSubagentProgress,
-	subagentProgress,
-} from '@/services/subagent-events';
-import {startAgentExecution} from '@/tools/agent-tool';
 import {executeBashCommand, formatBashResultForLLM} from '@/tools/execute-bash';
 import {
 	DevelopmentMode,
@@ -48,6 +42,8 @@ interface UseToolHandlerProps {
 	currentProvider?: string;
 	setDevelopmentMode?: (mode: DevelopmentMode) => void;
 	compactToolDisplay?: boolean;
+	abortController?: AbortController | null;
+	setAbortController?: (controller: AbortController | null) => void;
 }
 
 export function useToolHandler({
@@ -71,7 +67,13 @@ export function useToolHandler({
 	currentProvider: _currentProvider,
 	setDevelopmentMode,
 	compactToolDisplay,
+	abortController: _abortController,
+	setAbortController,
 }: UseToolHandlerProps) {
+	// Ref to hold the abort controller for the current tool execution phase.
+	// This survives across the setImmediate boundary where the prop would be stale.
+	const toolAbortControllerRef = useRef<AbortController | null>(null);
+
 	// Continue conversation with tool results - maintains the proper loop
 	const continueConversationWithToolResults = async (
 		toolResults?: ToolResult[],
@@ -144,6 +146,12 @@ export function useToolHandler({
 		// Move to tool execution state - this allows UI to update immediately
 		setIsToolConfirmationMode(false);
 		setIsToolExecuting(true);
+
+		// Create an abort controller for this tool execution phase so
+		// the escape key can cancel running subagents/tools.
+		const controller = new AbortController();
+		toolAbortControllerRef.current = controller;
+		setAbortController?.(controller);
 
 		// Execute tools asynchronously
 		setImmediate(() => {
@@ -326,70 +334,6 @@ export function useToolHandler({
 							executionId={executionId}
 							command={commandStr}
 							completedState={bashResult}
-						/>,
-					);
-				}
-			} else if (currentTool.function.name === 'agent') {
-				// Agent tool - mirror the bash pattern: start execution, render live, await
-				const parsedArgs = parseToolArguments(currentTool.function.arguments);
-				const agentName = parsedArgs.subagent_type as string;
-				const agentDesc = parsedArgs.description as string;
-
-				resetSubagentProgress();
-
-				// Start execution FIRST (returns immediately with a promise)
-				const {promise} = startAgentExecution(
-					parsedArgs as {
-						subagent_type: string;
-						description: string;
-						prompt?: string;
-						context?: Record<string, unknown>;
-					},
-				);
-
-				// Set live component AFTER starting (React renders before we block)
-				setLiveComponent(
-					<AgentProgress
-						key={`agent-live-${currentTool.id}-${getNextComponentKey()}-${Date.now()}`}
-						subagentName={agentName}
-						description={agentDesc}
-						isLive={true}
-					/>,
-				);
-
-				// Now await completion — Ink render loop stays free
-				const agentResult = await promise;
-				setLiveComponent(null);
-
-				result = {
-					tool_call_id: currentTool.id,
-					role: 'tool' as const,
-					name: currentTool.function.name,
-					content: agentResult.success
-						? agentResult.content
-						: `Error: ${agentResult.error || 'Subagent execution failed'}`,
-				};
-
-				if (compactToolDisplay) {
-					await displayToolResult(
-						currentTool,
-						result,
-						toolManager,
-						addToChatQueue,
-						getNextComponentKey,
-						true,
-					);
-				} else {
-					addToChatQueue(
-						<AgentProgress
-							key={`agent-complete-${currentTool.id}-${getNextComponentKey()}-${Date.now()}`}
-							subagentName={agentName}
-							description={agentDesc}
-							completedState={{
-								toolCallCount: subagentProgress.toolCallCount,
-								tokenCount: subagentProgress.tokenCount,
-								success: agentResult.success,
-							}}
 						/>,
 					);
 				}

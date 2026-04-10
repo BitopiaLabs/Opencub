@@ -48,6 +48,10 @@ import {
 	setGlobalQuestionHandler,
 } from '@/utils/question-queue';
 import {getShutdownManager} from '@/utils/shutdown';
+import {
+	type PendingToolApproval,
+	setGlobalToolApprovalHandler,
+} from '@/utils/tool-approval-queue';
 import {displayCompactCountsSummary} from '@/utils/tool-result-display';
 import {isExtensionInstalled} from '@/vscode/extension-installer';
 import {shouldRenderWelcome} from './helpers';
@@ -238,6 +242,34 @@ export default function App({
 		[appState.setIsQuestionMode, appState.setPendingQuestion, appState],
 	);
 
+	// Subagent tool approval handler — uses a dedicated state slot so it
+	// doesn't conflict with the main agent's tool confirmation flow.
+	const toolApprovalResolverRef = React.useRef<
+		((approved: boolean) => void) | null
+	>(null);
+	const [pendingSubagentApproval, setPendingSubagentApproval] =
+		React.useState<PendingToolApproval | null>(null);
+
+	React.useEffect(() => {
+		setGlobalToolApprovalHandler((approval: PendingToolApproval) => {
+			return new Promise<boolean>(resolve => {
+				toolApprovalResolverRef.current = resolve;
+				setPendingSubagentApproval(approval);
+				// Don't clear the live component — AgentProgress renders above
+				// the chat input, and ToolConfirmation renders below it.
+				// They coexist without conflict.
+			});
+		});
+	}, []);
+
+	const handleSubagentToolApproval = React.useCallback((confirmed: boolean) => {
+		if (toolApprovalResolverRef.current) {
+			toolApprovalResolverRef.current(confirmed);
+			toolApprovalResolverRef.current = null;
+		}
+		setPendingSubagentApproval(null);
+	}, []);
+
 	// Log important application state changes
 	React.useEffect(() => {
 		if (appState.client) {
@@ -316,6 +348,7 @@ export default function App({
 		onSetCompactToolCounts: appState.setCompactToolCounts,
 		compactToolCountsRef: appState.compactToolCountsRef,
 		onSetLiveTaskList: appState.setLiveTaskList,
+		setLiveComponent: appState.setLiveComponent,
 		tune: appState.tune,
 	});
 
@@ -364,6 +397,8 @@ export default function App({
 		currentProvider: appState.currentProvider,
 		setDevelopmentMode: appState.setDevelopmentMode,
 		compactToolDisplay: appState.compactToolDisplay,
+		abortController: appState.abortController,
+		setAbortController: appState.setAbortController,
 	});
 
 	// Log when application is fully ready
@@ -855,6 +890,8 @@ export default function App({
 											}
 										}
 									}}
+									pendingSubagentApproval={pendingSubagentApproval}
+									onSubagentToolApproval={handleSubagentToolApproval}
 									onToolConfirm={toolHandler.handleToolConfirmation}
 									onToolCancel={toolHandler.handleToolConfirmationCancel}
 									onSubmit={appHandlers.handleMessageSubmit}

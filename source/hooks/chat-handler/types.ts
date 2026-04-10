@@ -19,7 +19,7 @@ export interface UseChatHandlerProps {
 	getNextComponentKey: () => number;
 	abortController: AbortController | null;
 	setAbortController: (controller: AbortController | null) => void;
-	developmentMode?: 'normal' | 'auto-accept' | 'plan' | 'scheduler';
+	developmentMode?: 'normal' | 'auto-accept' | 'yolo' | 'plan' | 'scheduler';
 	nonInteractiveMode?: boolean;
 	onStartToolConfirmationFlow: (
 		toolCalls: ToolCall[],
@@ -32,6 +32,7 @@ export interface UseChatHandlerProps {
 	onSetCompactToolCounts?: (counts: Record<string, number> | null) => void;
 	compactToolCountsRef?: React.MutableRefObject<Record<string, number>>;
 	onSetLiveTaskList?: (tasks: Task[] | null) => void;
+	setLiveComponent?: (component: React.ReactNode) => void;
 	tune?: TuneConfig;
 }
 

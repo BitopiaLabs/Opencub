@@ -58,15 +58,17 @@ export const DevelopmentModeIndicator = React.memo(
 					color={
 						developmentMode === 'normal'
 							? colors.secondary
-							: developmentMode === 'auto-accept' ||
-									developmentMode === 'scheduler'
-								? colors.info
-								: colors.warning
+							: developmentMode === 'yolo'
+								? colors.error
+								: developmentMode === 'auto-accept' ||
+										developmentMode === 'scheduler'
+									? colors.info
+									: colors.warning
 					}
 				>
 					<Text bold>{modeLabel}</Text>
 					{isNarrow && developmentMode !== 'scheduler' && (
-						<Text dimColor> (Shift+Tab to cycle)</Text>
+						<Text> (Shift+Tab to cycle)</Text>
 					)}
 				</Text>
 				{tuneLabel && (
@@ -78,10 +80,7 @@ export const DevelopmentModeIndicator = React.memo(
 				{contextPercentUsed !== null && (
 					<>
 						<Text color={colors.secondary}> · </Text>
-						<Text
-							color={getContextColor(contextPercentUsed, colors)}
-							dimColor={contextPercentUsed < TOKEN_THRESHOLD_WARNING_PERCENT}
-						>
+						<Text color={getContextColor(contextPercentUsed, colors)}>
 							ctx: {contextPercentUsed}%
 						</Text>
 					</>
