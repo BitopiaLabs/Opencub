@@ -1,39 +1,10 @@
 import React, {useEffect} from 'react';
 import {ConfigurationError, createLLMClient} from '@/client-factory';
 import {commandRegistry} from '@/commands';
-import {
-	agentsCommand,
-	checkpointCommand,
-	clearCommand,
-	codexLoginCommand,
-	commandsCommand,
-	compactCommand,
-	contextMaxCommand,
-	copilotLoginCommand,
-	exitCommand,
-	explorerCommand,
-	exportCommand,
-	helpCommand,
-	ideCommand,
-	initCommand,
-	lspCommand,
-	mcpCommand,
-	modelCommand,
-	modelDatabaseCommand,
-	providerCommand,
-	quitCommand,
-	resumeCommand,
-	scheduleCommand,
-	settingsCommand,
-	setupConfigCommand,
-	setupMcpCommand,
-	setupProvidersCommand,
-	statusCommand,
-	tasksCommand,
-	tuneCommand,
-	updateCommand,
-	usageCommand,
-} from '@/commands/index';
+// Built-in commands are registered via a lazy registry so their modules
+// aren't loaded at startup — each command's handler is imported on first
+// invocation. See `source/commands/lazy-registry.ts`.
+import {lazyCommands} from '@/commands/lazy-registry';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {getAppConfig, reloadAppConfig} from '@/config/index';
 import {
@@ -407,8 +378,8 @@ export function useAppInitialization({
 			setClient(null);
 			setCurrentModel('');
 
-			// Clear task list at startup for fresh session
-			await clearAllTasks();
+			// Clear task list — fire-and-forget, just deletes a JSON file
+			void clearAllTasks();
 
 			const newToolManager = new ToolManager();
 			const newCustomCommandLoader = new CustomCommandLoader();
@@ -430,72 +401,45 @@ export function useAppInitialization({
 			// Set up the tool manager getter for commands that need it
 			setToolManagerGetter(() => newToolManager);
 
-			commandRegistry.register([
-				helpCommand,
-				exitCommand,
-				clearCommand,
-				compactCommand,
-				codexLoginCommand,
-				copilotLoginCommand,
-				contextMaxCommand,
-				modelCommand,
-				providerCommand,
-				commandsCommand,
-				lspCommand,
-				mcpCommand,
-				initCommand,
-				explorerCommand,
-				ideCommand,
-				exportCommand,
-				updateCommand,
-				modelDatabaseCommand,
-				statusCommand,
-				setupConfigCommand,
-				setupProvidersCommand,
-				setupMcpCommand,
-				usageCommand,
-				checkpointCommand,
-				quitCommand,
-				resumeCommand,
-				tasksCommand,
-				settingsCommand,
-				tuneCommand,
-				scheduleCommand,
-				agentsCommand,
+			commandRegistry.registerLazy(lazyCommands);
+
+			// === CRITICAL PATH ===
+			// LLM client + subagents are independent — run in parallel.
+			// Everything else (update check, MCP, LSP) runs in the background.
+			const subagentLoader = getSubagentLoader();
+			await Promise.all([
+				start(newToolManager, newCustomCommandLoader, preferences),
+				subagentLoader.initialize().then(async () => {
+					const availableAgents = await subagentLoader.listSubagents();
+					const agentSummaries = availableAgents.map(a => ({
+						name: a.name,
+						description: a.description,
+					}));
+					setAvailableSubagents(agentSummaries);
+					setAvailableAgentNames(agentSummaries);
+				}),
 			]);
 
-			// Now start with the properly initialized objects (excluding MCP)
-			await start(newToolManager, newCustomCommandLoader, preferences);
-
-			// Initialize subagent loader and inject into system prompt
-			const subagentLoader = getSubagentLoader();
-			await subagentLoader.initialize();
-
-			const availableAgents = await subagentLoader.listSubagents();
-			const agentSummaries = availableAgents.map(a => ({
-				name: a.name,
-				description: a.description,
-			}));
-			setAvailableSubagents(agentSummaries);
-			setAvailableAgentNames(agentSummaries);
-
-			// Check for updates before showing UI
-			try {
-				const info = await checkForUpdates();
-				setUpdateInfo(info);
-			} catch {
-				// Silent failure - don't show errors for update checks
-				setUpdateInfo(null);
-			}
-
-			// Initialize MCP servers before showing UI
-			await initializeMCPServers(newToolManager);
-
-			// Initialize LSP servers with auto-discovery
-			await initializeLSPServers();
-
-			// Show chat UI after all servers are initialized
+			// === SHOW CHAT UI ===
+			// The Status box was removed from startup (it's now /status),
+			// so nothing gates on MCP/LSP/update-check completing. Show
+			// the prompt immediately after the LLM client + subagents are
+			// ready. Everything else connects in the background.
+			setMcpInitialized(true);
 			setStartChat(true);
+
+			// === BACKGROUND WORK ===
+			// All three run concurrently after the chat is interactive.
+			// MCP tools register dynamically as servers connect; LSP
+			// diagnostics appear when ready; update banner shows when the
+			// npm check resolves.
+			void checkForUpdates()
+				.then(info => setUpdateInfo(info))
+				.catch(() => setUpdateInfo(null));
+
+			void initializeMCPServers(newToolManager);
+
+			void initializeLSPServers();
 		};
 
 		void initializeApp();

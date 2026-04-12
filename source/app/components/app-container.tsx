@@ -1,42 +1,81 @@
+import {Text} from 'ink';
 import React from 'react';
-import Status from '@/components/status';
 import WelcomeMessage from '@/components/welcome-message';
-import type {LSPConnectionStatus, MCPConnectionStatus} from '@/types/core';
-import type {ThemePreset} from '@/types/ui';
-import type {UpdateInfo} from '@/types/utils';
+import {getClosestConfigFile} from '@/config/index';
+import {useResponsiveTerminal} from '@/hooks/useTerminalWidth';
+import {useTheme} from '@/hooks/useTheme';
 
 export interface AppContainerProps {
 	shouldShowWelcome: boolean;
 	currentProvider: string;
 	currentModel: string;
-	currentTheme: ThemePreset;
-	updateInfo: UpdateInfo | null;
-	mcpServersStatus: MCPConnectionStatus[] | undefined;
-	lspServersStatus: LSPConnectionStatus[];
-	preferencesLoaded: boolean;
-	customCommandsCount: number;
-	vscodeMode?: boolean;
-	vscodePort?: number | null;
-	vscodeRequestedPort?: number;
 }
 
 /**
- * Creates static components for the app container (welcome message + status)
- * These are memoized to prevent unnecessary re-renders
+ * Minimal one-liner showing provider/model + config path. Replaces the
+ * old full Status box which rendered inside Ink's <Static> and couldn't
+ * update after first paint. Run /status for the full picture.
+ */
+function BootSummary({
+	provider,
+	model,
+}: {
+	provider: string;
+	model: string;
+}): React.ReactElement {
+	const {colors} = useTheme();
+	const {isNarrow} = useResponsiveTerminal();
+	const configPath = getClosestConfigFile('agents.config.json');
+	const homedir = process.env.HOME || process.env.USERPROFILE || '';
+	const shortConfig = homedir ? configPath.replace(homedir, '~') : configPath;
+
+	// Narrow terminals: just provider + model, skip the config path
+	if (isNarrow) {
+		return provider && model ? (
+			<Text>
+				<Text color={colors.success} bold>
+					{provider}
+				</Text>
+				<Text color={colors.secondary}> · </Text>
+				<Text color={colors.success}>{model}</Text>
+			</Text>
+		) : (
+			<></>
+		);
+	}
+
+	return (
+		<Text color={colors.secondary}>
+			{provider && model ? (
+				<>
+					<Text color={colors.success} bold>
+						{provider}
+					</Text>
+					<Text color={colors.secondary}> · </Text>
+					<Text color={colors.success}>{model}</Text>
+					<Text color={colors.secondary}> · </Text>
+					<Text color={colors.secondary}>{shortConfig}</Text>
+				</>
+			) : (
+				<Text color={colors.secondary}>{shortConfig}</Text>
+			)}
+		</Text>
+	);
+}
+
+/**
+ * Creates static components for the app container (welcome banner +
+ * one-line boot summary).
+ *
+ * The full Status box was removed from startup — it rendered inside Ink's
+ * <Static> which freezes after first paint, so background work (MCP, LSP,
+ * update check) never showed. Users can run /status any time to see the
+ * full picture.
  */
 export function createStaticComponents({
 	shouldShowWelcome,
 	currentProvider,
 	currentModel,
-	currentTheme,
-	updateInfo,
-	mcpServersStatus,
-	lspServersStatus,
-	preferencesLoaded,
-	customCommandsCount,
-	vscodeMode,
-	vscodePort,
-	vscodeRequestedPort,
 }: AppContainerProps): React.ReactNode[] {
 	const components: React.ReactNode[] = [];
 
@@ -44,22 +83,15 @@ export function createStaticComponents({
 		components.push(<WelcomeMessage key="welcome" />);
 	}
 
-	components.push(
-		<Status
-			key="status"
-			provider={currentProvider}
-			model={currentModel}
-			theme={currentTheme}
-			updateInfo={updateInfo}
-			mcpServersStatus={mcpServersStatus}
-			lspServersStatus={lspServersStatus}
-			preferencesLoaded={preferencesLoaded}
-			customCommandsCount={customCommandsCount}
-			vscodeMode={vscodeMode}
-			vscodePort={vscodePort}
-			vscodeRequestedPort={vscodeRequestedPort}
-		/>,
-	);
+	if (currentProvider || currentModel) {
+		components.push(
+			<BootSummary
+				key="boot-summary"
+				provider={currentProvider}
+				model={currentModel}
+			/>,
+		);
+	}
 
 	return components;
 }

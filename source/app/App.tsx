@@ -18,6 +18,7 @@ import {
 	VSCodeExtensionPrompt,
 } from '@/components/vscode-extension-prompt';
 import WelcomeMessage from '@/components/welcome-message';
+import {getAppConfig} from '@/config/index';
 import {updateSelectedTheme} from '@/config/preferences';
 import {getThemeColors} from '@/config/themes';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
@@ -29,6 +30,7 @@ import {useContextPercentage} from '@/hooks/useContextPercentage';
 import {useDirectoryTrust} from '@/hooks/useDirectoryTrust';
 import {useModeHandlers} from '@/hooks/useModeHandlers';
 import {useNonInteractiveMode} from '@/hooks/useNonInteractiveMode';
+import {useNotifications} from '@/hooks/useNotifications';
 import {useSchedulerMode} from '@/hooks/useSchedulerMode';
 import {useSessionAutosave} from '@/hooks/useSessionAutosave';
 import {ThemeContext} from '@/hooks/useTheme';
@@ -43,6 +45,7 @@ import {
 } from '@/utils/logging';
 import {createPinoLogger} from '@/utils/logging/pino-logger';
 import {setGlobalMessageQueue} from '@/utils/message-queue';
+import {setNotificationsConfig} from '@/utils/notifications';
 import {
 	type PendingQuestion,
 	setGlobalQuestionHandler,
@@ -306,6 +309,14 @@ export default function App({
 		}
 	}, [appState.updateInfo, logger]);
 
+	// Initialize notifications config from app config (once)
+	React.useEffect(() => {
+		const config = getAppConfig();
+		if (config.notifications) {
+			setNotificationsConfig(config.notifications);
+		}
+	}, []);
+
 	// Setup chat handler
 	const chatHandler = useChatHandler({
 		client: appState.client,
@@ -350,6 +361,14 @@ export default function App({
 		onSetLiveTaskList: appState.setLiveTaskList,
 		setLiveComponent: appState.setLiveComponent,
 		tune: appState.tune,
+	});
+
+	// Desktop notifications on state transitions
+	useNotifications({
+		isToolConfirmationMode: appState.isToolConfirmationMode,
+		isQuestionMode: appState.isQuestionMode,
+		isGenerating: chatHandler.isGenerating,
+		isToolExecuting: appState.isToolExecuting,
 	});
 
 	// Track when streaming starts for tok/s calculation
@@ -566,7 +585,9 @@ export default function App({
 		setCurrentSessionId: appState.setCurrentSessionId,
 		setCurrentProvider: appState.setCurrentProvider,
 		setCurrentModel: appState.setCurrentModel,
+		setLiveTaskList: appState.setLiveTaskList,
 		addToChatQueue: appState.addToChatQueue,
+		setChatComponents: appState.setChatComponents,
 		setLiveComponent: appState.setLiveComponent,
 		client: appState.client,
 		getMessageTokens: appState.getMessageTokens,
@@ -636,30 +657,8 @@ export default function App({
 				shouldShowWelcome,
 				currentProvider: appState.currentProvider,
 				currentModel: appState.currentModel,
-				currentTheme: appState.currentTheme,
-				updateInfo: appState.updateInfo,
-				mcpServersStatus: appState.mcpServersStatus,
-				lspServersStatus: appState.lspServersStatus,
-				preferencesLoaded: appState.preferencesLoaded,
-				customCommandsCount: appState.customCommandsCount,
-				vscodeMode: effectiveVscodeEnabled,
-				vscodePort: vscodeServer.actualPort,
-				vscodeRequestedPort: vscodeServer.requestedPort,
 			}),
-		[
-			shouldShowWelcome,
-			appState.currentProvider,
-			appState.currentModel,
-			appState.currentTheme,
-			appState.updateInfo,
-			appState.mcpServersStatus,
-			appState.lspServersStatus,
-			appState.preferencesLoaded,
-			appState.customCommandsCount,
-			effectiveVscodeEnabled,
-			vscodeServer.actualPort,
-			vscodeServer.requestedPort,
-		],
+		[shouldShowWelcome, appState.currentProvider, appState.currentModel],
 	);
 
 	// Handle loading state for directory trust check
