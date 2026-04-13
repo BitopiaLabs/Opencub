@@ -42,9 +42,13 @@
 
 - Fix: `/usage` and context percentage showing stale system prompt length. Added `setLastBuiltPrompt` and fixed `useContextPercentage` overwriting cache.
 
+- Added debug logging to 15 silent catch blocks in git utilities that were swallowing errors invisibly. Operational catches now log at debug level for easier diagnosis while boolean probes (e.g. `isGitAvailable`, `branchExists`) remain intentionally silent. Thanks to @ragini-pandey. Closes #452.
+
 - Security: Address semgrep security finding in console.error. Thanks to @brijeshkr.
 
 - Security: Fixed vulnerable packages. Thanks to @brijeshkr.
+
+- Security: Replaced `exec()` with `execFile()` in VS Code extension installer to prevent command injection. Removes shell interpretation from CLI discovery and extension status checks. Thanks to @ragini-pandey.
 
 - Added `/credits` command showing project contributors (auto-generated from git history via `pnpm run build:credits`) and dependency versions.
 
@@ -58,7 +62,9 @@
 
 - Fix: Updated agent documentation (`AGENTS.md`, `CLAUDE.md`) with current project structure (766 files across 97 directories), added missing directory mappings, removed deprecated references, and documented the lazy-loading command system.
 
-- Dependency updates: `ink` 6.8.0, `@ai-sdk/openai-compatible` 2.0.35, `@ai-sdk/openai` 3.0.50, `@ai-sdk/google` 3.0.58, `@modelcontextprotocol/sdk` 1.29.0, `dotenv` 17.4.0, `sonic-boom` 5.0.0, `diff` 8.0.4, `esbuild` 0.27.4, `eslint` 10.1.0, `knip` 6.0.6.
+- Fix: Improved Ollama timeout handling for slow local models. Timeout errors are now detected case-insensitively, and IPv6 loopback addresses are correctly resolved. Thanks to @ragini-pandey.
+
+- Dependency updates
 
 If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
 
