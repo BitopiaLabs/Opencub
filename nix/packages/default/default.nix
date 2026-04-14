@@ -12,7 +12,7 @@
 }:
 
 let
-  version = "1.25.0";
+  version = "1.25.1";
 in
 
 stdenv.mkDerivation (finalAttrs: {
@@ -23,7 +23,7 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "nano-collective";
     repo = "nanocoder";
     rev = "v${version}";
-    sha256 = "sha256-bRFKqnT4A7lXo6hvBlo1fqQs+laVa1DHA3jvpahkPrM=";
+    sha256 = "sha256-g7ooafxeq9q271OUzkMewySLIPFEUGLtq49uKNkzbjA=";
   };
 
   nativeBuildInputs = [
@@ -54,6 +54,10 @@ stdenv.mkDerivation (finalAttrs: {
     cp -r node_modules $out/lib/nanocoder/
     cp package.json $out/lib/nanocoder/
     cp -r plugins $out/lib/nanocoder/
+
+    # Copy static files not bundled by tsc (loaded at runtime via __dirname)
+    install -D source/config/themes.json $out/lib/nanocoder/source/config/themes.json
+    cp -r source/app/prompts $out/lib/nanocoder/source/app/prompts
 
     # Create wrapper script
     cat > $out/bin/nanocoder <<EOF
