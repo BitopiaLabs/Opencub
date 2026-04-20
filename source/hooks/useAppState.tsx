@@ -10,7 +10,7 @@ import type {Task} from '@/tools/tasks/types';
 import {ToolManager} from '@/tools/tool-manager';
 import type {CheckpointListItem} from '@/types/checkpoint';
 import type {CustomCommand} from '@/types/commands';
-import type {TuneConfig} from '@/types/config';
+import type {AIProviderConfig, TuneConfig} from '@/types/config';
 import {
 	DevelopmentMode,
 	LLMClient,
@@ -76,6 +76,8 @@ export function useAppState() {
 	const [currentModel, setCurrentModel] = useState<string>('');
 	const [currentProvider, setCurrentProvider] =
 		useState<string>('openai-compatible');
+	const [currentProviderConfig, setCurrentProviderConfig] =
+		useState<AIProviderConfig | null>(null);
 	const [currentTheme, setCurrentTheme] = useState<ThemePreset>(initialTheme);
 	const [currentTitleShape, setCurrentTitleShape] =
 		useState<TitleShape>(initialTitleShape);
@@ -125,6 +127,18 @@ export function useAppState() {
 	const [isToolConfirmationMode, setIsToolConfirmationMode] =
 		useState<boolean>(false);
 	const [isToolExecuting, setIsToolExecuting] = useState<boolean>(false);
+
+	// Flipped once subagent loading finishes so the cached system prompt
+	// can rebuild with the real agent list instead of "No subagents available."
+	const [subagentsReady, setSubagentsReady] = useState<boolean>(false);
+
+	// Set to preference on launch, but can be toggled freely during runtime
+	const [reasoningExpanded, setReasoningExpanded] = useState<boolean>(
+		preferences.reasoningExpanded ?? false,
+	);
+	// Ref to access in async loops
+	const reasoningExpandedRef = useRef(false);
+	reasoningExpandedRef.current = reasoningExpanded;
 
 	// Compact tool display state
 	const [compactToolDisplay, setCompactToolDisplay] = useState<boolean>(true);
@@ -282,8 +296,11 @@ export function useAppState() {
 		messageTokenCache,
 		currentModel,
 		currentProvider,
+		currentProviderConfig,
 		currentTheme,
 		currentTitleShape,
+		reasoningExpanded,
+		reasoningExpandedRef,
 		toolManager,
 		customCommandLoader,
 		customCommandExecutor,
@@ -323,6 +340,7 @@ export function useAppState() {
 		currentSessionId,
 		isToolConfirmationMode,
 		isToolExecuting,
+		subagentsReady,
 		compactToolDisplay,
 		compactToolDisplayRef,
 		compactToolCounts,
@@ -349,8 +367,10 @@ export function useAppState() {
 		setMessageTokenCache,
 		setCurrentModel,
 		setCurrentProvider,
+		setCurrentProviderConfig,
 		setCurrentTheme,
 		setCurrentTitleShape,
+		setReasoningExpanded,
 		setToolManager,
 		setCustomCommandLoader,
 		setCustomCommandExecutor,
@@ -372,6 +392,7 @@ export function useAppState() {
 		setCurrentSessionId,
 		setIsToolConfirmationMode,
 		setIsToolExecuting,
+		setSubagentsReady,
 		setCompactToolDisplay,
 		setCompactToolCounts,
 		setLiveTaskList,

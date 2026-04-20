@@ -28,12 +28,16 @@ export interface UseChatHandlerProps {
 		systemMessage: Message,
 	) => void;
 	onConversationComplete?: () => void;
+	reasoningExpandedRef?: React.RefObject<boolean>;
 	compactToolDisplayRef?: React.RefObject<boolean>;
 	onSetCompactToolCounts?: (counts: Record<string, number> | null) => void;
 	compactToolCountsRef?: React.MutableRefObject<Record<string, number>>;
 	onSetLiveTaskList?: (tasks: Task[] | null) => void;
 	setLiveComponent?: (component: React.ReactNode) => void;
 	tune?: TuneConfig;
+	// Flips true after subagent loading completes; used to invalidate the
+	// cached system prompt so it includes the real agent list.
+	subagentsReady?: boolean;
 }
 
 export interface ChatHandlerReturn {
@@ -43,6 +47,7 @@ export interface ChatHandlerReturn {
 		messages: Message[],
 	) => Promise<void>;
 	isGenerating: boolean;
+	streamingReasoning: string;
 	streamingContent: string;
 	tokenCount: number;
 }

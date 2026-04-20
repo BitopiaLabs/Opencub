@@ -6,12 +6,14 @@ import {ChatHistory} from '@/app/components/chat-history';
 import {ChatInput} from '@/app/components/chat-input';
 import {ModalSelectors} from '@/app/components/modal-selectors';
 import type {AppProps} from '@/app/types';
+import AssistantReasoning from '@/components/assistant-reasoning';
 import {FileExplorer} from '@/components/file-explorer';
 import {IdeSelector} from '@/components/ide-selector';
 import {SuccessMessage} from '@/components/message-box';
 import {SchedulerView} from '@/components/scheduler-view';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import StreamingMessage from '@/components/streaming-message';
+import StreamingReasoning from '@/components/streaming-reasoning';
 import type {TitleShape} from '@/components/ui/styled-title';
 import {
 	shouldPromptExtensionInstall,
@@ -355,12 +357,14 @@ export default function App({
 			appState.compactToolCountsRef.current = {};
 			appState.setLiveTaskList(null);
 		},
+		reasoningExpandedRef: appState.reasoningExpandedRef,
 		compactToolDisplayRef: appState.compactToolDisplayRef,
 		onSetCompactToolCounts: appState.setCompactToolCounts,
 		compactToolCountsRef: appState.compactToolCountsRef,
 		onSetLiveTaskList: appState.setLiveTaskList,
 		setLiveComponent: appState.setLiveComponent,
 		tune: appState.tune,
+		subagentsReady: appState.subagentsReady,
 	});
 
 	// Desktop notifications on state transitions
@@ -371,17 +375,11 @@ export default function App({
 		isToolExecuting: appState.isToolExecuting,
 	});
 
-	// Track when streaming starts for tok/s calculation
-	const streamingStartRef = React.useRef<number>(Date.now());
-	const prevIsGenerating = React.useRef(false);
-	if (chatHandler.isGenerating && !prevIsGenerating.current) {
-		streamingStartRef.current = Date.now();
-	}
-	prevIsGenerating.current = chatHandler.isGenerating;
-
 	// Track context window usage percentage
 	useContextPercentage({
 		currentModel: appState.currentModel,
+		currentProvider: appState.currentProvider,
+		currentProviderConfig: appState.currentProviderConfig,
 		messages: appState.messages,
 		tokenizer: appState.tokenizer,
 		getMessageTokens: appState.getMessageTokens,
@@ -463,6 +461,7 @@ export default function App({
 		setClient: appState.setClient,
 		setCurrentModel: appState.setCurrentModel,
 		setCurrentProvider: appState.setCurrentProvider,
+		setCurrentProviderConfig: appState.setCurrentProviderConfig,
 		setToolManager: appState.setToolManager,
 		setCustomCommandLoader: appState.setCustomCommandLoader,
 		setCustomCommandExecutor: appState.setCustomCommandExecutor,
@@ -474,6 +473,7 @@ export default function App({
 		setLspServersStatus: appState.setLspServersStatus,
 		setPreferencesLoaded: appState.setPreferencesLoaded,
 		setCustomCommandsCount: appState.setCustomCommandsCount,
+		setSubagentsReady: appState.setSubagentsReady,
 		addToChatQueue: appState.addToChatQueue,
 		getNextComponentKey: appState.getNextComponentKey,
 		customCommandCache: appState.customCommandCache,
@@ -490,6 +490,7 @@ export default function App({
 		setClient: appState.setClient,
 		setCurrentModel: appState.setCurrentModel,
 		setCurrentProvider: appState.setCurrentProvider,
+		setCurrentProviderConfig: appState.setCurrentProviderConfig,
 		setMessages: appState.updateMessages,
 		setActiveMode: appState.setActiveMode,
 		setIsSettingsMode: appState.setIsSettingsMode,
@@ -562,6 +563,7 @@ export default function App({
 	const appHandlers = useAppHandlers({
 		messages: appState.messages,
 		currentProvider: appState.currentProvider,
+		currentProviderConfig: appState.currentProviderConfig,
 		currentModel: appState.currentModel,
 		currentTheme: appState.currentTheme,
 		abortController: appState.abortController,
@@ -759,12 +761,32 @@ export default function App({
 							queuedComponents={appState.chatComponents}
 							liveComponent={
 								appState.liveComponent ??
-								(chatHandler.isGenerating && chatHandler.streamingContent ? (
-									<StreamingMessage
-										message={chatHandler.streamingContent}
-										model={appState.currentModel}
-										startTime={streamingStartRef.current}
-									/>
+								(chatHandler.isGenerating &&
+								(chatHandler.streamingContent ||
+									chatHandler.streamingReasoning) ? (
+									<>
+										{chatHandler.streamingReasoning &&
+											!chatHandler.streamingContent && (
+												<StreamingReasoning
+													reasoning={chatHandler.streamingReasoning}
+													expand={appState.reasoningExpanded}
+												/>
+											)}
+										{/* Reasoning stream is complete when text streaming begins */}
+										{chatHandler.streamingReasoning &&
+											chatHandler.streamingContent && (
+												<AssistantReasoning
+													reasoning={chatHandler.streamingReasoning}
+													expand={appState.reasoningExpanded}
+												/>
+											)}
+										{chatHandler.streamingContent && (
+											<StreamingMessage
+												message={chatHandler.streamingContent}
+												model={appState.currentModel}
+											/>
+										)}
+									</>
 								) : null)
 							}
 						/>
@@ -896,6 +918,10 @@ export default function App({
 									onSubmit={appHandlers.handleMessageSubmit}
 									onCancel={appHandlers.handleCancel}
 									onToggleMode={appHandlers.handleToggleDevelopmentMode}
+									onToggleReasoningExpanded={() => {
+										const expanding = appState.reasoningExpanded;
+										appState.setReasoningExpanded(!expanding);
+									}}
 									tune={appState.tune}
 								/>
 							)}

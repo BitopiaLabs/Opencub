@@ -1,5 +1,6 @@
 import {type Tool as AISDKTool, jsonSchema, tool} from 'ai';
 import React from 'react';
+import type {AIProviderConfig} from '@/types/config';
 
 export {jsonSchema, tool};
 
@@ -17,6 +18,7 @@ export interface Message {
 	tool_calls?: ToolCall[];
 	tool_call_id?: string;
 	name?: string;
+	reasoning?: string;
 }
 
 export interface ToolCall {
@@ -145,6 +147,7 @@ interface LLMMessage {
 	role: 'assistant';
 	content: string;
 	tool_calls?: ToolCall[];
+	reasoning?: string;
 }
 
 export interface LLMChatResponse {
@@ -158,6 +161,7 @@ export interface LLMChatResponse {
 
 export interface StreamCallbacks {
 	onToken?: (token: string) => void;
+	onReasoningToken?: (token: string) => void;
 	onToolCall?: (toolCall: ToolCall) => void;
 	onFinish?: () => void;
 }
@@ -177,6 +181,7 @@ export interface LLMClient {
 	setModel(model: string): void;
 	getContextSize(): number;
 	getAvailableModels(): Promise<string[]>;
+	getProviderConfig(): AIProviderConfig;
 	chat(
 		messages: Message[],
 		tools: Record<string, AISDKCoreTool>,

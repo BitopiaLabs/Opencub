@@ -14,6 +14,33 @@ import {createResetStreamingState} from './state/streaming-state';
 import type {ChatHandlerReturn, UseChatHandlerProps} from './types';
 import {displayError as displayErrorHelper} from './utils/message-helpers';
 
+export function getBaseSystemPrompt(
+	developmentMode: UseChatHandlerProps['developmentMode'],
+	cachedBasePrompt: string | null,
+	toolManager: NonNullable<UseChatHandlerProps['toolManager']>,
+	tune: UseChatHandlerProps['tune'],
+	toolsDisabled: boolean,
+): string {
+	if (developmentMode === 'scheduler') {
+		return buildSystemPrompt(
+			developmentMode,
+			tune,
+			toolManager.getAvailableToolNames(tune, developmentMode),
+			toolsDisabled,
+		);
+	}
+
+	return (
+		cachedBasePrompt ??
+		buildSystemPrompt(
+			developmentMode ?? 'normal',
+			tune,
+			toolManager.getAvailableToolNames(tune, developmentMode ?? 'normal'),
+			toolsDisabled,
+		)
+	);
+}
+
 /**
  * Main chat handler hook that manages LLM conversations and tool execution.
  * Orchestrates streaming responses, tool calls, and conversation state.
@@ -35,12 +62,14 @@ export function useChatHandler({
 	nonInteractiveMode = false,
 	onStartToolConfirmationFlow,
 	onConversationComplete,
+	reasoningExpandedRef,
 	compactToolDisplayRef,
 	onSetCompactToolCounts,
 	compactToolCountsRef,
 	onSetLiveTaskList,
 	setLiveComponent,
 	tune,
+	subagentsReady,
 }: UseChatHandlerProps): ChatHandlerReturn {
 	// Conversation state manager for enhanced context
 	const conversationStateManager = React.useRef(new ConversationStateManager());
@@ -61,6 +90,7 @@ export function useChatHandler({
 	// This preserves KV cache by keeping the system message stable across turns
 	// When native tools are disabled, XML tool definitions are included in the prompt
 	// so token counting reflects the full system message the model actually sees.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: subagentsReady isn't read in the callback, but flipping it must invalidate the memo so buildSystemPrompt re-reads the module-level subagent cache populated by setAvailableSubagents.
 	const cachedBasePrompt = React.useMemo(() => {
 		if (!toolManager) return null;
 		const availableNames = toolManager.getAvailableToolNames(
@@ -86,7 +116,7 @@ export function useChatHandler({
 		setLastBuiltPrompt(prompt);
 
 		return prompt;
-	}, [developmentMode, tune, toolManager, toolsDisabled]);
+	}, [developmentMode, tune, toolManager, toolsDisabled, subagentsReady]);
 
 	// Track when the current conversation started for elapsed time display
 	const conversationStartTimeRef = React.useRef<number>(Date.now());
@@ -100,6 +130,8 @@ export function useChatHandler({
 	// State for streaming message content
 	const [streamingContent, setStreamingContent] = React.useState<string>('');
 	const [isGenerating, setIsGenerating] = React.useState<boolean>(false);
+	const [streamingReasoning, setStreamingReasoning] =
+		React.useState<string>('');
 	const [tokenCount, setTokenCount] = React.useState<number>(0);
 
 	// Helper to reset all streaming state
@@ -109,6 +141,7 @@ export function useChatHandler({
 			setAbortController,
 			setIsGenerating,
 			setStreamingContent,
+			setStreamingReasoning,
 			setTokenCount,
 		),
 		[], // Setters are stable and don't need to be in dependencies
@@ -143,6 +176,7 @@ export function useChatHandler({
 					abortController,
 					setAbortController,
 					setIsGenerating,
+					setStreamingReasoning,
 					setStreamingContent,
 					setTokenCount,
 					setMessages,
@@ -156,6 +190,7 @@ export function useChatHandler({
 					onStartToolConfirmationFlow,
 					onConversationComplete,
 					conversationStartTime: conversationStartTimeRef.current,
+					reasoningExpandedRef,
 					compactToolDisplayRef,
 					onSetCompactToolCounts,
 					compactToolCountsRef,
@@ -185,6 +220,7 @@ export function useChatHandler({
 			nonInteractiveMode,
 			onStartToolConfirmationFlow,
 			onConversationComplete,
+			reasoningExpandedRef,
 			compactToolDisplayRef,
 			compactToolCountsRef,
 			onSetCompactToolCounts,
@@ -241,15 +277,13 @@ export function useChatHandler({
 		setAbortController(controller);
 
 		try {
-			// Use cached base prompt (stable across turns to preserve KV cache)
-			let systemPrompt =
-				cachedBasePrompt ??
-				buildSystemPrompt(
-					developmentMode,
-					tune,
-					toolManager?.getAvailableToolNames(tune, developmentMode) ?? [],
-					toolsDisabled,
-				);
+			let systemPrompt = getBaseSystemPrompt(
+				developmentMode,
+				cachedBasePrompt,
+				toolManager,
+				tune,
+				toolsDisabled,
+			);
 
 			// Enhance with relevant commands (progressive disclosure)
 			if (commandIntegration) {
@@ -281,6 +315,7 @@ export function useChatHandler({
 		handleChatMessage,
 		processAssistantResponse: processAssistantResponseWithErrorHandling,
 		isGenerating,
+		streamingReasoning,
 		streamingContent,
 		tokenCount,
 	};

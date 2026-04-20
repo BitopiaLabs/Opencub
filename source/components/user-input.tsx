@@ -27,6 +27,7 @@ interface ChatProps {
 	disabled?: boolean; // Disable input when AI is processing
 	onCancel?: () => void; // Callback when user presses escape while thinking
 	onToggleMode?: () => void; // Callback when user presses shift+tab to toggle development mode
+	onToggleReasoningExpanded?: () => void; // Callback when user presses ctrl+r to toggle expanded reasoning traces
 	onToggleCompactDisplay?: () => void; // Callback when user presses ctrl+o to toggle compact tool display
 	compactToolDisplay?: boolean; // Current compact display state
 	developmentMode?: DevelopmentMode; // Current development mode
@@ -41,6 +42,7 @@ export default function UserInput({
 	disabled = false,
 	onCancel,
 	onToggleMode,
+	onToggleReasoningExpanded,
 	onToggleCompactDisplay,
 	compactToolDisplay = true,
 	developmentMode = 'normal',
@@ -361,6 +363,12 @@ export default function UserInput({
 		// Handle ctrl+o to toggle compact tool display (always available)
 		if (key.ctrl && inputChar === 'o' && onToggleCompactDisplay) {
 			onToggleCompactDisplay();
+			return;
+		}
+
+		// Handle ctrl+r to toggle expanded reasoning traces (always available)
+		if (key.ctrl && inputChar === 'r' && onToggleReasoningExpanded) {
+			onToggleReasoningExpanded();
 			return;
 		}
 

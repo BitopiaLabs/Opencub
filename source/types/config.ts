@@ -14,6 +14,8 @@ export interface AIProviderConfig {
 	name: string;
 	type: string;
 	models: string[];
+	contextWindow?: number;
+	contextWindows?: Record<string, number>;
 	requestTimeout?: number;
 	socketTimeout?: number;
 	maxRetries?: number; // Maximum number of retries for failed requests (default: 2)
@@ -42,6 +44,8 @@ export interface ProviderConfig {
 	baseUrl?: string;
 	apiKey?: string;
 	models: string[];
+	contextWindow?: number;
+	contextWindows?: Record<string, number>;
 	requestTimeout?: number;
 	socketTimeout?: number;
 	maxRetries?: number; // Maximum number of retries for failed requests (default: 2)
@@ -99,6 +103,8 @@ export interface AppConfig {
 		baseUrl?: string;
 		apiKey?: string;
 		models: string[];
+		contextWindow?: number;
+		contextWindows?: Record<string, number>;
 		requestTimeout?: number;
 		socketTimeout?: number;
 		maxRetries?: number; // Maximum number of retries for failed requests (default: 2)
@@ -189,6 +195,10 @@ export interface ModelParameters {
 	frequencyPenalty?: number;
 	presencePenalty?: number;
 	stop?: string[];
+	// Reasoning controls for OpenAI Responses API models (GPT-5, o-series).
+	// Only applied by providers that speak the Responses API (e.g. chatgpt-codex).
+	reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
+	reasoningSummary?: 'auto' | 'concise' | 'detailed';
 }
 
 export interface TuneConfig {
@@ -219,4 +229,5 @@ export interface UserPreferences {
 	tune?: TuneConfig;
 	notifications?: NotificationsConfig;
 	paste?: PasteConfig;
+	reasoningExpanded?: boolean;
 }

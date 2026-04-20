@@ -1,9 +1,9 @@
 import test from 'ava';
 import React from 'react';
 import {render} from 'ink-testing-library';
-import {useChatHandler} from './useChatHandler';
+import {getBaseSystemPrompt, useChatHandler} from './useChatHandler';
 import type {UseChatHandlerProps, ChatHandlerReturn} from './types';
-import type {Message} from '../../types/core';
+import type {LLMClient, Message} from '../../types/core';
 
 // Test component that uses the hook and exposes results
 function TestHookComponent(props: UseChatHandlerProps & {onResult?: (result: ChatHandlerReturn) => void}) {
@@ -34,6 +34,34 @@ const createMockProps = (overrides?: Partial<UseChatHandlerProps>): UseChatHandl
 	...overrides,
 });
 
+const createMockClient = (): LLMClient => ({
+	getCurrentModel: () => 'test-model',
+	setModel: () => {},
+	getContextSize: () => 0,
+	getAvailableModels: async () => [],
+	chat: async (_messages, _tools, callbacks) => {
+		callbacks.onFinish?.();
+		return {
+			choices: [
+				{
+					message: {
+						role: 'assistant',
+						content: 'ok',
+					},
+				},
+			],
+		};
+	},
+	clearContext: async () => {},
+	getTimeout: () => undefined,
+});
+
+const createMockToolManager = () => ({
+	getAvailableToolNames: () => ['read_file'],
+	getFilteredToolsWithoutExecute: () => [],
+	getFilteredToolsForProvider: () => ({}),
+}) as NonNullable<UseChatHandlerProps['toolManager']>;
+
 test('useChatHandler - returns correct interface', t => {
 	let hookResult: ChatHandlerReturn | null = null;
 
@@ -54,6 +82,7 @@ test('useChatHandler - returns correct interface', t => {
 	t.true('processAssistantResponse' in hookResult!);
 	t.true('isGenerating' in hookResult!);
 	t.true('streamingContent' in hookResult!);
+	t.true('streamingReasoning' in hookResult!);
 	t.true('tokenCount' in hookResult!);
 });
 
@@ -76,6 +105,7 @@ test('useChatHandler - returns correct function types', t => {
 	t.is(typeof hookResult!.processAssistantResponse, 'function');
 	t.is(typeof hookResult!.isGenerating, 'boolean');
 	t.is(typeof hookResult!.streamingContent, 'string');
+	t.is(typeof hookResult!.streamingReasoning, 'string');
 	t.is(typeof hookResult!.tokenCount, 'number');
 });
 
@@ -96,6 +126,7 @@ test('useChatHandler - initial streaming state is correct', t => {
 	t.truthy(hookResult);
 	t.is(hookResult!.isGenerating, false);
 	t.is(hookResult!.streamingContent, '');
+	t.is(hookResult!.streamingReasoning, '');
 	t.is(hookResult!.tokenCount, 0);
 });
 
@@ -312,10 +343,45 @@ test('useChatHandler - streaming state types are correct', t => {
 	const streamingState = {
 		isGenerating: hookResult!.isGenerating,
 		streamingContent: hookResult!.streamingContent,
+		streamingReasoning: hookResult!.streamingReasoning,
 		tokenCount: hookResult!.tokenCount,
 	};
 
 	t.is(typeof streamingState.isGenerating, 'boolean');
 	t.is(typeof streamingState.streamingContent, 'string');
+	t.is(typeof streamingState.streamingReasoning, 'string');
 	t.is(typeof streamingState.tokenCount, 'number');
+});
+
+test('getBaseSystemPrompt - scheduler mode ignores cached prompt', t => {
+	const toolManager = {
+		getAvailableToolNames: (_tune: unknown, mode: string) => [`tool-for-${mode}`],
+	} as NonNullable<UseChatHandlerProps['toolManager']>;
+
+	const result = getBaseSystemPrompt(
+		'scheduler',
+		'cached-prompt',
+		toolManager,
+		undefined,
+		false,
+	);
+
+	t.not(result, 'cached-prompt');
+	t.true(result.includes('Current Date:'));
+});
+
+test('getBaseSystemPrompt - normal mode reuses cached prompt', t => {
+	const toolManager = {
+		getAvailableToolNames: (_tune: unknown, mode: string) => [`tool-for-${mode}`],
+	} as NonNullable<UseChatHandlerProps['toolManager']>;
+
+	const result = getBaseSystemPrompt(
+		'normal',
+		'cached-prompt',
+		toolManager,
+		undefined,
+		false,
+	);
+
+	t.is(result, 'cached-prompt');
 });

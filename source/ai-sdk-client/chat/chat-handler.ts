@@ -137,6 +137,8 @@ export async function handleChat(
 			// ChatGPT/Codex backend requires the system message as a top-level
 			// `instructions` field rather than as an input item. Extract it and
 			// pass via providerOptions so the Responses API includes it.
+			// reasoningSummary must be set for GPT-5 to emit human-readable
+			// reasoning text; without it the Thinking block stays empty.
 			let providerOptions:
 				| Record<string, Record<string, string | boolean>>
 				| undefined;
@@ -146,6 +148,10 @@ export async function handleChat(
 					openai: {
 						...(systemMsg ? {instructions: systemMsg.content} : {}),
 						store: false,
+						reasoningEffort:
+							modeOverrides?.modelParameters?.reasoningEffort ?? 'medium',
+						reasoningSummary:
+							modeOverrides?.modelParameters?.reasoningSummary ?? 'auto',
 					},
 				};
 			}
@@ -191,22 +197,48 @@ export async function handleChat(
 			const FLUSH_INTERVAL_MS = 150;
 			let tokenBuffer = '';
 			let flushTimer: ReturnType<typeof setTimeout> | null = null;
+			let isReasoning = false;
 
 			const flushBuffer = () => {
 				if (tokenBuffer) {
-					callbacks.onToken?.(tokenBuffer);
+					if (isReasoning) {
+						callbacks.onReasoningToken?.(tokenBuffer);
+					} else {
+						callbacks.onToken?.(tokenBuffer);
+					}
 					tokenBuffer = '';
 				}
 				flushTimer = null;
 			};
 
 			let lastYield = Date.now();
-			for await (const chunk of result.textStream) {
-				if (chunk) {
-					tokenBuffer += chunk;
-					if (!flushTimer) {
-						flushTimer = setTimeout(flushBuffer, FLUSH_INTERVAL_MS);
-					}
+			for await (const chunk of result.fullStream) {
+				switch (chunk.type) {
+					case 'reasoning-delta':
+					case 'text-delta':
+						tokenBuffer += chunk.text;
+						if (!flushTimer) {
+							flushTimer = setTimeout(flushBuffer, FLUSH_INTERVAL_MS);
+						}
+						break;
+
+					// Determine which stream to write tokens to
+					case 'reasoning-start':
+						isReasoning = true;
+						break;
+					case 'text-start':
+						isReasoning = false;
+						break;
+
+					// Flush remaining tokens in given stream
+					case 'text-end':
+					case 'reasoning-end':
+						if (flushTimer) {
+							clearTimeout(flushTimer);
+						}
+						flushBuffer();
+						isReasoning = false;
+						break;
 				}
 				// Periodically yield to the event loop so timers and Ink renders
 				// can run during long streaming responses (e.g. subagent execution)
@@ -217,21 +249,25 @@ export async function handleChat(
 				}
 			}
 
-			// Flush any remaining tokens
+			// Safety net: flush any tokens still buffered if the stream ended
+			// without emitting a matching text-end / reasoning-end event.
 			if (flushTimer) {
 				clearTimeout(flushTimer);
 			}
 			flushBuffer();
 
 			// After streaming completes, collect final results
-			const [fullText, resolvedToolCalls, resolvedSteps] = await Promise.all([
-				result.text,
-				result.toolCalls,
-				result.steps,
-			]);
+			const [fullText, resolvedToolCalls, resolvedSteps, reasoning] =
+				await Promise.all([
+					result.text,
+					result.toolCalls,
+					result.steps,
+					result.reasoningText,
+				]);
 
 			logger.debug('AI SDK response received', {
 				responseLength: fullText.length,
+				reasoningLength: reasoning?.length ?? 0,
 				hasToolCalls: resolvedToolCalls.length > 0,
 				toolCallCount: resolvedToolCalls.length,
 				stepCount: resolvedSteps.length,
@@ -253,6 +289,7 @@ export async function handleChat(
 				model: currentModel,
 				duration: `${finalMetrics.duration.toFixed(2)}ms`,
 				responseLength: content.length,
+				reasoningLength: reasoning?.length ?? 0,
 				toolCallsFound: toolCalls.length,
 				memoryDelta: formatMemoryUsage(
 					finalMetrics.memoryUsage || getSafeMemory(),
@@ -270,6 +307,7 @@ export async function handleChat(
 							role: 'assistant',
 							content,
 							tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+							reasoning,
 						},
 					},
 				],
