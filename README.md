@@ -4,7 +4,7 @@ A local-first CLI coding agent built by the [Nano Collective](https://github.com
 
 Nanocoder brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter. Built with privacy and control in mind, it supports multiple AI providers with tool support for file operations and command execution.
 
-![Example](./.github/assets/example.gif)
+![Example](./.github/assets/example-preview.gif)
 
 ---
 ![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg)
@@ -27,7 +27,7 @@ Also available via [Homebrew](docs/getting-started/installation.md#homebrew-maco
 
 ### CLI Flags
 
-Specify provider and model directly:
+Specify provider, model, and starting mode directly:
 
 ```bash
 # Non-interactive mode with specific provider/model
@@ -38,6 +38,10 @@ nanocoder --provider ollama --model llama3.1
 
 # Flags can appear before or after 'run' command
 nanocoder run --provider openrouter "refactor database module"
+
+# Boot directly into a development mode (normal, auto-accept, yolo, plan)
+nanocoder --mode yolo
+nanocoder --mode plan run "audit the auth module"
 ```
 
 ## Documentation

@@ -16,7 +16,7 @@ Here's what you need to know right away:
 
 ### Talking to the AI
 
-Type your message and press **Enter** to send. The AI streams its response token-by-token. If you need multi-line input, press **Ctrl+J** to add a new line (this works reliably across all terminals).
+Type your message and press **Enter** to send. The AI streams its response token-by-token. If you need multi-line input, press **Ctrl+J** to add a new line — it's the official supported newline shortcut.
 
 ### Giving the AI Context
 
@@ -55,7 +55,7 @@ These are the shortcuts you'll use constantly:
 | Toggle compact tool output | Ctrl+O |
 | Navigate prompt history | Up/Down |
 
-See the full [Keyboard Shortcuts](keyboard-shortcuts.md) reference for platform-specific alternatives.
+See the full [Keyboard Shortcuts](keyboard-shortcuts.md) reference for the complete shortcut list. Shift+Enter is documented there only as a terminal-dependent fallback.
 
 ### Slash Commands
 
@@ -89,7 +89,16 @@ For scripting and automation, run Nanocoder without an interactive session:
 nanocoder run "Add error handling to src/api.ts"
 ```
 
-This submits the prompt, auto-accepts all tool calls, and exits when complete. Useful for CI pipelines, git hooks, or chaining with other CLI tools.
+This submits the prompt, auto-accepts tool calls, and exits when complete. Run mode uses a minimal shell (plain-markdown assistant output, chronological tool one-liners, a single status line) so output pipes cleanly into other tools.
+
+Override the default mode with `--mode` — works both interactively and with `run`:
+
+```bash
+nanocoder --mode yolo                      # interactive, no approvals
+nanocoder --mode plan run "audit auth"     # run mode, plan only
+```
+
+See [Commands → Non-Interactive Mode](commands.md#non-interactive-mode) and [Development Modes](development-modes.md) for details.
 
 ## Managing Long Conversations
 
