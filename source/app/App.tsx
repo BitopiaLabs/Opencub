@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {Box, Text, useApp} from 'ink';
 import Spinner from 'ink-spinner';
 import React, {useEffect, useMemo} from 'react';
@@ -6,7 +7,7 @@ import {ChatHistory} from '@/app/components/chat-history';
 import {ChatInput} from '@/app/components/chat-input';
 import {ModalSelectors} from '@/app/components/modal-selectors';
 import {NonInteractiveShell} from '@/app/components/non-interactive-shell';
-import type {AppProps, CliMode} from '@/app/types';
+import type {AppProps} from '@/app/types';
 import AssistantReasoning from '@/components/assistant-reasoning';
 import {FileExplorer} from '@/components/file-explorer';
 import {IdeSelector} from '@/components/ide-selector';
@@ -21,7 +22,7 @@ import {
 	VSCodeExtensionPrompt,
 } from '@/components/vscode-extension-prompt';
 import WelcomeMessage from '@/components/welcome-message';
-import {getAppConfig, loadDefaultMode} from '@/config/index';
+import {getAppConfig} from '@/config/index';
 import {updateSelectedTheme} from '@/config/preferences';
 import {getThemeColors} from '@/config/themes';
 import {setCurrentMode as setCurrentModeContext} from '@/context/mode-context';
@@ -71,17 +72,11 @@ export default function App({
 	cliModel,
 	cliMode,
 }: AppProps) {
-	// Resolve the initial development mode with this precedence:
-	// 1. --mode CLI flag (highest priority)
-	// 2. Non-interactive (run) mode → auto-accept
-	// 3. defaultMode from agents.config.json
-	// 4. 'normal' (final fallback)
-	const configDefaultMode = loadDefaultMode();
+	// Resolve the initial development mode. `--mode` wins; otherwise
+	// non-interactive runs default to auto-accept (previous behavior) and
+	// interactive runs default to normal.
 	const initialDevelopmentMode =
-		cliMode ??
-		(nonInteractiveMode
-			? 'auto-accept'
-			: ((configDefaultMode as CliMode | undefined) ?? 'normal'));
+		cliMode ?? (nonInteractiveMode ? 'auto-accept' : 'normal');
 	// Memoize the logger to prevent recreation on every render
 	const logger = useMemo(() => createPinoLogger(), []);
 
@@ -171,6 +166,11 @@ export default function App({
 				// The placeholder tag [@filename] will be highlighted in the UI
 				// The code block is included for the LLM but won't clutter the display
 				fullPrompt = `${prompt}\n\n[@${context.fileName}${lineInfo}]<!--vscode-context-->\n\`\`\`\n${context.selection}\n\`\`\`<!--/vscode-context-->`;
+			} else if (context?.fileName) {
+				const relPath = context.filePath
+					? path.relative(process.cwd(), context.filePath)
+					: context.fileName;
+				fullPrompt = `${prompt}\n\n[@${context.fileName}]<!--vscode-context-->\nFile: ${relPath}<!--/vscode-context-->`;
 			}
 
 			logger.debug('VS Code enhanced prompt prepared', {
@@ -638,7 +638,10 @@ export default function App({
 				if (hasSelection) {
 					fullPrompt = `${message}\n\n[@${editor.fileName} (lines ${editor.startLine}-${editor.endLine})]<!--vscode-context-->\n\`\`\`\n${editor.selection}\n\`\`\`<!--/vscode-context-->`;
 				} else {
-					fullPrompt = `${message}\n\n[@${editor.fileName}]`;
+					const relPath = editor.filePath
+						? path.relative(process.cwd(), editor.filePath)
+						: editor.fileName;
+					fullPrompt = `${message}\n\n[@${editor.fileName}]<!--vscode-context-->\nFile: ${relPath}<!--/vscode-context-->`;
 				}
 			}
 			return appHandlers.handleMessageSubmit(fullPrompt);
