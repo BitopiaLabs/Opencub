@@ -134,6 +134,12 @@ export interface AppConfig {
 	// Tools that can run automatically in non-interactive mode
 	alwaysAllow?: string[];
 
+	// Tools that are unavailable to the model — filtered out of every code
+	// path that asks "which tools can I use?" (chat, subagents, tune profiles).
+	// Names match registered tool ids (e.g. "execute_bash", "web_search",
+	// "agent"). MCP tools follow the same naming as in their server config.
+	disabledTools?: string[];
+
 	// Nanocoder-specific tool configurations
 	nanocoderTools?: {
 		alwaysAllow?: string[];
