@@ -78,6 +78,7 @@ storybook-static
 .tmp/
 tmp/
 temp/
+.test-temp/
 
 # IDE and editor files
 .vscode/

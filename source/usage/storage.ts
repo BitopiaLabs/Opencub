@@ -31,7 +31,10 @@ function getUsageFilePath(): string {
 		return newPath;
 	}
 
-	// Attempt one-time lazy migration from legacy location
+	// LEGACY_MIGRATION_REMOVE_AFTER: 1.27.0
+	// One-time migration of usage data from the old config dir to the app-data dir.
+	// Drop this branch and `getLegacyUsageFilePath` once 1.27.0 has shipped and
+	// any dormant installs have had a chance to update.
 	const legacyPath = getLegacyUsageFilePath();
 	if (legacyPath && fs.existsSync(legacyPath)) {
 		try {
