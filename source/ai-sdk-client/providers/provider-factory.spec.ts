@@ -208,6 +208,63 @@ test('createProvider google provider works without baseURL', async t => {
 	t.truthy(provider);
 });
 
+test('createProvider anthropic provider accepts caCertPath without throwing', async t => {
+	// Regression: anthropic must wire a custom fetch through the undici Agent
+	// so the caCertPath TLS bundle is honored. Without it, requests bypass the
+	// dispatcher and the configured CA is silently ignored.
+	const tmpDir = fs.mkdtempSync(
+		path.join(os.tmpdir(), 'nanocoder-anthropic-ca-'),
+	);
+	const caPath = path.join(tmpDir, 'ca.pem');
+	fs.writeFileSync(caPath, 'fake-bundle');
+
+	const config: AIProviderConfig = {
+		name: 'Anthropic',
+		type: 'openai',
+		models: ['claude-sonnet-4-5-20250929'],
+		sdkProvider: 'anthropic',
+		config: {
+			apiKey: 'test-key',
+			caCertPath: caPath,
+		},
+	};
+
+	try {
+		const agent = new Agent();
+		const provider = await createProvider(config, agent);
+		t.truthy(provider);
+	} finally {
+		fs.rmSync(tmpDir, {recursive: true, force: true});
+	}
+});
+
+test('createProvider google provider accepts caCertPath without throwing', async t => {
+	const tmpDir = fs.mkdtempSync(
+		path.join(os.tmpdir(), 'nanocoder-google-ca-'),
+	);
+	const caPath = path.join(tmpDir, 'ca.pem');
+	fs.writeFileSync(caPath, 'fake-bundle');
+
+	const config: AIProviderConfig = {
+		name: 'Gemini',
+		type: 'openai',
+		models: ['gemini-2.5-flash'],
+		sdkProvider: 'google',
+		config: {
+			apiKey: 'test-key',
+			caCertPath: caPath,
+		},
+	};
+
+	try {
+		const agent = new Agent();
+		const provider = await createProvider(config, agent);
+		t.truthy(provider);
+	} finally {
+		fs.rmSync(tmpDir, {recursive: true, force: true});
+	}
+});
+
 test.serial('createProvider throws when chatgpt-codex has no stored credential', async t => {
 	const config: AIProviderConfig = {
 		name: 'ChatGPT / Codex',
