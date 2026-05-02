@@ -1051,6 +1051,48 @@ test.serial(
 );
 
 test.serial(
+	'createLLMClient: throws ConfigurationError when provider name is ambiguous (multiple case-insensitive matches)',
+	async t => {
+		globalThis.fetch = createMockFetch(true, 200);
+
+		const configDir = join(testDir, 'ambiguous-provider-test');
+		mkdirSync(configDir, {recursive: true});
+
+		createTestConfig(
+			{
+				nanocoder: {
+					providers: [
+						{
+							name: 'Ollama',
+							baseUrl: 'http://localhost:8000/v1',
+							models: ['llama3.1:latest'],
+						},
+						{
+							name: 'ollama', // deliberately different casing
+							baseUrl: 'http://localhost:9000/v1',
+							models: ['other-model'],
+						},
+					],
+				},
+			},
+			configDir,
+		);
+
+		process.cwd = () => configDir;
+		clearAppConfig();
+		reloadAppConfig();
+
+		const error = await t.throwsAsync(createLLMClient('ollama'), {
+			instanceOf: ConfigurationError,
+		});
+
+		t.true(error.message.includes('ambiguous'));
+		t.true(error.message.includes('Ollama'));
+		t.true(error.message.includes('ollama'));
+	},
+);
+
+test.serial(
 	'createLLMClient: throws ConfigurationError when provider not found',
 	async t => {
 		globalThis.fetch = createMockFetch(true, 200);

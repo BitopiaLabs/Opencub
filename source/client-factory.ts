@@ -76,9 +76,21 @@ async function createAISDKClient(
 			return undefined;
 		}
 
-		return providers.find(
+		const matches = providers.filter(
 			provider => provider.name.toLowerCase() === providerName.toLowerCase(),
-		)?.name;
+		);
+
+		if (matches.length > 1) {
+			const availableProviders = providers.map(p => p.name).join(', ');
+			throw new ConfigurationError(
+				`Provider '${providerName}' is ambiguous. Found multiple case-insensitive matches: ${matches.map(m => m.name).join(', ')}. Available providers: ${availableProviders}`,
+				configPath,
+				cwdPath,
+				false,
+			);
+		}
+
+		return matches[0]?.name;
 	};
 
 	// Determine which provider to try first
