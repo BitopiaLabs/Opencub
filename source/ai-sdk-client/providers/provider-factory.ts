@@ -38,6 +38,24 @@ export type AIProvider =
 	| AnthropicProvider;
 
 /**
+ * Wraps undici's fetch so requests flow through the shared Agent. The Agent
+ * carries TLS connect options (e.g. caCertPath), so any SDK provider given
+ * this fetch will honor the configured CA bundle — even Anthropic and Google,
+ * which would otherwise use the global fetch and bypass our TLS settings.
+ */
+function createUndiciFetch(undiciAgent: Agent) {
+	return (
+		url: string | URL | Request,
+		options?: RequestInit,
+	): Promise<Response> => {
+		return undiciFetch(url as string | URL, {
+			...(options as UndiciRequestInit),
+			dispatcher: undiciAgent,
+		}) as Promise<Response>;
+	};
+}
+
+/**
  * Creates an AI SDK provider based on the sdkProvider configuration.
  * Defaults to 'openai-compatible' if not specified.
  *
@@ -64,6 +82,7 @@ export async function createProvider(
 			baseURL: config.baseURL || undefined,
 			apiKey: config.apiKey ?? '',
 			headers: config.headers,
+			fetch: createUndiciFetch(undiciAgent),
 		});
 	}
 
@@ -76,6 +95,7 @@ export async function createProvider(
 		const {createGoogleGenerativeAI} = await import('@ai-sdk/google');
 		return createGoogleGenerativeAI({
 			apiKey: config.apiKey ?? '',
+			fetch: createUndiciFetch(undiciAgent),
 		});
 	}
 
@@ -229,19 +249,6 @@ export async function createProvider(
 		});
 	}
 
-	// Custom fetch using undici
-	const customFetch = (
-		url: string | URL | Request,
-		options?: RequestInit,
-	): Promise<Response> => {
-		// Type cast to string | URL since undici's fetch accepts these types
-		// Request objects are converted to URL internally by the fetch spec
-		return undiciFetch(url as string | URL, {
-			...(options as UndiciRequestInit),
-			dispatcher: undiciAgent,
-		}) as Promise<Response>;
-	};
-
 	// Add OpenRouter-specific headers for app attribution
 	const headers: Record<string, string> = config.headers ?? {};
 	if (providerConfig.name.toLowerCase() === 'openrouter') {
@@ -254,7 +261,7 @@ export async function createProvider(
 		name: providerConfig.name,
 		baseURL: config.baseURL ?? '',
 		apiKey: config.apiKey ?? 'dummy-key',
-		fetch: customFetch,
+		fetch: createUndiciFetch(undiciAgent),
 		headers,
 	});
 }

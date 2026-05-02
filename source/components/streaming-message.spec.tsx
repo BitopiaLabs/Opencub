@@ -1,4 +1,5 @@
 import test from 'ava';
+import stripAnsi from 'strip-ansi';
 import { cleanup, render } from 'ink-testing-library';
 import StreamingMessage from './streaming-message'
 import { ThemeContext } from '../hooks/useTheme';
@@ -102,6 +103,106 @@ test('StreamingMessage renders without crashing with empty message', t => {
 	const output = lastFrame();
 	t.truthy(output);
 	t.regex(output!, /test-model/);
+});
+
+// ============================================================================
+// Whitespace Trimming Tests
+// ============================================================================
+
+test('StreamingMessage strips leading newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="\n\nHello world" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const raw = lastFrame() ?? '';
+	const output = stripAnsi(raw);
+	console.log('Stripped output:', JSON.stringify(output));
+	// The message "Hello world" should appear in the output without leading newlines
+	// The content displayed inside the box should be trimmed
+	t.true(output.includes('Hello world'));
+	// Check that the raw string content (inside box) doesn't start with newlines
+	// The visible content line should start with the actual text
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(contentMatch[1].startsWith('\n'), 'Content should not start with newline');
+	}
+});
+
+test('StreamingMessage strips trailing newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="Hello world\n\n" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Output should have the message without trailing newlines
+	t.true(output.includes('Hello world'));
+	// The box content should not end with trailing newlines
+});
+
+test('StreamingMessage strips leading and trailing newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="\n\n\nContent\n\n\n" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Should have the trimmed content
+	t.true(output.includes('Content'));
+	// Content should not start with newlines
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(contentMatch[1].startsWith('\n'), 'Content should not start with newline');
+	}
+});
+
+test('StreamingMessage strips carriage return characters', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="\r\n\r\nHello\r\n\r\n" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Should have the message without CR/LF issues
+	t.true(output.includes('Hello'));
+	// Content should not start with \r or \n
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(contentMatch[1].startsWith('\r'), 'Content should not start with \\r');
+		t.false(contentMatch[1].startsWith('\n'), 'Content should not start with \\n');
+	}
+});
+
+test('StreamingMessage strips whitespace-only content', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="   \n\n   " model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Should render without crash - whitespace is stripped
+	t.true(output.includes('test-model'));
+	// Should not show whitespace-only content
+	t.false(output.includes('   '));
+});
+
+test('StreamingMessage preserves internal newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<StreamingMessage message="Line 1\nLine 2\nLine 3" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	t.true(output.includes('Line 1'));
+	t.true(output.includes('Line 2'));
+	t.true(output.includes('Line 3'));
 });
 
 test.afterEach(() => {

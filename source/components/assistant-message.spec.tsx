@@ -832,3 +832,118 @@ Let me know what you'd like to work on.`;
 		'Should have blank line before list',
 	);
 });
+
+// ============================================================================
+// Whitespace Trimming Tests
+// ============================================================================
+
+test('AssistantMessage strips leading newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage message="\n\nHello world" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const raw = lastFrame() ?? '';
+	const output = stripAnsi(raw);
+	// The message "Hello world" should appear in the output
+	t.true(output.includes('Hello world'));
+	// The content inside the box should not start with newlines
+	// Check the box content line
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(
+			contentMatch[1].startsWith('\n'),
+			'Box content should not start with newline',
+		);
+	}
+});
+
+test('AssistantMessage strips trailing newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage message="Hello world\n\n" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// The message should appear
+	t.true(output.includes('Hello world'));
+	// The box should not have trailing newlines
+});
+
+test('AssistantMessage strips leading and trailing newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage
+				message="\n\n\nContent\n\n\n"
+				model="test-model"
+			/>
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Should have the trimmed content
+	t.true(output.includes('Content'));
+	// Content should not start with newlines
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(
+			contentMatch[1].startsWith('\n'),
+			'Box content should not start with newline',
+		);
+	}
+});
+
+test('AssistantMessage strips carriage return characters', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage message="\r\n\r\nHello\r\n\r\n" model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Should have the message without CR/LF issues
+	t.true(output.includes('Hello'));
+	// Content should not start with \r or \n
+	const contentMatch = output.match(/┃\s*(.+)/);
+	if (contentMatch) {
+		t.false(
+			contentMatch[1].startsWith('\r'),
+			'Box content should not start with \\r',
+		);
+		t.false(
+			contentMatch[1].startsWith('\n'),
+			'Box content should not start with \\n',
+		);
+	}
+});
+
+test('AssistantMessage strips whitespace-only content to empty', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage message="   \n\n   " model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Trimmed whitespace-only content should render without content text
+	t.true(output.includes('test-model:'));
+	t.false(output.includes('   '));
+});
+
+test('AssistantMessage preserves internal newlines', t => {
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage
+				message="Line 1\nLine 2\nLine 3"
+				model="test-model"
+			/>
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	t.true(output.includes('Line 1'));
+	t.true(output.includes('Line 2'));
+	t.true(output.includes('Line 3'));
+});

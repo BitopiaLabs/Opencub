@@ -179,11 +179,11 @@ export async function handleAgentCreate(
 	const agentName = safeName.replace(/\.md$/, '');
 	const template = `---
 name: ${agentName}
-description: TODO - describe when to use this agent
+description: A brief description of when this agent should be used.
 model: inherit
 ---
 
-TODO - write the system prompt for this agent
+Write the system prompt that describes this agent's role, the tools it should use, and any important constraints.
 `;
 
 	writeFileSync(filePath, template, 'utf-8');

@@ -31,8 +31,9 @@ export default memo(function StreamingMessage({
 
 	// Only show the tail of the content to keep the render small
 	// and avoid off-screen reflow that causes iTerm2 flickering.
+	// trim() removes leading/trailing whitespace including \n, \r, and empty lines
 	const MAX_LINES = 12;
-	const wrapped = wrapWithTrimmedContinuations(message.trimEnd(), textWidth);
+	const wrapped = wrapWithTrimmedContinuations(message.trim(), textWidth);
 	const lines = wrapped.split('\n');
 	const truncated = lines.length > MAX_LINES;
 	const visibleLines = truncated ? lines.slice(-MAX_LINES) : lines;

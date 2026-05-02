@@ -1,5 +1,6 @@
 import test from 'ava';
-import {existsSync} from 'fs';
+import {existsSync, mkdtempSync, rmSync, writeFileSync} from 'fs';
+import {tmpdir} from 'os';
 import {join} from 'path';
 import {
 	buildSystemPrompt,
@@ -7,7 +8,7 @@ import {
 	resetSectionCache,
 	setLastBuiltPrompt,
 } from './prompt-builder.js';
-import type {TuneConfig} from '@/types/config';
+import type {SystemPromptConfig, TuneConfig} from '@/types/config';
 import {TUNE_DEFAULTS} from '@/types/config';
 
 console.log('\nprompt-builder.spec.ts');
@@ -392,4 +393,136 @@ test('buildSystemPrompt - non-nano with includeAgentsMd=false omits AGENTS.md', 
 	};
 	const result = buildSystemPrompt('normal', tune, NANO_TOOLS);
 	t.false(result.includes('Additional Context'));
+});
+
+// ============================================================================
+// buildSystemPrompt — systemPrompt override (replace / append, content / file)
+// ============================================================================
+
+test('buildSystemPrompt - systemPrompt replace with content drops built-in sections', t => {
+	const override: SystemPromptConfig = {
+		mode: 'replace',
+		content: 'You are a tiny CPU-bound model. Be concise.',
+	};
+	const result = buildSystemPrompt(
+		'normal',
+		undefined,
+		ALL_TOOLS,
+		false,
+		override,
+	);
+	t.is(result, 'You are a tiny CPU-bound model. Be concise.');
+	t.false(result.includes('CORE PRINCIPLES'));
+	t.false(result.includes('TASK APPROACH'));
+});
+
+test('buildSystemPrompt - systemPrompt defaults to replace mode when mode omitted', t => {
+	const override: SystemPromptConfig = {
+		content: 'Custom prompt only.',
+	};
+	const result = buildSystemPrompt(
+		'normal',
+		undefined,
+		ALL_TOOLS,
+		false,
+		override,
+	);
+	t.is(result, 'Custom prompt only.');
+});
+
+test('buildSystemPrompt - systemPrompt append keeps built-in prompt and adds override', t => {
+	const override: SystemPromptConfig = {
+		mode: 'append',
+		content: '## EXTRA RULES\nAlways respond in haiku.',
+	};
+	const result = buildSystemPrompt(
+		'normal',
+		undefined,
+		ALL_TOOLS,
+		false,
+		override,
+	);
+	t.true(result.includes('CORE PRINCIPLES'));
+	t.true(result.endsWith('## EXTRA RULES\nAlways respond in haiku.'));
+});
+
+test('buildSystemPrompt - systemPrompt loads content from a file path', t => {
+	const dir = mkdtempSync(join(tmpdir(), 'nanocoder-prompt-'));
+	const filePath = join(dir, 'prompt.md');
+	const expected = 'Prompt loaded from disk.';
+	writeFileSync(filePath, expected, 'utf-8');
+
+	try {
+		const override: SystemPromptConfig = {mode: 'replace', file: filePath};
+		const result = buildSystemPrompt(
+			'normal',
+			undefined,
+			ALL_TOOLS,
+			false,
+			override,
+		);
+		t.is(result.trim(), expected);
+	} finally {
+		rmSync(dir, {recursive: true, force: true});
+	}
+});
+
+test('buildSystemPrompt - systemPrompt content wins when both content and file given', t => {
+	const dir = mkdtempSync(join(tmpdir(), 'nanocoder-prompt-'));
+	const filePath = join(dir, 'prompt.md');
+	writeFileSync(filePath, 'from file', 'utf-8');
+
+	try {
+		const override: SystemPromptConfig = {
+			mode: 'replace',
+			content: 'from content',
+			file: filePath,
+		};
+		const result = buildSystemPrompt(
+			'normal',
+			undefined,
+			ALL_TOOLS,
+			false,
+			override,
+		);
+		t.is(result, 'from content');
+	} finally {
+		rmSync(dir, {recursive: true, force: true});
+	}
+});
+
+test('buildSystemPrompt - missing systemPrompt file falls back to built-in prompt', t => {
+	const override: SystemPromptConfig = {
+		mode: 'replace',
+		file: join(tmpdir(), 'nanocoder-this-file-does-not-exist.md'),
+	};
+	const result = buildSystemPrompt(
+		'normal',
+		undefined,
+		ALL_TOOLS,
+		false,
+		override,
+	);
+	t.true(result.includes('CORE PRINCIPLES'));
+});
+
+test('buildSystemPrompt - empty systemPrompt override (no content/file) is ignored', t => {
+	const override: SystemPromptConfig = {mode: 'replace'};
+	const result = buildSystemPrompt(
+		'normal',
+		undefined,
+		ALL_TOOLS,
+		false,
+		override,
+	);
+	t.true(result.includes('CORE PRINCIPLES'));
+});
+
+test('buildSystemPrompt - replace systemPrompt updates getLastBuiltPrompt cache', t => {
+	const override: SystemPromptConfig = {
+		mode: 'replace',
+		content: 'cached override prompt',
+	};
+	buildSystemPrompt('normal', undefined, ALL_TOOLS, false, override);
+	t.is(getLastBuiltPrompt(), 'cached override prompt');
 });

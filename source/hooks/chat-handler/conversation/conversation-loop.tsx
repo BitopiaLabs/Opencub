@@ -80,6 +80,11 @@ export const resetFallbackNotice = () => {
 // models, where there is no Thought to group under).
 let lastTurnHadReasoning = false;
 
+/** Reset the reasoning-grouping flag (for testing). */
+export const resetLastTurnHadReasoning = () => {
+	lastTurnHadReasoning = false;
+};
+
 /**
  * Main conversation loop that processes assistant responses and handles tool calls.
  * This function orchestrates the entire conversation flow including:
@@ -418,8 +423,10 @@ export const processAssistantResponse = async (
 			);
 
 			if (compressed) {
-				// Compression was performed, update messages
+				// Compression was performed — update both React state AND the local
+				// variable so downstream tool execution builds on compacted messages.
 				setMessages(compressed);
+				updatedMessages = compressed;
 				// Reset stale streaming token count to avoid double-counting
 				// with calculateTokenBreakdown which already counts compacted tokens
 				setTokenCount(0);
@@ -589,6 +596,7 @@ export const processAssistantResponse = async (
 				directBuilder.addToolResults(directResults);
 				const updatedMessagesWithTools = directBuilder.build();
 				setMessages(updatedMessagesWithTools);
+				updatedMessages = updatedMessagesWithTools;
 
 				// If there are also tools needing confirmation, start that flow
 				if (toolsNeedingConfirmation.length > 0) {
