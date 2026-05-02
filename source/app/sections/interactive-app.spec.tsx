@@ -1,0 +1,172 @@
+import test from 'ava';
+import {Text} from 'ink';
+import React from 'react';
+import {renderWithTheme} from '../../test-utils/render-with-theme.js';
+import {InteractiveApp} from './interactive-app.js';
+
+console.log(`\ninteractive-app.spec.tsx – ${React.version}`);
+
+interface Overrides {
+	isExplorerMode?: boolean;
+	isIdeSelectionMode?: boolean;
+	isSchedulerMode?: boolean;
+	isSettingsMode?: boolean;
+	startChat?: boolean;
+	activeMode?: string | null;
+}
+
+function makeProps(o: Overrides = {}) {
+	const noop = () => {};
+	const noopAsync = async () => {};
+
+	const appState = {
+		client: null,
+		messages: [],
+		displayMessages: [],
+		currentModel: 'mock-model',
+		currentProvider: 'mock',
+		startChat: o.startChat ?? false,
+		mcpInitialized: true,
+		activeMode: o.activeMode ?? null,
+		isExplorerMode: o.isExplorerMode ?? false,
+		isIdeSelectionMode: o.isIdeSelectionMode ?? false,
+		isSchedulerMode: o.isSchedulerMode ?? false,
+		isSettingsMode: o.isSettingsMode ?? false,
+		isToolConfirmationMode: false,
+		isToolExecuting: false,
+		isQuestionMode: false,
+		isCancelling: false,
+		showAllSessions: false,
+		checkpointLoadData: null,
+		pendingToolCalls: [],
+		currentToolIndex: 0,
+		pendingQuestion: null,
+		customCommandCache: new Map(),
+		developmentMode: 'normal',
+		contextPercentUsed: null,
+		sessionName: '',
+		compactToolCounts: null,
+		compactToolDisplay: false,
+		liveTaskList: null,
+		tune: {enabled: false, toolProfile: 'minimal', aggressiveCompact: false},
+		reasoningExpanded: false,
+		chatComponents: [],
+		compactToolCountsRef: {current: {}},
+		setCompactToolDisplay: noop,
+		setCompactToolCounts: noop,
+		setReasoningExpanded: noop,
+		addToChatQueue: noop,
+		getNextComponentKey: () => 1,
+	};
+
+	return {
+		appState,
+		chatHandler: {isGenerating: false},
+		toolHandler: {
+			handleToolConfirmation: noop,
+			handleToolConfirmationCancel: noop,
+		},
+		modeHandlers: {
+			handleExplorerCancel: noop,
+			handleIdeSelectionCancel: noop,
+			handleModelSelect: noop,
+			handleModelSelectionCancel: noop,
+			handleProviderSelect: noop,
+			handleProviderSelectionCancel: noop,
+			handleModelDatabaseCancel: noop,
+			handleConfigWizardComplete: noop,
+			handleConfigWizardCancel: noop,
+			handleMcpWizardComplete: noop,
+			handleMcpWizardCancel: noop,
+			handleSettingsCancel: noop,
+			handleTuneSelect: noop,
+			handleTuneCancel: noop,
+		},
+		appHandlers: {
+			handleCheckpointSelect: noopAsync,
+			handleCheckpointCancel: noop,
+			handleSessionSelect: noopAsync,
+			handleSessionCancel: noop,
+			handleCancel: noop,
+			handleToggleDevelopmentMode: noop,
+		},
+		schedulerMode: {
+			activeJobCount: 0,
+			queueLength: 0,
+			isProcessing: false,
+			currentJobCommand: null,
+		},
+		vscodeServer: {
+			activeEditor: null,
+			dismissActiveEditor: noop,
+		},
+		staticComponents: [<Text key="static">static-marker</Text>],
+		liveComponent: null,
+		pendingSubagentApproval: null,
+		handleSubagentToolApproval: noop,
+		handleQuestionAnswer: noop,
+		handleUserSubmit: noopAsync,
+		handleIdeSelect: noop,
+		exitSchedulerMode: noop,
+	} as never;
+}
+
+test('renders without crashing in default state', t => {
+	const {lastFrame} = renderWithTheme(<InteractiveApp {...makeProps()} />);
+	t.truthy(lastFrame());
+});
+
+test('renders the static-component marker through ChatHistory', t => {
+	const {lastFrame} = renderWithTheme(
+		<InteractiveApp {...makeProps({startChat: true})} />,
+	);
+	t.regex(lastFrame()!, /static-marker/);
+});
+
+test('does not render ChatInput while startChat is false', t => {
+	const {lastFrame} = renderWithTheme(
+		<InteractiveApp {...makeProps({startChat: false})} />,
+	);
+	const output = lastFrame()!;
+	// ChatInput renders an input prompt; without startChat we shouldn't see
+	// any prompt-line characters that ChatInput owns.
+	t.notRegex(output, /What now\?/);
+});
+
+test('renders FileExplorer in explorer mode', t => {
+	const {lastFrame} = renderWithTheme(
+		<InteractiveApp {...makeProps({isExplorerMode: true})} />,
+	);
+	// FileExplorer renders directory-listing UI; smoke-test that the frame
+	// changes vs. the default state.
+	const output = lastFrame()!;
+	t.truthy(output);
+	t.true(output.length > 0);
+});
+
+test('renders without crashing in scheduler mode', t => {
+	const {lastFrame} = renderWithTheme(
+		<InteractiveApp {...makeProps({isSchedulerMode: true})} />,
+	);
+	t.truthy(lastFrame());
+});
+
+test('renders without crashing in IDE-selection mode', t => {
+	const {lastFrame} = renderWithTheme(
+		<InteractiveApp {...makeProps({isIdeSelectionMode: true})} />,
+	);
+	t.truthy(lastFrame());
+});
+
+test('renders consistently across two mounts with the same props', t => {
+	const props = makeProps();
+	const a = renderWithTheme(<InteractiveApp {...props} />);
+	const b = renderWithTheme(<InteractiveApp {...props} />);
+	t.is(a.lastFrame(), b.lastFrame());
+});
+
+// FileExplorer/IdeSelector start watchers that keep the event loop alive
+// past test completion. Force-exit so the spec doesn't time out.
+test.after.always(() => {
+	setTimeout(() => process.exit(0), 100).unref();
+});

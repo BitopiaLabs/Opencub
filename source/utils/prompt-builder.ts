@@ -1,6 +1,14 @@
 import {existsSync, readFileSync} from 'fs';
 import {homedir, platform, release} from 'os';
-import {basename, dirname, isAbsolute, join, normalize, resolve} from 'path';
+import {
+	basename,
+	dirname,
+	isAbsolute,
+	join,
+	normalize,
+	resolve,
+	sep,
+} from 'path';
 import {fileURLToPath} from 'url';
 import {isNanoProfile, isSingleToolProfile} from '@/tools/tool-profiles';
 import type {SystemPromptConfig, TuneConfig} from '@/types/config';
@@ -162,11 +170,19 @@ function resolveSystemPromptOverride(
 		const filePath = isAbsolute(override.file)
 			? override.file
 			: resolve(process.cwd(), override.file);
+		// Normalize and validate path stays within cwd to prevent traversal
+		const normalizedPath = normalize(filePath);
+		if (!normalizedPath.startsWith(process.cwd() + sep)) {
+			getLogger().warn(
+				`systemPrompt: file path "${normalizedPath}" escapes working directory`,
+			);
+			return null;
+		}
 		try {
-			return readFileSync(filePath, 'utf-8');
+			return readFileSync(normalizedPath, 'utf-8');
 		} catch (error) {
 			getLogger().warn(
-				`systemPrompt: failed to read file "${filePath}": ${String(error)}`,
+				`systemPrompt: failed to read file "${normalizedPath}": ${String(error)}`,
 			);
 			return null;
 		}

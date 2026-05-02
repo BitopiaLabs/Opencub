@@ -1,18 +1,18 @@
-import path from 'node:path';
 import {Box, Text, useApp} from 'ink';
 import Spinner from 'ink-spinner';
-import React, {useEffect, useMemo} from 'react';
+import React, {useMemo} from 'react';
 import {createStaticComponents} from '@/app/components/app-container';
-import {ChatHistory} from '@/app/components/chat-history';
-import {ChatInput} from '@/app/components/chat-input';
-import {ModalSelectors} from '@/app/components/modal-selectors';
 import {NonInteractiveShell} from '@/app/components/non-interactive-shell';
+import {useAppLogging} from '@/app/hooks/useAppLogging';
+import {useGlobalHandlerQueues} from '@/app/hooks/useGlobalHandlerQueues';
+import {
+	useUserSubmit,
+	useVSCodePromptDispatcher,
+} from '@/app/hooks/useVSCodePromptHandling';
+import {InteractiveApp} from '@/app/sections/interactive-app';
 import type {AppProps} from '@/app/types';
 import AssistantReasoning from '@/components/assistant-reasoning';
-import {FileExplorer} from '@/components/file-explorer';
-import {IdeSelector} from '@/components/ide-selector';
 import {SuccessMessage} from '@/components/message-box';
-import {SchedulerView} from '@/components/scheduler-view';
 import SecurityDisclaimer from '@/components/security-disclaimer';
 import StreamingMessage from '@/components/streaming-message';
 import StreamingReasoning from '@/components/streaming-reasoning';
@@ -43,23 +43,10 @@ import {useToolHandler} from '@/hooks/useToolHandler';
 import {UIStateProvider} from '@/hooks/useUIState';
 import {useVSCodeServer} from '@/hooks/useVSCodeServer';
 import type {ThemePreset} from '@/types/ui';
-import {
-	generateCorrelationId,
-	withNewCorrelationContext,
-} from '@/utils/logging';
 import {createPinoLogger} from '@/utils/logging/pino-logger';
 import {setGlobalMessageQueue} from '@/utils/message-queue';
 import {setNotificationsConfig} from '@/utils/notifications';
-import {
-	type PendingQuestion,
-	setGlobalQuestionHandler,
-} from '@/utils/question-queue';
 import {getShutdownManager} from '@/utils/shutdown';
-import {
-	type PendingToolApproval,
-	setGlobalToolApprovalHandler,
-} from '@/utils/tool-approval-queue';
-import {displayCompactCountsSummary} from '@/utils/tool-result-display';
 import {isExtensionInstalled} from '@/vscode/extension-installer';
 import {shouldRenderWelcome} from './helpers';
 
@@ -89,17 +76,6 @@ export default function App({
 	// Memoize the logger to prevent recreation on every render
 	const logger = useMemo(() => createPinoLogger(), []);
 
-	// Log application startup with key configuration
-	React.useEffect(() => {
-		logger.info('Nanocoder application starting', {
-			vscodeMode,
-			vscodePort,
-			nodeEnv: process.env.NODE_ENV || 'development',
-			platform: process.platform,
-			pid: process.pid,
-		});
-	}, [logger, vscodeMode, vscodePort]);
-
 	// Use extracted hooks
 	const appState = useAppState(initialDevelopmentMode);
 	const {exit} = useApp();
@@ -121,12 +97,7 @@ export default function App({
 	// are added that update React state without updating the global context.
 	React.useEffect(() => {
 		setCurrentModeContext(appState.developmentMode);
-
-		logger.info('Development mode changed', {
-			newMode: appState.developmentMode,
-			previousMode: undefined,
-		});
-	}, [appState.developmentMode, logger]);
+	}, [appState.developmentMode]);
 
 	// VS Code extension installation prompt state
 	const [showExtensionPrompt, setShowExtensionPrompt] = React.useState(
@@ -140,72 +111,10 @@ export default function App({
 		void getShutdownManager().gracefulShutdown(0);
 	};
 
-	// VS Code server integration
-	// Reference to handleMessageSubmit that will be set after appHandlers is created
-	const handleMessageSubmitRef = React.useRef<
-		((message: string) => void) | null
-	>(null);
-
-	const handleVSCodePrompt = React.useCallback(
-		(
-			prompt: string,
-			context?: {
-				filePath?: string;
-				selection?: string;
-				fileName?: string;
-				startLine?: number;
-				endLine?: number;
-				cursorPosition?: {line: number; character: number};
-			},
-		) => {
-			const correlationId = generateCorrelationId();
-
-			logger.info('VS Code prompt received', {
-				promptLength: prompt.length,
-				hasContext: !!context,
-				filePath: context?.filePath,
-				hasSelection: !!context?.selection,
-				cursorPosition: context?.cursorPosition,
-				correlationId,
-			});
-
-			// Build the full prompt with code context for the LLM
-			let fullPrompt = prompt;
-			if (context?.selection && context?.fileName) {
-				const lineInfo =
-					context.startLine && context.endLine
-						? ` (lines ${context.startLine}-${context.endLine})`
-						: '';
-				// Format: question + placeholder tag (for display) + hidden code block (for LLM)
-				// The placeholder tag [@filename] will be highlighted in the UI
-				// The code block is included for the LLM but won't clutter the display
-				fullPrompt = `${prompt}\n\n[@${context.fileName}${lineInfo}]<!--vscode-context-->\n\`\`\`\n${context.selection}\n\`\`\`<!--/vscode-context-->`;
-			} else if (context?.fileName) {
-				const relPath = context.filePath
-					? path.relative(process.cwd(), context.filePath)
-					: context.fileName;
-				fullPrompt = `${prompt}\n\n[@${context.fileName}]<!--vscode-context-->\nFile: ${relPath}<!--/vscode-context-->`;
-			}
-
-			logger.debug('VS Code enhanced prompt prepared', {
-				enhancedPromptLength: fullPrompt.length,
-				correlationId,
-			});
-
-			// Submit the prompt to the chat
-			if (handleMessageSubmitRef.current) {
-				handleMessageSubmitRef.current(fullPrompt);
-			} else {
-				logger.warn(
-					'VS Code prompt received but handleMessageSubmit not ready',
-					{
-						correlationId,
-					},
-				);
-			}
-		},
-		[logger],
-	);
+	// VS Code → chat plumbing. The dispatcher is created up front because
+	// useVSCodeServer needs `onPrompt` immediately, and `handleUserSubmit`
+	// is bound after appHandlers exists (it needs handleMessageSubmit).
+	const vscodePromptDispatcher = useVSCodePromptDispatcher({logger});
 
 	const effectiveVscodeEnabled = vscodeMode || appState.isVscodeEnabled;
 
@@ -214,7 +123,7 @@ export default function App({
 		port: vscodePort,
 		currentModel: appState.currentModel,
 		currentProvider: appState.currentProvider,
-		onPrompt: handleVSCodePrompt,
+		onPrompt: vscodePromptDispatcher.handleVSCodePrompt,
 	});
 
 	// Create theme context value
@@ -245,98 +154,15 @@ export default function App({
 		});
 	}, [appState.addToChatQueue, logger]);
 
-	// Question handler - ref holds the resolver for the pending question promise
-	const questionResolverRef = React.useRef<((answer: string) => void) | null>(
-		null,
-	);
-
-	// Initialize global question handler
-	React.useEffect(() => {
-		setGlobalQuestionHandler((question: PendingQuestion) => {
-			return new Promise<string>(resolve => {
-				questionResolverRef.current = resolve;
-				appState.setPendingQuestion(question);
-				appState.setIsQuestionMode(true);
-			});
-		});
-	}, [appState.setPendingQuestion, appState.setIsQuestionMode, appState]);
-
-	// Handle user answering a question
-	const handleQuestionAnswer = React.useCallback(
-		(answer: string) => {
-			if (questionResolverRef.current) {
-				questionResolverRef.current(answer);
-				questionResolverRef.current = null;
-			}
-			appState.setIsQuestionMode(false);
-			appState.setPendingQuestion(null);
-		},
-		[appState.setIsQuestionMode, appState.setPendingQuestion, appState],
-	);
-
-	// Subagent tool approval handler — uses a dedicated state slot so it
-	// doesn't conflict with the main agent's tool confirmation flow.
-	const toolApprovalResolverRef = React.useRef<
-		((approved: boolean) => void) | null
-	>(null);
-	const [pendingSubagentApproval, setPendingSubagentApproval] =
-		React.useState<PendingToolApproval | null>(null);
-
-	React.useEffect(() => {
-		setGlobalToolApprovalHandler((approval: PendingToolApproval) => {
-			return new Promise<boolean>(resolve => {
-				toolApprovalResolverRef.current = resolve;
-				setPendingSubagentApproval(approval);
-				// Don't clear the live component — AgentProgress renders above
-				// the chat input, and ToolConfirmation renders below it.
-				// They coexist without conflict.
-			});
-		});
-	}, []);
-
-	const handleSubagentToolApproval = React.useCallback((confirmed: boolean) => {
-		if (toolApprovalResolverRef.current) {
-			toolApprovalResolverRef.current(confirmed);
-			toolApprovalResolverRef.current = null;
-		}
-		setPendingSubagentApproval(null);
-	}, []);
-
-	// Log important application state changes
-	React.useEffect(() => {
-		if (appState.client) {
-			logger.info('AI client initialized', {
-				provider: appState.currentProvider,
-				model: appState.currentModel,
-				hasToolManager: !!appState.toolManager,
-			});
-		}
-	}, [
-		appState.client,
-		appState.currentProvider,
-		appState.currentModel,
-		appState.toolManager,
-		logger,
-	]);
-
-	React.useEffect(() => {
-		if (appState.mcpInitialized) {
-			logger.info('MCP servers initialized', {
-				serverCount: appState.mcpServersStatus?.length || 0,
-				status: 'connected',
-			});
-		}
-	}, [appState.mcpInitialized, appState.mcpServersStatus, logger]);
-
-	React.useEffect(() => {
-		if (appState.updateInfo) {
-			logger.info('Update information available', {
-				hasUpdate: appState.updateInfo.hasUpdate,
-				currentVersion: appState.updateInfo.currentVersion,
-				latestVersion: appState.updateInfo.latestVersion,
-			});
-		}
-	}, [appState.updateInfo, logger]);
+	// Question + subagent tool approval queues plumbed through global handlers.
+	const {
+		handleQuestionAnswer,
+		pendingSubagentApproval,
+		handleSubagentToolApproval,
+	} = useGlobalHandlerQueues({
+		setPendingQuestion: appState.setPendingQuestion,
+		setIsQuestionMode: appState.setIsQuestionMode,
+	});
 
 	// Initialize notifications config from app config (once)
 	React.useEffect(() => {
@@ -445,43 +271,26 @@ export default function App({
 		setAbortController: appState.setAbortController,
 	});
 
-	// Log when application is fully ready
-	useEffect(() => {
-		if (
-			appState.mcpInitialized &&
-			appState.client &&
-			!appState.isToolExecuting &&
-			!appState.isToolConfirmationMode &&
-			appState.activeMode !== 'configWizard' &&
-			appState.activeMode !== 'mcpWizard' &&
-			appState.pendingToolCalls.length === 0
-		) {
-			const correlationId = generateCorrelationId();
-
-			withNewCorrelationContext(() => {
-				logger.info('Application interface ready for user interaction', {
-					correlationId,
-					interfaceState: {
-						developmentMode: appState.developmentMode,
-						hasPendingToolCalls: appState.pendingToolCalls.length > 0,
-						clientInitialized: !!appState.client,
-						mcpServersConnected: appState.mcpInitialized,
-						inputDisabled: chatHandler.isGenerating || appState.isToolExecuting,
-					},
-				});
-			}, correlationId);
-		}
-	}, [
-		appState.mcpInitialized,
-		appState.client,
-		appState.isToolExecuting,
-		appState.isToolConfirmationMode,
-		appState.activeMode,
-		appState.pendingToolCalls.length,
+	// All app-level structured logging lives in this hook so the orchestrator
+	// stays focused on render/state composition.
+	useAppLogging({
 		logger,
-		appState.developmentMode,
-		chatHandler.isGenerating,
-	]);
+		vscodeMode,
+		vscodePort,
+		developmentMode: appState.developmentMode,
+		client: appState.client,
+		currentProvider: appState.currentProvider,
+		currentModel: appState.currentModel,
+		toolManager: appState.toolManager,
+		mcpInitialized: appState.mcpInitialized,
+		mcpServersStatus: appState.mcpServersStatus,
+		updateInfo: appState.updateInfo,
+		activeMode: appState.activeMode,
+		isToolExecuting: appState.isToolExecuting,
+		isToolConfirmationMode: appState.isToolConfirmationMode,
+		pendingToolCallsLength: appState.pendingToolCalls.length,
+		isGenerating: chatHandler.isGenerating,
+	});
 
 	// Setup initialization
 	const appInitialization = useAppInitialization({
@@ -636,34 +445,20 @@ export default function App({
 		dismissActiveEditor: vscodeServer.dismissActiveEditor,
 	});
 
-	// Update the ref so VS Code prompts can be submitted
+	// Bind the chat-input submit handler into the VS Code prompt dispatcher
+	// now that appHandlers exists. The dispatcher was created earlier (before
+	// appHandlers) because useVSCodeServer needs `onPrompt` immediately.
 	React.useEffect(() => {
-		handleMessageSubmitRef.current = appHandlers.handleMessageSubmit;
-	}, [appHandlers.handleMessageSubmit]);
+		vscodePromptDispatcher.bindMessageSubmit(appHandlers.handleMessageSubmit);
+	}, [appHandlers.handleMessageSubmit, vscodePromptDispatcher]);
 
-	// Wrap the message submit so that whatever the user types in the chat
-	// input is augmented with the VS Code active-editor pill. File-focused-only
-	// sends just the filename hint; an active selection inlines the code too.
-	const handleUserSubmit = React.useCallback(
-		(message: string) => {
-			const editor = vscodeServer.activeEditor;
-			let fullPrompt = message;
-			if (editor?.fileName) {
-				const hasSelection =
-					!!editor.selection && editor.startLine && editor.endLine;
-				if (hasSelection) {
-					fullPrompt = `${message}\n\n[@${editor.fileName} (lines ${editor.startLine}-${editor.endLine})]<!--vscode-context-->\n\`\`\`\n${editor.selection}\n\`\`\`<!--/vscode-context-->`;
-				} else {
-					const relPath = editor.filePath
-						? path.relative(process.cwd(), editor.filePath)
-						: editor.fileName;
-					fullPrompt = `${message}\n\n[@${editor.fileName}]<!--vscode-context-->\nFile: ${relPath}<!--/vscode-context-->`;
-				}
-			}
-			return appHandlers.handleMessageSubmit(fullPrompt);
-		},
-		[vscodeServer.activeEditor, appHandlers.handleMessageSubmit],
-	);
+	// Wraps the user's typed message with the VS Code active-editor pill.
+	// File-focused-only sends just the filename hint; an active selection
+	// inlines the code too.
+	const handleUserSubmit = useUserSubmit({
+		handleMessageSubmit: appHandlers.handleMessageSubmit,
+		activeEditor: vscodeServer.activeEditor,
+	});
 
 	// Setup non-interactive mode
 	const {nonInteractiveLoadingMessage} = useNonInteractiveMode({
@@ -866,151 +661,23 @@ export default function App({
 		<ThemeContext.Provider value={themeContextValue}>
 			<TitleShapeContext.Provider value={titleShapeContextValue}>
 				<UIStateProvider>
-					<Box flexDirection="column" padding={1} width="100%">
-						{/* Chat History - ALWAYS rendered to keep Static content stable */}
-						<ChatHistory
-							startChat={appState.startChat}
-							staticComponents={staticComponents}
-							queuedComponents={appState.chatComponents}
-							liveComponent={liveComponent}
-						/>
-
-						{/* File Explorer - rendered below chat history */}
-						{appState.isExplorerMode && (
-							<Box marginLeft={-1} flexDirection="column">
-								<FileExplorer onClose={modeHandlers.handleExplorerCancel} />
-							</Box>
-						)}
-
-						{/* IDE Selector - rendered below chat history */}
-						{appState.isIdeSelectionMode && (
-							<Box marginLeft={-1} flexDirection="column">
-								<IdeSelector
-									onSelect={handleIdeSelect}
-									onCancel={modeHandlers.handleIdeSelectionCancel}
-								/>
-							</Box>
-						)}
-
-						{/* Modal Selectors - rendered below chat history */}
-						{(appState.activeMode !== null &&
-							appState.activeMode !== 'explorer' &&
-							appState.activeMode !== 'ideSelection' &&
-							appState.activeMode !== 'scheduler') ||
-						appState.isSettingsMode ? (
-							<Box marginLeft={-1} flexDirection="column">
-								<ModalSelectors
-									activeMode={appState.activeMode}
-									isSettingsMode={appState.isSettingsMode}
-									showAllSessions={appState.showAllSessions}
-									client={appState.client}
-									currentModel={appState.currentModel}
-									currentProvider={appState.currentProvider}
-									checkpointLoadData={appState.checkpointLoadData}
-									onModelSelect={modeHandlers.handleModelSelect}
-									onModelSelectionCancel={
-										modeHandlers.handleModelSelectionCancel
-									}
-									onProviderSelect={modeHandlers.handleProviderSelect}
-									onProviderSelectionCancel={
-										modeHandlers.handleProviderSelectionCancel
-									}
-									onModelDatabaseCancel={modeHandlers.handleModelDatabaseCancel}
-									onConfigWizardComplete={
-										modeHandlers.handleConfigWizardComplete
-									}
-									onConfigWizardCancel={modeHandlers.handleConfigWizardCancel}
-									onMcpWizardComplete={modeHandlers.handleMcpWizardComplete}
-									onMcpWizardCancel={modeHandlers.handleMcpWizardCancel}
-									onSettingsCancel={modeHandlers.handleSettingsCancel}
-									tuneConfig={appState.tune}
-									onTuneSelect={modeHandlers.handleTuneSelect}
-									onTuneCancel={modeHandlers.handleTuneCancel}
-									onCheckpointSelect={appHandlers.handleCheckpointSelect}
-									onCheckpointCancel={appHandlers.handleCheckpointCancel}
-									onSessionSelect={sessionId =>
-										void appHandlers.handleSessionSelect(sessionId)
-									}
-									onSessionCancel={appHandlers.handleSessionCancel}
-								/>
-							</Box>
-						) : null}
-
-						{/* Scheduler View - replaces ChatInput in scheduler mode */}
-						{appState.isSchedulerMode && (
-							<SchedulerView
-								activeJobCount={schedulerMode.activeJobCount}
-								queueLength={schedulerMode.queueLength}
-								isProcessing={schedulerMode.isProcessing}
-								currentJobCommand={schedulerMode.currentJobCommand}
-								developmentMode={appState.developmentMode}
-								contextPercentUsed={appState.contextPercentUsed}
-								onExit={exitSchedulerMode}
-							/>
-						)}
-
-						{/* Chat Input - only rendered when not in modal mode or scheduler mode */}
-						{appState.startChat &&
-							appState.activeMode === null &&
-							!appState.isSettingsMode && (
-								<ChatInput
-									isCancelling={appState.isCancelling}
-									isToolExecuting={appState.isToolExecuting}
-									isToolConfirmationMode={appState.isToolConfirmationMode}
-									isQuestionMode={appState.isQuestionMode}
-									pendingToolCalls={appState.pendingToolCalls}
-									currentToolIndex={appState.currentToolIndex}
-									pendingQuestion={appState.pendingQuestion}
-									onQuestionAnswer={handleQuestionAnswer}
-									mcpInitialized={appState.mcpInitialized}
-									client={appState.client}
-									customCommands={Array.from(
-										appState.customCommandCache.keys(),
-									)}
-									inputDisabled={
-										chatHandler.isGenerating || appState.isToolExecuting
-									}
-									developmentMode={appState.developmentMode}
-									contextPercentUsed={appState.contextPercentUsed}
-									sessionName={appState.sessionName || undefined}
-									compactToolCounts={appState.compactToolCounts}
-									compactToolDisplay={appState.compactToolDisplay}
-									liveTaskList={appState.liveTaskList}
-									onToggleCompactDisplay={() => {
-										const expanding = appState.compactToolDisplay;
-										appState.setCompactToolDisplay(!expanding);
-
-										// When expanding, flush accumulated counts to static
-										if (expanding) {
-											const counts = appState.compactToolCountsRef.current;
-											if (Object.keys(counts).length > 0) {
-												displayCompactCountsSummary(
-													counts,
-													appState.addToChatQueue,
-													appState.getNextComponentKey,
-												);
-												appState.compactToolCountsRef.current = {};
-												appState.setCompactToolCounts(null);
-											}
-										}
-									}}
-									pendingSubagentApproval={pendingSubagentApproval}
-									onSubagentToolApproval={handleSubagentToolApproval}
-									onToolConfirm={toolHandler.handleToolConfirmation}
-									onToolCancel={toolHandler.handleToolConfirmationCancel}
-									onSubmit={handleUserSubmit}
-									activeEditor={vscodeServer.activeEditor}
-									onDismissActiveEditor={vscodeServer.dismissActiveEditor}
-									onCancel={appHandlers.handleCancel}
-									onToggleMode={appHandlers.handleToggleDevelopmentMode}
-									onToggleReasoningExpanded={() => {
-										const expanding = appState.reasoningExpanded;
-										appState.setReasoningExpanded(!expanding);
-									}}
-									tune={appState.tune}
-								/>
-							)}
-					</Box>
+					<InteractiveApp
+						appState={appState}
+						chatHandler={chatHandler}
+						toolHandler={toolHandler}
+						modeHandlers={modeHandlers}
+						appHandlers={appHandlers}
+						schedulerMode={schedulerMode}
+						vscodeServer={vscodeServer}
+						staticComponents={staticComponents}
+						liveComponent={liveComponent}
+						pendingSubagentApproval={pendingSubagentApproval}
+						handleSubagentToolApproval={handleSubagentToolApproval}
+						handleQuestionAnswer={handleQuestionAnswer}
+						handleUserSubmit={handleUserSubmit}
+						handleIdeSelect={handleIdeSelect}
+						exitSchedulerMode={exitSchedulerMode}
+					/>
 				</UIStateProvider>
 			</TitleShapeContext.Provider>
 		</ThemeContext.Provider>
