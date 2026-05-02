@@ -81,6 +81,18 @@ export interface PasteConfig {
 	singleLineThreshold: number;
 }
 
+// Custom system prompt configuration
+export interface SystemPromptConfig {
+	// "replace" overrides the entire built-in prompt; "append" adds to the end.
+	// Defaults to "replace" — the issue's primary use case is shrinking the prompt.
+	mode?: 'replace' | 'append';
+	// Inline prompt content. Takes priority over `file` when both are set.
+	content?: string;
+	// Path to a markdown/text file containing the prompt. Resolved relative to
+	// the working directory if not absolute.
+	file?: string;
+}
+
 // Desktop notification configuration
 export interface NotificationsConfig {
 	enabled: boolean;
@@ -142,6 +154,9 @@ export interface AppConfig {
 	// Names match registered tool ids (e.g. "execute_bash", "web_search",
 	// "agent"). MCP tools follow the same naming as in their server config.
 	disabledTools?: string[];
+
+	// Custom system prompt — replaces or extends the built-in prompt
+	systemPrompt?: SystemPromptConfig;
 
 	// Nanocoder-specific tool configurations
 	nanocoderTools?: {

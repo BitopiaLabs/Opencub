@@ -20,6 +20,7 @@ import type {
 	CompressionMode,
 	NotificationsConfig,
 	PasteConfig,
+	SystemPromptConfig,
 } from '@/types/index';
 import {logError} from '@/utils/message-queue';
 import {DEFAULT_SINGLE_LINE_PASTE_THRESHOLD} from '@/utils/paste-utils';
@@ -418,6 +419,58 @@ function loadDisabledToolsConfig(): string[] | undefined {
 	return tryLoadDisabledToolsFromPath(globalConfigPath) ?? undefined;
 }
 
+function loadSystemPromptConfig(): SystemPromptConfig | undefined {
+	const projectConfigPath = join(process.cwd(), 'agents.config.json');
+	const projectResult = tryLoadSystemPromptFromPath(projectConfigPath);
+	if (projectResult) {
+		return projectResult;
+	}
+
+	const configDir = getConfigPath();
+	const globalConfigPath = join(configDir, 'agents.config.json');
+	return tryLoadSystemPromptFromPath(globalConfigPath) ?? undefined;
+}
+
+function tryLoadSystemPromptFromPath(
+	configPath: string,
+): SystemPromptConfig | null {
+	if (!existsSync(configPath)) {
+		return null;
+	}
+
+	try {
+		const rawData = readFileSync(configPath, 'utf-8');
+		const config = JSON.parse(rawData);
+		const systemPrompt = config.nanocoder?.systemPrompt;
+		if (!systemPrompt || typeof systemPrompt !== 'object') {
+			return null;
+		}
+
+		const result: SystemPromptConfig = {};
+		if (systemPrompt.mode === 'replace' || systemPrompt.mode === 'append') {
+			result.mode = systemPrompt.mode;
+		}
+		if (typeof systemPrompt.content === 'string') {
+			result.content = systemPrompt.content;
+		}
+		if (typeof systemPrompt.file === 'string') {
+			result.file = systemPrompt.file;
+		}
+
+		if (result.content === undefined && result.file === undefined) {
+			return null;
+		}
+
+		return result;
+	} catch (error) {
+		logError(
+			`Failed to load systemPrompt config from ${configPath}: ${String(error)}`,
+		);
+	}
+
+	return null;
+}
+
 function tryLoadDisabledToolsFromPath(configPath: string): string[] | null {
 	if (!existsSync(configPath)) {
 		return null;
@@ -508,6 +561,9 @@ function loadAppConfig(): AppConfig {
 	// Load top-level disabledTools (filtered out of every tool-availability path)
 	const disabledTools = loadDisabledToolsConfig();
 
+	// Load custom system prompt override
+	const systemPrompt = loadSystemPromptConfig();
+
 	// Load notifications configuration
 	const notifications = loadNotificationsConfig();
 
@@ -520,6 +576,7 @@ function loadAppConfig(): AppConfig {
 		nanocoderTools,
 		alwaysAllow,
 		disabledTools,
+		systemPrompt,
 		notifications,
 	};
 }

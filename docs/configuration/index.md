@@ -233,6 +233,60 @@ Names match the registered tool ids (`read_file`, `write_file`, `string_replace`
 
 Resolution: project-level `agents.config.json` wins over the global config. The list is layered on top of `/tune` profiles and mode exclusions — if `nano` profile would otherwise expose `read_file`, listing it in `disabledTools` removes it. Subagents respect the global list even if their own `tools` allow-list includes the disabled name.
 
+### Custom System Prompt
+
+Override or extend the built-in system prompt with your own. Useful when running small or context-constrained models where the default prompt consumes too many tokens, or when you want to specialize Nanocoder for a non-coding workflow.
+
+The simplest form replaces the entire built-in prompt with inline content:
+
+```json
+{
+  "nanocoder": {
+    "systemPrompt": {
+      "content": "You are an AI model running on CPU. Be concise."
+    }
+  }
+}
+```
+
+Or load the prompt from a file (path is resolved relative to the working directory unless absolute):
+
+```json
+{
+  "nanocoder": {
+    "systemPrompt": {
+      "mode": "replace",
+      "file": "./.nanocoder/system-prompt.md"
+    }
+  }
+}
+```
+
+Use `"mode": "append"` to keep the built-in prompt and add your text at the end:
+
+```json
+{
+  "nanocoder": {
+    "systemPrompt": {
+      "mode": "append",
+      "content": "Always respond in British English."
+    }
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `mode` | string | `"replace"` | `"replace"` overrides the built-in prompt entirely (no system info, no AGENTS.md). `"append"` adds your content after the built-in prompt. |
+| `content` | string | — | Inline prompt text. Takes priority over `file` if both are set. |
+| `file` | string | — | Path to a markdown/text file containing the prompt. Resolved relative to the working directory if not absolute. |
+
+**Notes:**
+- In `replace` mode, the built-in `## SYSTEM INFORMATION` section and AGENTS.md auto-append are skipped — include them yourself if you need them.
+- Tool definitions are still injected into the prompt for providers that don't support native tool calling. Tool availability is controlled separately via `disabledTools` and `/tune`.
+- If the file can't be read, Nanocoder logs a warning and falls back to the built-in prompt.
+- Project-level `agents.config.json` wins over the global config.
+
 ### Web Search
 
 The `web_search` tool uses the [Brave Search API](https://brave.com/search/api/) and requires an API key to enable. Without a key, the tool is not registered and won't be available to the model.

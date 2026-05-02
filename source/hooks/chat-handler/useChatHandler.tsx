@@ -21,12 +21,14 @@ export function getBaseSystemPrompt(
 	tune: UseChatHandlerProps['tune'],
 	toolsDisabled: boolean,
 ): string {
+	const systemPromptOverride = getAppConfig().systemPrompt;
 	if (developmentMode === 'scheduler') {
 		return buildSystemPrompt(
 			developmentMode,
 			tune,
 			toolManager.getAvailableToolNames(tune, developmentMode),
 			toolsDisabled,
+			systemPromptOverride,
 		);
 	}
 
@@ -37,6 +39,7 @@ export function getBaseSystemPrompt(
 			tune,
 			toolManager.getAvailableToolNames(tune, developmentMode ?? 'normal'),
 			toolsDisabled,
+			systemPromptOverride,
 		)
 	);
 }
@@ -102,6 +105,7 @@ export function useChatHandler({
 			tune,
 			availableNames,
 			toolsDisabled,
+			getAppConfig().systemPrompt,
 		);
 
 		if (toolsDisabled) {

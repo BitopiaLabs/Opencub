@@ -67,6 +67,7 @@ export async function runPlainShell(
 		undefined,
 		availableNames,
 		toolsDisabled,
+		getAppConfig().systemPrompt,
 	);
 	if (toolsDisabled) {
 		const toolsForPrompt =

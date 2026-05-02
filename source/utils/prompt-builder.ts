@@ -1,9 +1,9 @@
 import {existsSync, readFileSync} from 'fs';
 import {homedir, platform, release} from 'os';
-import {basename, dirname, join, normalize} from 'path';
+import {basename, dirname, isAbsolute, join, normalize, resolve} from 'path';
 import {fileURLToPath} from 'url';
 import {isNanoProfile, isSingleToolProfile} from '@/tools/tool-profiles';
-import type {TuneConfig} from '@/types/config';
+import type {SystemPromptConfig, TuneConfig} from '@/types/config';
 import {TUNE_DEFAULTS} from '@/types/config';
 import type {DevelopmentMode} from '@/types/core';
 import {getLogger} from '@/utils/logging';
@@ -143,17 +143,65 @@ function hasAnyGitTool(toolSet: Set<string>): boolean {
 }
 
 /**
+ * Resolve the override content from a SystemPromptConfig: inline content wins
+ * over file. Returns the prompt string, or null if neither is usable.
+ */
+function resolveSystemPromptOverride(
+	override: SystemPromptConfig,
+): string | null {
+	if (override.content !== undefined) {
+		if (override.file !== undefined) {
+			getLogger().warn(
+				'systemPrompt: both `content` and `file` set — using `content`.',
+			);
+		}
+		return override.content;
+	}
+
+	if (override.file !== undefined) {
+		const filePath = isAbsolute(override.file)
+			? override.file
+			: resolve(process.cwd(), override.file);
+		try {
+			return readFileSync(filePath, 'utf-8');
+		} catch (error) {
+			getLogger().warn(
+				`systemPrompt: failed to read file "${filePath}": ${String(error)}`,
+			);
+			return null;
+		}
+	}
+
+	return null;
+}
+
+/**
  * Build a system prompt dynamically based on development mode, tune config, and available tools.
  *
  * Sections are full quality — the prompt gets smaller only because sections for
  * unavailable tools are excluded entirely, not because content is truncated.
+ *
+ * When `systemPromptOverride` is provided, the user's custom prompt either replaces
+ * the built-in prompt entirely (mode="replace", the default) or is appended to it
+ * (mode="append").
  */
 export function buildSystemPrompt(
 	developmentMode: DevelopmentMode,
 	tuneConfig: TuneConfig | undefined,
 	availableToolNames: string[],
 	toolsDisabled = false,
+	systemPromptOverride?: SystemPromptConfig,
 ): string {
+	const overrideContent = systemPromptOverride
+		? resolveSystemPromptOverride(systemPromptOverride)
+		: null;
+	const overrideMode = systemPromptOverride?.mode ?? 'replace';
+
+	if (overrideContent !== null && overrideMode === 'replace') {
+		lastBuiltPrompt = overrideContent;
+		return overrideContent;
+	}
+
 	const tune = tuneConfig ?? TUNE_DEFAULTS;
 	const singleTool = tune.enabled && isSingleToolProfile(tune.toolProfile);
 	const nano = tune.enabled && isNanoProfile(tune.toolProfile);
@@ -268,6 +316,11 @@ ${getSubagentDescriptions()}`;
 	const includeAgentsMd = tune.includeAgentsMd ?? (nano ? false : true);
 	if (includeAgentsMd) {
 		prompt = appendAgentsMd(prompt);
+	}
+
+	// Append-mode user override (replace mode is handled at the top of the function).
+	if (overrideContent !== null && overrideMode === 'append') {
+		prompt = `${prompt}\n\n${overrideContent}`;
 	}
 
 	// Cache for token-counting callers that don't have access to the inputs
