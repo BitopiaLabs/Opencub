@@ -52,13 +52,14 @@ export default memo(function AssistantMessage({
 
 	// Render markdown to terminal-formatted text with theme colors
 	// Pre-wrap to avoid Ink's trim:false leaving leading spaces on wrapped lines
+	// trim() removes leading/trailing whitespace including \n, \r, and empty lines
 	const renderedMessage = useMemo(() => {
 		try {
-			const parsed = parseMarkdown(message, colors, textWidth).trimEnd();
+			const parsed = parseMarkdown(message, colors, textWidth).trim();
 			return wrapWithTrimmedContinuations(parsed, textWidth);
 		} catch {
 			// Fallback to plain text if markdown parsing fails
-			return wrapWithTrimmedContinuations(message.trimEnd(), textWidth);
+			return wrapWithTrimmedContinuations(message.trim(), textWidth);
 		}
 	}, [message, colors, textWidth]);
 
