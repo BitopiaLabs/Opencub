@@ -23,6 +23,7 @@ import type {
 } from '@/types/core';
 import {signalToolApproval} from '@/utils/tool-approval-queue';
 import {parseToolArguments} from '@/utils/tool-args-parser';
+import {toolNeedsApproval} from '@/utils/tool-needs-approval';
 import {getSubagentLoader} from './subagent-loader.js';
 import type {
 	SubagentConfigWithSource,
@@ -450,35 +451,12 @@ export class SubagentExecutor {
 	 * Check if a tool needs user approval.
 	 * Uses the same logic as the main conversation loop.
 	 */
-	private async toolNeedsApproval(
+	private async needsApprovalForTool(
 		toolName: string,
 		rawArguments: unknown,
 	): Promise<boolean> {
 		const toolEntry = this.toolManager.getToolEntry(toolName);
-		if (!toolEntry?.tool) return true; // Unknown tools need approval
-
-		const needsApprovalProp = (
-			toolEntry.tool as unknown as {
-				needsApproval?:
-					| boolean
-					| ((args: unknown) => boolean | Promise<boolean>);
-			}
-		).needsApproval;
-
-		if (typeof needsApprovalProp === 'boolean') {
-			return needsApprovalProp;
-		}
-
-		if (typeof needsApprovalProp === 'function') {
-			try {
-				const parsedArgs = parseToolArguments(rawArguments);
-				return await needsApprovalProp(parsedArgs);
-			} catch {
-				return true;
-			}
-		}
-
-		return true;
+		return toolNeedsApproval(toolEntry?.tool, rawArguments);
 	}
 
 	/**
@@ -501,7 +479,10 @@ export class SubagentExecutor {
 		}
 
 		// Check if this tool needs user approval
-		const needsApproval = await this.toolNeedsApproval(toolName, rawArguments);
+		const needsApproval = await this.needsApprovalForTool(
+			toolName,
+			rawArguments,
+		);
 		if (needsApproval) {
 			const parsedArgs = parseToolArguments(rawArguments);
 			const toolCall: ToolCall = {

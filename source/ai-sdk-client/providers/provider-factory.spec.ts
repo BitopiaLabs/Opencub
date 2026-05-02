@@ -24,7 +24,8 @@ test('createProvider creates provider with basic config', async t => {
 	const provider = await createProvider(config, agent);
 
 	t.truthy(provider);
-	t.is(typeof provider, 'function');
+	t.is(typeof provider.provider, 'function');
+	t.is(typeof provider.kind, 'string');
 });
 
 test('createProvider adds OpenRouter headers for openrouter provider', async t => {
@@ -114,7 +115,8 @@ test('createProvider uses @ai-sdk/google when sdkProvider is google', async t =>
 	const provider = await createProvider(config, agent);
 
 	t.truthy(provider);
-	t.is(typeof provider, 'function');
+	t.is(typeof provider.provider, 'function');
+	t.is(typeof provider.kind, 'string');
 });
 
 test('createProvider uses @ai-sdk/anthropic when sdkProvider is anthropic', async t => {
@@ -132,7 +134,8 @@ test('createProvider uses @ai-sdk/anthropic when sdkProvider is anthropic', asyn
 	const provider = await createProvider(config, agent);
 
 	t.truthy(provider);
-	t.is(typeof provider, 'function');
+	t.is(typeof provider.provider, 'function');
+	t.is(typeof provider.kind, 'string');
 });
 
 test('createProvider anthropic provider works without baseURL', async t => {
@@ -168,7 +171,8 @@ test('createProvider uses openai-compatible by default when sdkProvider not set'
 	const provider = await createProvider(config, agent);
 
 	t.truthy(provider);
-	t.is(typeof provider, 'function');
+	t.is(typeof provider.provider, 'function');
+	t.is(typeof provider.kind, 'string');
 });
 
 test('createProvider uses openai-compatible when sdkProvider is explicitly openai-compatible', async t => {
@@ -187,7 +191,8 @@ test('createProvider uses openai-compatible when sdkProvider is explicitly opena
 	const provider = await createProvider(config, agent);
 
 	t.truthy(provider);
-	t.is(typeof provider, 'function');
+	t.is(typeof provider.provider, 'function');
+	t.is(typeof provider.kind, 'string');
 });
 
 test('createProvider google provider works without baseURL', async t => {

@@ -29,7 +29,16 @@ import {handleResumeCommand} from './handlers/session-handler';
 // Re-export for consumers that import parseContextLimit from here
 export {parseContextLimit} from './handlers/context-max-handler';
 
-/** Command names that require special handling in the app */
+/**
+ * "Special commands" need access to app-level state (setting modes, mutating
+ * messages, swapping live components) that the standard `Command.handler`
+ * signature in `source/types` doesn't expose. They are registered in
+ * `source/commands/` as stub handlers (so they appear in the slash menu and
+ * `/help`) but actually dispatched here in `handleSpecialCommand` below.
+ *
+ * If you add a new entry here, also add a stub command file in
+ * `source/commands/` and register it in `source/commands/lazy-registry.ts`.
+ */
 const SPECIAL_COMMANDS = {
 	CLEAR: 'clear',
 	MODEL: 'model',

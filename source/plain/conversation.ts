@@ -10,7 +10,7 @@ import type {
 	ToolCall,
 	ToolResult,
 } from '@/types/core';
-import {parseToolArguments} from '@/utils/tool-args-parser';
+import {toolNeedsApproval} from '@/utils/tool-needs-approval';
 
 export interface RunPlainConversationOptions {
 	client: LLMClient;
@@ -215,24 +215,5 @@ async function evaluateNeedsApproval(
 	}
 
 	const toolEntry = toolManager.getToolEntry(toolCall.function.name);
-	if (!toolEntry?.tool) return true;
-
-	const needsApproval = (
-		toolEntry.tool as unknown as {
-			needsApproval?: boolean | ((args: unknown) => boolean | Promise<boolean>);
-		}
-	).needsApproval;
-
-	if (typeof needsApproval === 'boolean') return needsApproval;
-	if (typeof needsApproval === 'function') {
-		try {
-			const args = parseToolArguments(toolCall.function.arguments);
-			return await (
-				needsApproval as (args: unknown) => boolean | Promise<boolean>
-			)(args);
-		} catch {
-			return true;
-		}
-	}
-	return true;
+	return toolNeedsApproval(toolEntry?.tool, toolCall.function.arguments);
 }

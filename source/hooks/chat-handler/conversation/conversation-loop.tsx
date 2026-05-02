@@ -22,6 +22,7 @@ import {performAutoCompact} from '@/utils/auto-compact';
 import {formatElapsedTime, getRandomAdjective} from '@/utils/completion-note';
 import {MessageBuilder} from '@/utils/message-builder';
 import {parseToolArguments} from '@/utils/tool-args-parser';
+import {toolNeedsApproval} from '@/utils/tool-needs-approval';
 import {displayCompactCountsSummary} from '@/utils/tool-result-display';
 import {filterValidToolCalls} from '../utils/tool-filters';
 import {executeToolsDirectly} from './tool-executor';
@@ -517,44 +518,23 @@ export const processAssistantResponse = async (
 			}
 
 			// Evaluate needsApproval from tool definition
-			let toolNeedsApproval = true;
+			let needsApproval = true;
 
 			// In non-interactive mode, check the nonInteractiveAlwaysAllow list
 			if (
 				nonInteractiveMode &&
 				nonInteractiveAlwaysAllow.includes(toolCall.function.name)
 			) {
-				toolNeedsApproval = false;
+				needsApproval = false;
 			} else if (toolManager) {
 				const toolEntry = toolManager.getToolEntry(toolCall.function.name);
-				if (toolEntry?.tool) {
-					const needsApprovalProp = (
-						toolEntry.tool as unknown as {
-							needsApproval?:
-								| boolean
-								| ((args: unknown) => boolean | Promise<boolean>);
-						}
-					).needsApproval;
-					if (typeof needsApprovalProp === 'boolean') {
-						toolNeedsApproval = needsApprovalProp;
-					} else if (typeof needsApprovalProp === 'function') {
-						try {
-							const parsedArgs = parseToolArguments(
-								toolCall.function.arguments,
-							);
-							toolNeedsApproval = await (
-								needsApprovalProp as (
-									args: unknown,
-								) => boolean | Promise<boolean>
-							)(parsedArgs);
-						} catch {
-							toolNeedsApproval = true;
-						}
-					}
-				}
+				needsApproval = await toolNeedsApproval(
+					toolEntry?.tool,
+					toolCall.function.arguments,
+				);
 			}
 
-			if (validationFailed || !toolNeedsApproval) {
+			if (validationFailed || !needsApproval) {
 				toolsToExecuteDirectly.push(toolCall);
 			} else {
 				toolsNeedingConfirmation.push(toolCall);
