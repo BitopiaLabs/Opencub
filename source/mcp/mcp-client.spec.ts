@@ -64,7 +64,10 @@ const mockTransportFactory = {
 
 console.log(`\nmcp-client.spec.ts`);
 
-// Skip integration tests in CI environments (they require external network access)
+// Skip integration tests in CI. These tests hit real third-party MCP servers
+// (mcp.deepwiki.com, remote.mcpservers.org, mcp.context7.com) — running them in
+// CI would couple our pipeline to those services' uptime. Run them locally to
+// verify HTTP transport against live servers.
 const isCI = process.env.CI === 'true' || process.env.CI === '1';
 const testOrSkip = isCI ? test.skip : test;
 

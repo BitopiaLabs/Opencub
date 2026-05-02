@@ -30,12 +30,20 @@ import {
 import type {AIProviderConfig} from '@/types/index';
 import {getLogger} from '@/utils/logging';
 
-// Union type for supported providers
-export type AIProvider =
-	| OpenAICompatibleProvider<string, string, string, string>
-	| OpenAIProvider
-	| GoogleGenerativeAIProvider
-	| AnthropicProvider;
+/**
+ * Discriminated union pairing each underlying SDK provider with its `kind`.
+ * Lets callers narrow the provider type via `kind` without `as unknown as`
+ * casts. The pairing is enforced by `createProvider`'s return value.
+ */
+export type TaggedProvider =
+	| {kind: 'chatgpt-codex'; provider: OpenAIProvider}
+	| {kind: 'github-copilot'; provider: OpenAIProvider}
+	| {
+			kind: 'openai-compatible';
+			provider: OpenAICompatibleProvider<string, string, string, string>;
+	  }
+	| {kind: 'anthropic'; provider: AnthropicProvider}
+	| {kind: 'google'; provider: GoogleGenerativeAIProvider};
 
 /**
  * Wraps undici's fetch so requests flow through the shared Agent. The Agent
@@ -66,7 +74,7 @@ function createUndiciFetch(undiciAgent: Agent) {
 export async function createProvider(
 	providerConfig: AIProviderConfig,
 	undiciAgent: Agent,
-): Promise<AIProvider> {
+): Promise<TaggedProvider> {
 	const logger = getLogger();
 	const {config, sdkProvider} = providerConfig;
 
@@ -78,12 +86,15 @@ export async function createProvider(
 		});
 
 		const {createAnthropic} = await import('@ai-sdk/anthropic');
-		return createAnthropic({
-			baseURL: config.baseURL || undefined,
-			apiKey: config.apiKey ?? '',
-			headers: config.headers,
-			fetch: createUndiciFetch(undiciAgent),
-		});
+		return {
+			kind: 'anthropic',
+			provider: createAnthropic({
+				baseURL: config.baseURL || undefined,
+				apiKey: config.apiKey ?? '',
+				headers: config.headers,
+				fetch: createUndiciFetch(undiciAgent),
+			}),
+		};
 	}
 
 	if (sdkProvider === 'google') {
@@ -93,10 +104,13 @@ export async function createProvider(
 		});
 
 		const {createGoogleGenerativeAI} = await import('@ai-sdk/google');
-		return createGoogleGenerativeAI({
-			apiKey: config.apiKey ?? '',
-			fetch: createUndiciFetch(undiciAgent),
-		});
+		return {
+			kind: 'google',
+			provider: createGoogleGenerativeAI({
+				apiKey: config.apiKey ?? '',
+				fetch: createUndiciFetch(undiciAgent),
+			}),
+		};
 	}
 
 	if (sdkProvider === 'github-copilot') {
@@ -160,13 +174,16 @@ export async function createProvider(
 		};
 
 		const {createOpenAI} = await import('@ai-sdk/openai');
-		return createOpenAI({
-			baseURL,
-			// Empty key — auth is handled entirely by copilotFetch's Authorization header
-			apiKey: '',
-			fetch: copilotFetch,
-			headers: config.headers ?? {},
-		});
+		return {
+			kind: 'github-copilot',
+			provider: createOpenAI({
+				baseURL,
+				// Empty key — auth is handled entirely by copilotFetch's Authorization header
+				apiKey: '',
+				fetch: copilotFetch,
+				headers: config.headers ?? {},
+			}),
+		};
 	}
 
 	if (sdkProvider === 'chatgpt-codex') {
@@ -241,12 +258,15 @@ export async function createProvider(
 		};
 
 		const {createOpenAI} = await import('@ai-sdk/openai');
-		return createOpenAI({
-			baseURL,
-			apiKey: '',
-			fetch: codexFetch,
-			headers: config.headers ?? {},
-		});
+		return {
+			kind: 'chatgpt-codex',
+			provider: createOpenAI({
+				baseURL,
+				apiKey: '',
+				fetch: codexFetch,
+				headers: config.headers ?? {},
+			}),
+		};
 	}
 
 	// Add OpenRouter-specific headers for app attribution
@@ -257,11 +277,14 @@ export async function createProvider(
 	}
 
 	const {createOpenAICompatible} = await import('@ai-sdk/openai-compatible');
-	return createOpenAICompatible({
-		name: providerConfig.name,
-		baseURL: config.baseURL ?? '',
-		apiKey: config.apiKey ?? 'dummy-key',
-		fetch: createUndiciFetch(undiciAgent),
-		headers,
-	});
+	return {
+		kind: 'openai-compatible',
+		provider: createOpenAICompatible({
+			name: providerConfig.name,
+			baseURL: config.baseURL ?? '',
+			apiKey: config.apiKey ?? 'dummy-key',
+			fetch: createUndiciFetch(undiciAgent),
+			headers,
+		}),
+	};
 }
