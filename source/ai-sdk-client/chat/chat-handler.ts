@@ -127,11 +127,21 @@ export async function handleChat(
 			// XML tool definitions are already included in the system prompt
 			// when native tools are disabled (handled upstream in useChatHandler).
 
+			// AI SDK v6 wants the system prompt via the top-level `system` option
+			// rather than as a system-role entry in `messages` (it warns otherwise
+			// to discourage prompt-injection-prone patterns). Extract it here.
+			const systemContent = messages
+				.filter(m => m.role === 'system')
+				.map(m => m.content)
+				.join('\n\n');
+			const nonSystemMessages = messages.filter(m => m.role !== 'system');
+
 			// Convert messages to AI SDK v5 ModelMessage format
-			const modelMessages = convertToModelMessages(messages);
+			const modelMessages = convertToModelMessages(nonSystemMessages);
 
 			logger.debug('AI SDK request prepared', {
 				messageCount: modelMessages.length,
+				hasSystem: systemContent.length > 0,
 				hasTools: !!aiTools,
 				toolCount: aiTools ? Object.keys(aiTools).length : 0,
 			});
@@ -141,18 +151,17 @@ export async function handleChat(
 			// stopWhen controls when the tool loop stops (max MAX_TOOL_STEPS steps)
 
 			// ChatGPT/Codex backend requires the system message as a top-level
-			// `instructions` field rather than as an input item. Extract it and
-			// pass via providerOptions so the Responses API includes it.
+			// `instructions` field rather than as an input item. Pass via
+			// providerOptions so the Responses API includes it.
 			// reasoningSummary must be set for GPT-5 to emit human-readable
 			// reasoning text; without it the Thinking block stays empty.
 			let providerOptions:
 				| Record<string, Record<string, string | boolean>>
 				| undefined;
 			if (providerConfig.sdkProvider === 'chatgpt-codex') {
-				const systemMsg = messages.find(m => m.role === 'system');
 				providerOptions = {
 					openai: {
-						...(systemMsg ? {instructions: systemMsg.content} : {}),
+						...(systemContent ? {instructions: systemContent} : {}),
 						store: false,
 						reasoningEffort:
 							modeOverrides?.modelParameters?.reasoningEffort ?? 'medium',
@@ -165,6 +174,7 @@ export async function handleChat(
 			const streamingErrors: Error[] = [];
 			const result = streamText({
 				model,
+				...(systemContent ? {system: systemContent} : {}),
 				messages: modelMessages,
 				tools: aiTools,
 				abortSignal: signal,
