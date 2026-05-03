@@ -5,7 +5,7 @@ import {ensureString} from '@/utils/type-helpers';
 /**
  * Strip  tags from content (some models output thinking that shouldn't be shown)
  */
-function stripThinkTags(content: string): string {
+export function stripThinkTags(content: string): string {
 	return (
 		content
 			// Strip complete  blocks

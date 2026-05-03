@@ -96,12 +96,13 @@ test('StreamingReasoning truncates long messages', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-  // Truncated symbol, on newline
+  // Truncated symbol, on its own line. Box renderer may pad with trailing
+  // spaces to fill terminal width, so allow any whitespace before the newline.
 	t.regex(output!, /Thinking/);
-	t.regex(output!, /…\n/);
-	t.regex(output!, /line 3\n/);
-	t.regex(output!, /line 6\n/);
-	t.regex(output!, /line 14\n/);
+	t.regex(output!, /…[ ]*\n/);
+	t.regex(output!, /line 3[ ]*\n/);
+	t.regex(output!, /line 6[ ]*\n/);
+	t.regex(output!, /line 14[ ]*\n/);
 
   // First few lines truncated
 	t.notRegex(output!, /line 0/);

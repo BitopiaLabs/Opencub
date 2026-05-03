@@ -39,3 +39,13 @@ test('SettingsSelector main menu shows navigation hints', t => {
 	t.truthy(output!.includes('Enter') || output!.includes('Esc'));
 	unmount();
 });
+
+test('SettingsSelector main menu shows Display Settings option', t => {
+	const {lastFrame, unmount} = renderWithTheme(
+		<SettingsSelector onCancel={() => {}} />,
+	);
+	const output = lastFrame();
+	t.truthy(output);
+	t.truthy(output!.includes('Tool Results and Thinking'));
+	unmount();
+});

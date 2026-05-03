@@ -374,6 +374,94 @@ test.serial('processAssistantResponse - reasoning-only empty turn uses reasoning
 	);
 });
 
+test.serial('processAssistantResponse - strips <think> tags on the native path before content reaches UI and history', async t => {
+	const queuedComponents: any[] = [];
+	const messagesSetCalls: Message[][] = [];
+
+	// Native path (toolsDisabled:false). Content has a <think> block that
+	// would leak into the UI and conversation history without the strip.
+	const thinkLeakingClient = {
+		chat: async (): Promise<LLMChatResponse> => ({
+			choices: [
+				{
+					message: {
+						role: 'assistant',
+						content: '<think>Let me consider the options carefully.</think>Here is my answer.',
+						tool_calls: undefined,
+					},
+				},
+			],
+			toolsDisabled: false,
+		}),
+	};
+
+	const params = createDefaultParams({
+		client: thinkLeakingClient,
+		messages: [{role: 'user', content: 'Hi'}],
+		addToChatQueue: (component: any) => queuedComponents.push(component),
+		setMessages: (messages: Message[]) => messagesSetCalls.push(messages),
+	});
+
+	await processAssistantResponse(params);
+
+	// AssistantMessage component should receive cleaned content
+	const assistantMessage = queuedComponents.find(
+		(c: any) => typeof c.props?.message === 'string' && c.props.message.includes('Here is my answer.'),
+	);
+	t.truthy(assistantMessage, 'Should queue an AssistantMessage with the post-think content');
+	t.notRegex(assistantMessage.props.message, /<think>/i, 'AssistantMessage must not contain <think> tags');
+	t.notRegex(assistantMessage.props.message, /<\/think>/i, 'AssistantMessage must not contain </think> tags');
+
+	// Conversation history must also be clean — without the strip, every
+	// future turn would re-feed the <think> block into the model.
+	const lastSetMessages = messagesSetCalls[messagesSetCalls.length - 1];
+	const lastAssistant = [...lastSetMessages].reverse().find(m => m.role === 'assistant');
+	t.truthy(lastAssistant, 'Should append an assistant message to history');
+	t.notRegex(lastAssistant!.content as string, /<think>/i, 'History must not contain <think> tags');
+});
+
+test.serial('processAssistantResponse - malformed-XML cap stops the loop after MAX_MALFORMED_RETRIES', async t => {
+	let chatCallCount = 0;
+	const queuedComponents: any[] = [];
+
+	// Always return a malformed-XML pattern that XMLToolCallParser rejects.
+	// Combined with toolsDisabled:true, the real parseToolCalls drives the
+	// loop into the malformed branch on every turn.
+	const alwaysMalformedClient = {
+		chat: async (): Promise<LLMChatResponse> => {
+			chatCallCount += 1;
+			return {
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '<function=read_file>{"path":"a"}</function>',
+							tool_calls: undefined,
+						},
+					},
+				],
+				toolsDisabled: true,
+			};
+		},
+	};
+
+	const params = createDefaultParams({
+		client: alwaysMalformedClient,
+		messages: [{role: 'user', content: 'Hi'}],
+		addToChatQueue: (component: any) => queuedComponents.push(component),
+	});
+
+	await processAssistantResponse(params);
+
+	// MAX_MALFORMED_RETRIES = 2 → initial + 2 retries = 3 calls, then give up
+	t.is(chatCallCount, 3, 'Loop should stop after MAX_MALFORMED_RETRIES+1 chat calls');
+
+	const giveUpMessage = queuedComponents.find(
+		(c: any) => typeof c.props?.message === 'string' && c.props.message.includes('malformed tool calls'),
+	);
+	t.truthy(giveUpMessage, 'Should queue a give-up ErrorMessage when cap is hit');
+});
+
 test.serial('processAssistantResponse - empty-turn cap stops the loop after MAX_EMPTY_TURNS', async t => {
 	let chatCallCount = 0;
 	const queuedComponents: any[] = [];
