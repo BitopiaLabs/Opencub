@@ -256,4 +256,5 @@ export interface UserPreferences {
 	notifications?: NotificationsConfig;
 	paste?: PasteConfig;
 	reasoningExpanded?: boolean;
+	compactToolDisplay?: boolean;
 }

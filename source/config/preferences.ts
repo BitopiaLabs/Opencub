@@ -141,3 +141,37 @@ export function updatePasteThreshold(threshold: number): void {
 	}
 	savePreferences(preferences);
 }
+
+/**
+ * Get the reasoning expanded preference from preferences or environment
+ */
+export function getReasoningExpanded(): boolean {
+	const preferences = loadPreferences();
+	return preferences.reasoningExpanded ?? false;
+}
+
+/**
+ * Save the reasoning expanded preference
+ */
+export function updateReasoningExpanded(value: boolean): void {
+	const preferences = loadPreferences();
+	preferences.reasoningExpanded = value;
+	savePreferences(preferences);
+}
+
+/**
+ * Get the compact tool display preference from preferences or environment
+ */
+export function getCompactToolDisplay(): boolean {
+	const preferences = loadPreferences();
+	return preferences.compactToolDisplay ?? true;
+}
+
+/**
+ * Save the compact tool display preference
+ */
+export function updateCompactToolDisplay(value: boolean): void {
+	const preferences = loadPreferences();
+	preferences.compactToolDisplay = value;
+	savePreferences(preferences);
+}
