@@ -5,7 +5,7 @@ import AssistantReasoning from '@/components/assistant-reasoning';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {getAppConfig} from '@/config/index';
 import {MAX_EMPTY_TURNS, MAX_MALFORMED_RETRIES} from '@/constants';
-import {parseToolCalls} from '@/tool-calling/index';
+import {parseToolCalls, stripThinkTags} from '@/tool-calling/index';
 import {loadTasks} from '@/tools/tasks/storage';
 import type {Task} from '@/tools/tasks/types';
 import type {ToolManager} from '@/tools/tool-manager';
@@ -243,7 +243,12 @@ export const processAssistantResponse = async (
 
 	const message = result.choices[0].message;
 	const toolCalls = message.tool_calls || null;
-	const fullContent = message.content || '';
+	// Strip <think> tags unconditionally. Providers that emit reasoning via the
+	// SDK protocol (Anthropic, OpenAI o-series, Ollama with thinking) never put
+	// these in text, so this is a no-op for them. Providers that stream <think>
+	// as raw text (generic OpenAI-compat serving GLM/Kimi/Qwen) would otherwise
+	// leak the tokens into the assistant message and conversation history.
+	const fullContent = stripThinkTags(message.content || '');
 	const fullReasoning = message.reasoning;
 
 	// Only parse text for XML tool calls on the fallback path (non-tool-calling models).
