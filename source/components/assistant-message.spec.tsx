@@ -927,9 +927,21 @@ test('AssistantMessage strips whitespace-only content to empty', t => {
 	);
 
 	const output = stripAnsi(lastFrame() ?? '');
-	// Trimmed whitespace-only content should render without content text
+	// JSX attribute treats "\n" as literal backslash-n, so input is
+	// `   \n\n   ` (3 spaces + literal `\n\n` + 3 spaces). After trim, only
+	// the literal `\n\n` should remain — the input's surrounding 3-space
+	// runs must be gone. The box adds 1-char padding plus may pad lines to
+	// terminal width with trailing spaces; strip only `┃` and trim trailing
+	// width-padding before asserting the leading 3-space prefix is gone.
 	t.true(output.includes('test-model:'));
-	t.false(output.includes('   '));
+	const boxContent = output
+		.split('\n')
+		.filter(l => l.includes('┃'))
+		.map(l => l.replace(/^.*?┃/, '').trimEnd());
+	t.true(
+		boxContent.every(l => !l.startsWith('   ') && !l.endsWith('   ')),
+		`Trim should strip surrounding spaces, got: ${JSON.stringify(boxContent)}`,
+	);
 });
 
 test('AssistantMessage preserves internal newlines', t => {
