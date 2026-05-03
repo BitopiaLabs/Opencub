@@ -107,6 +107,11 @@ export const MAX_TOOL_STEPS = 10;
 // can produce reasoning-only turns; one or two retries usually clears it,
 // but unbounded recursion would loop forever.
 export const MAX_EMPTY_TURNS = 2;
+// Cap how many consecutive malformed-XML self-correction recursions we'll
+// attempt before surfacing an error. Without this, a model stuck producing
+// bad XML loops async and appends two messages per iteration until Node's
+// heap exhausts (~1.4GB).
+export const MAX_MALFORMED_RETRIES = 2;
 
 // === MCP ===
 export const TIMEOUT_MCP_DEFAULT_MS = 30_000;

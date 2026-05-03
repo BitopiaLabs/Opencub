@@ -4,7 +4,7 @@ import AssistantMessage from '@/components/assistant-message';
 import AssistantReasoning from '@/components/assistant-reasoning';
 import {ErrorMessage, InfoMessage} from '@/components/message-box';
 import {getAppConfig} from '@/config/index';
-import {MAX_EMPTY_TURNS} from '@/constants';
+import {MAX_EMPTY_TURNS, MAX_MALFORMED_RETRIES} from '@/constants';
 import {parseToolCalls} from '@/tool-calling/index';
 import {loadTasks} from '@/tools/tasks/storage';
 import type {Task} from '@/tools/tasks/types';
@@ -65,6 +65,10 @@ interface ProcessAssistantResponseParams {
 	// nudged in this loop. The empty-response branch increments and
 	// recurses; every other recursion site resets to 0.
 	emptyTurnCount?: number;
+	// Number of consecutive malformed-XML self-correction recursions that
+	// have already happened. The malformed branch increments and recurses;
+	// every other recursion site resets to 0.
+	malformedRetryCount?: number;
 }
 
 // Module-level flag: show XML fallback notice only once per process lifetime.
@@ -128,6 +132,7 @@ export const processAssistantResponse = async (
 		tune,
 		developmentMode,
 		emptyTurnCount = 0,
+		malformedRetryCount = 0,
 	} = params;
 
 	const startTime = conversationStartTime ?? Date.now();
@@ -262,6 +267,29 @@ export const processAssistantResponse = async (
 	// Check for malformed tool calls and send error back to model for self-correction
 	// (only happens on the XML fallback path)
 	if (!parseResult.success) {
+		// Cap malformed-retry recursion. Without this, a model stuck producing
+		// bad XML loops forever, appending two messages per iteration, until
+		// Node's heap exhausts.
+		if (malformedRetryCount >= MAX_MALFORMED_RETRIES) {
+			flushCompactCounts();
+			if (hasLiveTaskUpdates) {
+				await flushLiveTaskList();
+				hasLiveTaskUpdates = false;
+			}
+			addToChatQueue(
+				<ErrorMessage
+					key={`malformed-tool-giveup-${getNextComponentKey()}`}
+					message={`Model produced malformed tool calls ${MAX_MALFORMED_RETRIES + 1} times in a row and cannot self-correct. Try rephrasing the request or switching models.`}
+					hideBox={true}
+				/>,
+			);
+			setIsGenerating(false);
+			if (onConversationComplete) {
+				onConversationComplete();
+			}
+			return;
+		}
+
 		const errorContent = `${parseResult.error}\n\n${parseResult.examples}`;
 
 		// Display error to user
@@ -299,6 +327,7 @@ export const processAssistantResponse = async (
 			messages: updatedMessagesWithError,
 			conversationStartTime: startTime,
 			emptyTurnCount: 0,
+			malformedRetryCount: malformedRetryCount + 1,
 		});
 		return;
 	}
@@ -485,6 +514,7 @@ export const processAssistantResponse = async (
 			messages: updatedMessagesWithError,
 			conversationStartTime: startTime,
 			emptyTurnCount: 0,
+			malformedRetryCount: 0,
 		});
 		return;
 	}
@@ -600,6 +630,7 @@ export const processAssistantResponse = async (
 					messages: updatedMessagesWithTools,
 					conversationStartTime: startTime,
 					emptyTurnCount: 0,
+					malformedRetryCount: 0,
 				});
 				return;
 			}
@@ -749,6 +780,7 @@ export const processAssistantResponse = async (
 			messages: updatedMessagesWithNudge,
 			conversationStartTime: startTime,
 			emptyTurnCount: emptyTurnCount + 1,
+			malformedRetryCount: 0,
 		});
 		return;
 	}

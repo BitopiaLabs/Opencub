@@ -374,6 +374,48 @@ test.serial('processAssistantResponse - reasoning-only empty turn uses reasoning
 	);
 });
 
+test.serial('processAssistantResponse - malformed-XML cap stops the loop after MAX_MALFORMED_RETRIES', async t => {
+	let chatCallCount = 0;
+	const queuedComponents: any[] = [];
+
+	// Always return a malformed-XML pattern that XMLToolCallParser rejects.
+	// Combined with toolsDisabled:true, the real parseToolCalls drives the
+	// loop into the malformed branch on every turn.
+	const alwaysMalformedClient = {
+		chat: async (): Promise<LLMChatResponse> => {
+			chatCallCount += 1;
+			return {
+				choices: [
+					{
+						message: {
+							role: 'assistant',
+							content: '<function=read_file>{"path":"a"}</function>',
+							tool_calls: undefined,
+						},
+					},
+				],
+				toolsDisabled: true,
+			};
+		},
+	};
+
+	const params = createDefaultParams({
+		client: alwaysMalformedClient,
+		messages: [{role: 'user', content: 'Hi'}],
+		addToChatQueue: (component: any) => queuedComponents.push(component),
+	});
+
+	await processAssistantResponse(params);
+
+	// MAX_MALFORMED_RETRIES = 2 → initial + 2 retries = 3 calls, then give up
+	t.is(chatCallCount, 3, 'Loop should stop after MAX_MALFORMED_RETRIES+1 chat calls');
+
+	const giveUpMessage = queuedComponents.find(
+		(c: any) => typeof c.props?.message === 'string' && c.props.message.includes('malformed tool calls'),
+	);
+	t.truthy(giveUpMessage, 'Should queue a give-up ErrorMessage when cap is hit');
+});
+
 test.serial('processAssistantResponse - empty-turn cap stops the loop after MAX_EMPTY_TURNS', async t => {
 	let chatCallCount = 0;
 	const queuedComponents: any[] = [];
