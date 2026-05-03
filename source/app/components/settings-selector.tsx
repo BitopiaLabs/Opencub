@@ -6,12 +6,16 @@ import {type ReactNode, useMemo, useState} from 'react';
 import type {TitleShape} from '@/components/ui/styled-title';
 import {TitledBoxWithPreferences} from '@/components/ui/titled-box';
 import {
+	getCompactToolDisplay,
 	getNanocoderShape,
 	getNotificationsPreference,
 	getPasteThreshold,
+	getReasoningExpanded,
+	updateCompactToolDisplay,
 	updateNanocoderShape,
 	updateNotificationsPreference,
 	updatePasteThreshold,
+	updateReasoningExpanded,
 	updateSelectedTheme,
 } from '@/config/preferences';
 import {getThemeColors, themes} from '@/config/themes';
@@ -30,6 +34,7 @@ type SettingsStep =
 	| 'nanocoder-shape'
 	| 'paste-threshold'
 	| 'notifications'
+	| 'display-settings'
 	| 'done';
 
 interface SettingsSelectorProps {
@@ -78,6 +83,11 @@ function SettingsMainMenu({
 			label: 'Notifications',
 			value: 'notifications',
 			description: 'Desktop notification preferences',
+		},
+		{
+			label: 'Tool Results and Thinking',
+			value: 'display-settings',
+			description: 'Set defaults for model thoughts and tool results',
 		},
 		{
 			label: 'Done',
@@ -902,6 +912,96 @@ function SettingsNotificationsPanel({
 	);
 }
 
+// Display settings panel
+function SettingsDisplayPanel({
+	onBack,
+	onCancel,
+}: {
+	onBack: () => void;
+	onCancel: () => void;
+}) {
+	const {boxWidth, isNarrow} = useResponsiveTerminal();
+	const {colors} = useTheme();
+
+	const currentReasoningExpanded = getReasoningExpanded();
+	const currentCompactToolDisplay = getCompactToolDisplay();
+
+	useInput((_, key) => {
+		if (key.escape) {
+			onCancel();
+		}
+		if (key.shift && key.tab) {
+			onBack();
+		}
+	});
+
+	type ToggleKey = 'reasoningExpanded' | 'compactToolDisplay';
+
+	const items: {label: string; value: ToggleKey}[] = useMemo(() => {
+		const isOn = (val: boolean | undefined) => (val ? 'ON' : 'OFF');
+		return [
+			{
+				label: `Show Thinking by default: ${isOn(currentReasoningExpanded)}`,
+				value: 'reasoningExpanded' as ToggleKey,
+			},
+			{
+				label: `Expand Tool Results by default: ${isOn(currentCompactToolDisplay)}`,
+				value: 'compactToolDisplay' as ToggleKey,
+			},
+		];
+	}, [currentReasoningExpanded, currentCompactToolDisplay]);
+
+	const handleSelect = (item: {label: string; value: ToggleKey}) => {
+		if (item.value === 'reasoningExpanded') {
+			const newValue = !currentReasoningExpanded;
+			updateReasoningExpanded(newValue);
+		} else if (item.value === 'compactToolDisplay') {
+			const newValue = !currentCompactToolDisplay;
+			updateCompactToolDisplay(newValue);
+		}
+		onBack();
+	};
+
+	const title = isNarrow ? 'Display' : 'Display Settings';
+
+	return (
+		<TitledBoxWithPreferences
+			title={title}
+			width={isNarrow ? '100%' : boxWidth}
+			borderColor={colors.primary}
+			paddingX={2}
+			paddingY={1}
+			flexDirection="column"
+			marginBottom={1}
+		>
+			{!isNarrow && (
+				<Box marginBottom={1}>
+					<Text color={colors.secondary}>
+						Toggle settings with Enter. Shift+Tab to go back, Esc to exit
+					</Text>
+				</Box>
+			)}
+			<SelectInput
+				items={items}
+				onSelect={handleSelect}
+				indicatorComponent={({isSelected}) => (
+					<Text color={isSelected ? colors.primary : colors.text}>
+						{isSelected ? '> ' : '  '}
+					</Text>
+				)}
+				itemComponent={({isSelected, label}) => (
+					<Text color={isSelected ? colors.primary : colors.text}>{label}</Text>
+				)}
+			/>
+			{isNarrow && (
+				<Box marginTop={0}>
+					<Text color={colors.secondary}>Enter/Shift+Tab/Esc</Text>
+				</Box>
+			)}
+		</TitledBoxWithPreferences>
+	);
+}
+
 // Main settings selector with step navigation
 export function SettingsSelector({onCancel}: SettingsSelectorProps) {
 	const [step, setStep] = useState<SettingsStep>('main');
@@ -940,6 +1040,13 @@ export function SettingsSelector({onCancel}: SettingsSelectorProps) {
 		case 'notifications':
 			return (
 				<SettingsNotificationsPanel
+					onBack={() => setStep('main')}
+					onCancel={onCancel}
+				/>
+			);
+		case 'display-settings':
+			return (
+				<SettingsDisplayPanel
 					onBack={() => setStep('main')}
 					onCancel={onCancel}
 				/>
