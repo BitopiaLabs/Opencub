@@ -37,9 +37,11 @@ Browse our open issues. If you find an unassigned issue you'd like to work on, c
 
 ### Prerequisites
 
-- Node.js 20+
-- npm or pnpm
+- Node.js 22+
+- pnpm (managed via Corepack — see below)
 - Git
+
+> **pnpm version is pinned via Corepack.** The repo's `package.json` declares `"packageManager": "pnpm@11.x.x"`, and Node 22 ships [Corepack](https://nodejs.org/api/corepack.html) which auto-uses that exact pnpm version when you run `pnpm` inside the repo — no manual install needed. If you see `Corepack must be enabled`, run `corepack enable` once. To bump pnpm for the project, run `corepack use pnpm@latest` (this rewrites the `packageManager` field; CI follows automatically).
 
 ### Setup Steps
 
@@ -111,8 +113,8 @@ For a zero-setup, consistent development environment, we recommend using VS Code
 
 The devcontainer comes pre-configured with:
 
-- **Node.js 20.x** - Pre-installed and ready
-- **pnpm 9.x** - Package manager with cached store
+- **Node.js 22.x** - Pre-installed and ready
+- **pnpm latest** - Package manager with cached store
 - **Biome** - Formatter and linter (auto-formats on save)
 - **Zsh + Oh My Zsh** - Enhanced shell experience
 - **VS Code Extensions** - Biome, TypeScript, GitLens pre-installed
