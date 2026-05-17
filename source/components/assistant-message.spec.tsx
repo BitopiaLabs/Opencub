@@ -5,9 +5,9 @@ import React from 'react';
 import {themes} from '../config/themes';
 import {ThemeContext} from '../hooks/useTheme';
 import {
-	type Colors,
 	decodeHtmlEntities,
 	parseMarkdown,
+	parseMarkdownParts,
 	parseMarkdownTable,
 } from '../markdown-parser/index';
 import AssistantMessage from './assistant-message';
@@ -576,6 +576,114 @@ test('parseMarkdown handles code blocks without language', t => {
 // ============================================================================
 // Edge Case Tests - Things That Should NOT Be Formatted
 // ============================================================================
+
+test('parseMarkdownParts returns single text part for plain text', t => {
+	const parts = parseMarkdownParts('Hello world', mockColors);
+	t.is(parts.length, 1);
+	t.is(parts[0]?.type, 'text');
+	t.true(stripAnsi(parts[0]?.content ?? '').includes('Hello world'));
+});
+
+test('parseMarkdownParts splits fenced code blocks into separate parts', t => {
+	const message = 'Before code\n```javascript\nconst x = 5;\n```\nAfter code';
+	const parts = parseMarkdownParts(message, mockColors);
+	t.is(parts.length, 3);
+	t.is(parts[0]?.type, 'text');
+	t.true(stripAnsi(parts[0]?.content ?? '').includes('Before code'));
+	t.is(parts[1]?.type, 'code');
+	t.true(stripAnsi(parts[1]?.content ?? '').includes('const x = 5;'));
+	t.is(parts[2]?.type, 'text');
+	t.true(stripAnsi(parts[2]?.content ?? '').includes('After code'));
+});
+
+test('parseMarkdownParts keeps blockquote-wrapped fenced code as text', t => {
+	const message = [
+		'> Run this:',
+		'> ',
+		'> ```bash',
+		'> llama-server -m model.gguf',
+		'> ```',
+		'> ',
+		'> Then configure.',
+	].join('\n');
+	const parts = parseMarkdownParts(message, mockColors);
+	t.is(parts.length, 1);
+	t.is(parts[0]?.type, 'text');
+	const content = stripAnsi(parts[0]?.content ?? '');
+	t.true(content.includes('llama-server -m model.gguf'));
+	t.true(content.includes('Run this:'));
+	t.true(content.includes('Then configure.'));
+});
+
+test('parseMarkdownParts extracts indented fenced code (e.g. inside a list)', t => {
+	const message = [
+		'- Compute:',
+		'',
+		'    ```ts',
+		'    const visibleItems = filteredModels.slice(scrollStart);',
+		'    ```',
+	].join('\n');
+	const parts = parseMarkdownParts(message, mockColors);
+	const codePart = parts.find(p => p.type === 'code');
+	t.truthy(codePart, 'indented fenced code should be extracted');
+	const code = stripAnsi(codePart?.content ?? '');
+	t.true(code.includes('const visibleItems = filteredModels.slice(scrollStart);'));
+	t.false(code.startsWith('    '), 'leading indentation should be stripped');
+	t.false(code.includes('```'), 'fences should be removed');
+});
+
+test('parseMarkdownParts keeps indented list continuations as text', t => {
+	const message = '- item\n    continuation text';
+	const parts = parseMarkdownParts(message, mockColors);
+	t.is(parts.length, 1);
+	t.is(parts[0]?.type, 'text');
+	const content = stripAnsi(parts[0]?.content ?? '');
+	t.true(content.includes('• item'));
+	t.true(content.includes('continuation text'));
+});
+
+test('parseMarkdownParts code part does not contain the original fences', t => {
+	const message = '```javascript\nreturn 42;\n```';
+	const parts = parseMarkdownParts(message, mockColors);
+	const codePart = parts.find(p => p.type === 'code');
+	t.truthy(codePart);
+	t.false(codePart?.content.includes('```'));
+});
+
+test('parseMarkdownParts inline code stays in text parts', t => {
+	const message = 'Use `foo()` to call it';
+	const parts = parseMarkdownParts(message, mockColors);
+	// No fenced code blocks → should be a single text part
+	t.is(parts.length, 1);
+	t.is(parts[0]?.type, 'text');
+	t.true(stripAnsi(parts[0]?.content ?? '').includes('foo()'));
+});
+
+// ============================================================================
+// Component rendering: code blocks should appear without ┃ border
+// ============================================================================
+
+test('AssistantMessage renders code blocks without ┃ border', t => {
+	const message = 'Here is some code:\n```javascript\nconst answer = 42;\n```\nDone.';
+	const {lastFrame} = render(
+		<MockThemeProvider>
+			<AssistantMessage message={message} model="test-model" />
+		</MockThemeProvider>,
+	);
+
+	const output = stripAnsi(lastFrame() ?? '');
+	// Code content must appear in the output
+	t.true(output.includes('answer'), 'code content should be present');
+	// Every line containing the code identifier must NOT have ┃ in the same line
+	const codeLines = output.split('\n').filter(l => l.includes('answer'));
+	t.true(codeLines.length > 0, 'code lines should exist');
+	for (const line of codeLines) {
+		t.false(line.includes('┃'), `code line should not have ┃ border: ${line}`);
+	}
+	// Text around the code block should still have the border
+	const textLines = output.split('\n').filter(l => l.includes('┃'));
+	t.true(textLines.length > 0, 'text parts should still have ┃ border');
+});
 
 test('parseMarkdown does not create bullet list from hyphen in middle of line', t => {
 	const text = 'The file path is C:\\Users\\John - Documents\\file.txt';
