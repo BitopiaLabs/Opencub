@@ -5,80 +5,19 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import {getAppDataPath, getConfigPath} from '@/shared/config/paths';
+import {getAppDataPath} from '@/shared/config/paths';
 import {MAX_DAILY_AGGREGATES, MAX_USAGE_SESSIONS} from '@/shared/constants';
 import type {
 	DailyAggregate,
 	SessionUsage,
 	UsageData,
 } from '@/shared/types/usage';
-import {logInfo, logWarning} from '@/shared/utils/message-queue';
+import {logWarning} from '@/shared/utils/message-queue';
 
 const USAGE_FILE_NAME = 'usage.json';
 
-function getLegacyUsageFilePath(): string {
-	// Legacy location: config directory (pre-app-data change)
-	try {
-		const configDir = getConfigPath();
-		return path.join(configDir, USAGE_FILE_NAME);
-	} catch {
-		return '';
-	}
-}
-
 function getUsageFilePath(): string {
-	const appDataDir = getAppDataPath();
-	const newPath = path.join(appDataDir, USAGE_FILE_NAME);
-
-	// If new path already exists, use it
-	if (fs.existsSync(newPath)) {
-		return newPath;
-	}
-
-	// LEGACY_MIGRATION_REMOVE_AFTER: 1.27.0
-	// One-time migration of usage data from the old config dir to the app-data dir.
-	// Drop this branch and `getLegacyUsageFilePath` once 1.27.0 has shipped and
-	// any dormant installs have had a chance to update.
-	const legacyPath = getLegacyUsageFilePath();
-	if (legacyPath && fs.existsSync(legacyPath)) {
-		try {
-			if (!fs.existsSync(appDataDir)) {
-				fs.mkdirSync(appDataDir, {recursive: true});
-			}
-
-			try {
-				fs.renameSync(legacyPath, newPath);
-				logInfo(`Migrated usage data to new location: ${newPath}`);
-			} catch (renameError) {
-				// Fallback if rename/move fails: copy then best-effort delete
-				logWarning(
-					`Could not move usage file (${
-						renameError instanceof Error ? renameError.message : 'unknown error'
-					}), copying instead...`,
-				);
-				fs.copyFileSync(legacyPath, newPath);
-				try {
-					fs.unlinkSync(legacyPath);
-					logInfo(`Successfully migrated usage data to: ${newPath}`);
-				} catch {
-					logWarning(
-						`Migrated usage data to new location, but could not remove old file at ${legacyPath}. You may want to manually delete it.`,
-					);
-				}
-			}
-
-			return newPath;
-		} catch (error) {
-			// On any failure, fall through to using newPath without migration
-			logWarning(
-				`Failed to migrate usage data from ${legacyPath}: ${
-					error instanceof Error ? error.message : 'unknown error'
-				}. Old data remains at legacy location.`,
-			);
-		}
-	}
-
-	return newPath;
+	return path.join(getAppDataPath(), USAGE_FILE_NAME);
 }
 
 function ensureAppDataDir(): void {

@@ -191,17 +191,8 @@ jobs:
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-  update-homebrew:
-    needs: [check-version, publish, update-nix]
-    if: needs.check-version.outputs.should-publish == 'true'
-    uses: ./.github/workflows/update-homebrew.yml
-    with:
-      version: ${{ needs.check-version.outputs.package-version }}
-    secrets:
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-
   notify:
-    needs: [check-version, publish, update-nix, update-homebrew]
+    needs: [check-version, publish, update-nix]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -214,11 +205,6 @@ jobs:
                 echo "✅ Nix package updated successfully!"
               else
                 echo "⚠️ Warning: Nix package update failed"
-              fi
-              if [ "${{ needs.update-homebrew.result }}" == "success" ]; then
-                echo "✅ Homebrew formula updated successfully!"
-              else
-                echo "⚠️ Warning: Homebrew formula update failed"
               fi
             else
               echo "❌ Failed to publish opencub v${{ needs.check-version.outputs.package-version }}"

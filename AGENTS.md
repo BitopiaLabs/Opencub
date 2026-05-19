@@ -1,145 +1,100 @@
 # AGENTS.md
 
-AI coding agent instructions for **opencub**
+AI coding agent instructions for **opencub**.
 
 ## Project Overview
 
-A local-first CLI coding agent that brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter
+A local-first CLI coding agent. Brings the power of agentic coding tools (Claude Code, Gemini CLI, Aider) to local models (Ollama, llama.cpp) and controlled APIs (OpenRouter, Anthropic, Google, any OpenAI-compatible endpoint).
 
-**Project Type:** React Web Application
-**Primary Language:** TypeScript (99% of codebase)
+**Project Type:** Node.js CLI built with React (Ink.js)
+**Primary Language:** TypeScript (strict mode)
+**Binary:** `cub`
+**Package:** `opencub`
 
 ## Architecture
 
 **Key Frameworks & Libraries:**
-- React (^19.0.0) - web
+- React 19 with Ink.js for terminal UI
+- Vercel AI SDK (`ai` v6) for LLM integration
+- Model Context Protocol SDK
+- AVA for tests, Biome for lint/format
 
 **Project Structure:**
-- `assets/` - Static assets
-- `docs/` - Documentation
-- `src/` - Source code
-- `.github/assets/` - Static assets
-- `docs/configuration/` - Project files
-- `docs/features/` - Project files
-- `docs/getting-started/` - Project files
-- `src/ai-sdk-client/` - Project files
-- `src/app/` - Application code
-- `src/auth/` - Project files
-- `src/commands/` - Project files
-- `src/components/` - React/UI components
-- `src/config/` - Configuration files
-- `src/context/` - Project files
-- `src/custom-commands/` - Project files
-- `src/hooks/` - Project files
-- `src/init/` - Project files
-- `src/lsp/` - Project files
-- `src/markdown-parser/` - Project files
-- `src/mcp/` - Project files
 
-## Key Files
-
-**Configuration:**
-- `package.json` - Node.js dependencies and scripts
-- `plugins/vscode/package.json` - Node.js dependencies and scripts
-- `pnpm-lock.yaml` - Configuration file
-
-**Documentation:**
-- `docs/**.md`
-- `README.md`
-- `.devcontainer/README.md`
-- `.github/ISSUE_TEMPLATE/bug_report.md`
-- `.github/ISSUE_TEMPLATE/feature_request.md`
+```
+src/
+├── cli.tsx              Entry point (compiled to dist/cli.js, run as `cub`)
+├── app/                 App shell, orchestration, prompts
+├── hooks/               React hooks (state, handlers, chat-handler)
+├── ui/                  Ink components
+│   └── primitives/      Low-level UI building blocks
+├── commands/            Slash commands, registry, parser
+├── tools/               Built-in tools + registry
+│   └── tool-calling/    XML/JSON tool-call parsers (fallback path)
+├── llm/                 LLM stack
+│   ├── ai-sdk-client/   Vercel AI SDK wrapper
+│   ├── models/          models.dev integration
+│   ├── model-database/  Model metadata
+│   └── client-factory.ts
+├── integrations/        External integrations
+│   ├── mcp/
+│   ├── lsp/
+│   └── vscode/
+├── features/            Product features
+│   ├── auth/            Copilot/Codex login
+│   ├── session/         Chat session persistence
+│   ├── schedule/        Cron-scheduled runs
+│   ├── subagents/       Delegated agent runs
+│   ├── custom-commands/ User markdown commands
+│   ├── init/            /init wizard
+│   ├── wizards/         Setup wizards
+│   ├── usage/           Usage tracking
+│   └── plain/           --plain Ink-free runtime
+├── shared/              Shared utilities (utils, types, config, etc.)
+└── test-utils/          Shared test helpers
+```
 
 ## Development Commands
 
-**Build:**
 ```bash
-npm run build
-```
-
-**Development:**
-```bash
-npm run dev
-```
-
-**Start:**
-```bash
-npm run start
+pnpm run build          # Compile TypeScript to dist/
+pnpm run dev            # Watch mode
+pnpm run start          # Run compiled CLI (`cub`)
+pnpm run test:all       # Full check: format, lint, types, AVA tests, knip, audit, security
+pnpm run test:ava src/path/to/file.spec.ts  # Run single test file
+pnpm run test:lint:fix  # Auto-fix lint/format issues
 ```
 
 ## Code Style Guidelines
 
-- Use camelCase for variables and functions
-- Use PascalCase for classes and components
-- Prefer const/let over var
-- Use async/await over callbacks when possible
-- Use functional components with hooks
-- Follow React naming conventions for components
+- TypeScript strict mode, `@/*` path alias → `src/*`
+- Biome enforces: tabs, single quotes, semicolons, trailing commas, 80-char lines
+- Key lint rules: `useExhaustiveDependencies`, `noUnusedVariables`, `noUnusedImports` (all error)
+- React 19 functional components with hooks; PascalCase for components, camelCase for everything else
+- Prefer `const`/`let`, async/await, native ES features
 
 ## Testing
 
-**Test Files:**
-- `.opencub/commands/test.md`
-- `scripts/test-copilot.sh`
-- `scripts/test.sh`
-- `src/ai-sdk-client/ai-sdk-client.spec.ts`
-- `src/ai-sdk-client/chat/chat-handler.spec.ts`
+- Framework: **AVA** with tsx loader
+- Specs co-located: `src/**/*.spec.ts` and `*.spec.tsx`
+- Serial execution (tests run one at a time)
+- Run single test: `pnpm run test:ava src/path/to/file.spec.ts`
 
-## Existing Project Guidelines
+## State Management
 
-*The following guidelines were found in existing AI configuration files:*
+All app state lives in `src/hooks/useAppState.tsx`. Other hooks receive state and setters from it. `src/app/App.tsx` orchestrates them via `useAppHandlers`. Global `src/shared/utils/message-queue.tsx` lets deep components push messages to the chat without prop-drilling.
 
-### AI Agent Guidelines
-**From CLAUDE.md:**
-# Build and run
-pnpm run build          # Compile TypeScript to dist/ with executable permissions
-pnpm run build:credits  # Regenerate contributors.json from git history (CI/release only)
-pnpm run start          # Run the compiled application
-pnpm run dev            # Watch mode compilation (tsc --watch)
+## LLM Stack
 
-# Testing (run before committing)
-pnpm run test:all       # Full suite: format, lint, types, AVA tests, knip
-
-## Project Overview
-OpenCub is a React-based CLI coding agent built with Ink.js that provides local-first AI assistance with multiple provider support (Ollama, OpenRouter, any OpenAI-compatible API).
-
-**Entry point**: `src/cli.tsx` → Ink render of `App` from `src/app.tsx`
-
-### State Management Pattern
-All state lives in `useAppState.tsx`. Other hooks (`useChatHandler`, `useToolHandler`, `useModeHandlers`) receive state and setters from it. `App.tsx` orchestrates these hooks together. Global `message-queue.ts` allows deep components to add chat messages.
-
-### LLM Client Architecture
-`client-factory.ts` creates clients via `createLLMClient(provider?)`. Uses Vercel AI SDK with `createOpenAICompatible` for any OpenAI-compatible API. Supports streaming responses and tool calling.
-
-## Code Style
-- **TypeScript strict mode** with `@/*` path alias mapping to `src/*`
-- **Biome** for formatting (tabs, single quotes, semicolons, trailing commas)
-- **Key lint rules**: `useExhaustiveDependencies: error`, `noUnusedVariables: error`, `noUnusedImports: error`
-- **React 19** with Ink.js for CLI rendering
-
-## Testing
-- **Framework**: AVA with tsx loader
-- **Location**: `src/**/*.spec.ts` files alongside source
-- **Serial execution**: Tests run one at a time
-- **Run single test**: `pnpm run test:ava src/path/to/file.spec.ts`
-
+`src/llm/client-factory.ts` creates clients via `createLLMClient(provider?)`. The wrapper logic (streaming, tool calls, error handling, retries) lives in `src/llm/ai-sdk-client/`.
 
 ## AI Coding Assistance Notes
 
-**Important Considerations:**
-- Check package.json for available scripts before running commands
-- Be aware of Node.js version requirements
-- Consider impact on bundle size when adding dependencies
-- Follow React hooks best practices
-- Consider component reusability when creating new components
-- Project has 809 files across 93 directories
-- Large codebase: Focus on specific areas when making changes
-- Check build configuration files before making structural changes
+- Use the `string_replace` and `write_file` tools — they're the supported edit primitives.
+- Tool execution has two paths: native (AI SDK) and XML/JSON fallback for non-tool-trained models. `LLMChatResponse.toolsDisabled` signals which path produced the response.
+- The CLI has a fast path for `--version` / `--help` that avoids importing the React app — don't add static imports to the top of `src/cli.tsx`.
+- For UI changes: build and run `./dist/cli.js` to verify (tests don't catch every UX regression).
 
 ## Repository
 
-**Source:** https://github.com/tylerthomas/opencub.git
-
----
-
-*This AGENTS.md file was generated by OpenCub. Update it as your project evolves.*
+Source: https://github.com/tylerthomas/opencub

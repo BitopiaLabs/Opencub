@@ -17,21 +17,12 @@ import type {SubagentConfigWithSource, SubagentLoadPriority} from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Resolve the built-in agents directory.
- * Works from both source (dev) and dist (built) locations.
- */
+// Built-in agent .md files are not compiled to dist/, so when running from dist
+// we point back at the src/ tree (shipped via package.json `files`).
 function getBuiltInAgentsDir(): string {
-	// In source: src/features/subagents/built-in/
-	// In dist: dist/features/subagents/built-in/ -- but .md files are not compiled,
-	// so when running from dist we point back at the source tree.
-	const sourceDir = path.resolve(
-		__dirname,
-		'../../../src/features/subagents/built-in',
-	);
 	const localDir = path.resolve(__dirname, './built-in');
-	// Prefer the local dir (works in source), fall back to source dir (works from dist)
-	return localDir.includes('src/features') ? localDir : sourceDir;
+	if (localDir.includes('src/features')) return localDir;
+	return path.resolve(__dirname, '../../../src/features/subagents/built-in');
 }
 
 /**

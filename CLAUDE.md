@@ -16,13 +16,13 @@ pnpm run test:all       # Full suite: format, lint, types, AVA tests, knip, audi
 
 # Individual test commands
 pnpm run test:ava src/path/to/file.spec.ts  # Run single test file
-pnpm run test:ava:coverage                      # Tests with coverage
-pnpm run test:types                             # TypeScript checking only
-pnpm run test:format                            # Biome format check
-pnpm run test:lint                              # Biome lint check
-pnpm run test:lint:fix                          # Auto-fix lint/format issues
-pnpm run test:knip                              # Unused code detection
-pnpm run test:benchmark                         # Run model benchmarks
+pnpm run test:ava:coverage                  # Tests with coverage
+pnpm run test:types                         # TypeScript checking only
+pnpm run test:format                        # Biome format check
+pnpm run test:lint                          # Biome lint check
+pnpm run test:lint:fix                      # Auto-fix lint/format issues
+pnpm run test:knip                          # Unused code detection
+pnpm run test:benchmark                     # Run model benchmarks
 
 # VS Code extension
 pnpm run build:vscode   # Build extension to assets/opencub-vscode.vsix
@@ -30,43 +30,68 @@ pnpm run build:vscode   # Build extension to assets/opencub-vscode.vsix
 
 ## Project Overview
 
-OpenCub is a React-based CLI coding agent built with Ink.js that provides local-first AI assistance with multiple provider support (Ollama, OpenRouter, any OpenAI-compatible API).
+OpenCub is a React-based CLI coding agent built with Ink.js that provides local-first AI assistance with multiple provider support (Ollama, OpenRouter, Anthropic, Google, any OpenAI-compatible API).
 
-**Entry point**: `src/cli.tsx` → dynamic import of `App` from `src/app/App.tsx` (re-exported via `src/app/index.ts`). `cli.tsx` has fast paths for `--help`/`--version` (no app import), copilot/codex device-flow login, and a `--plain` non-Ink shell (`src/plain/shell.ts`) for CI / non-TTY environments.
+**Entry point**: `src/cli.tsx` → dynamic import of `App` from `src/app/App.tsx` (re-exported via `src/app/index.ts`). `cli.tsx` has fast paths for `--help`/`--version` (no app import), copilot/codex device-flow login, and a `--plain` non-Ink shell (`src/features/plain/shell.ts`) for CI / non-TTY environments.
 
 ## Architecture
 
 ### Core Application Flow
 
-1. **Directory Trust Check** (`useDirectoryTrust`) - First-run security disclaimer for new directories
-2. **App Initialization** (`useAppInitialization`) - Creates LLM client, loads MCP servers, loads custom commands
-3. **Central State** (`useAppState`) - Single source of truth for 50+ state variables
-4. **Chat/Tool Flow** - User input → LLM → tool confirmation → execution → response
+1. **Directory Trust Check** (`useDirectoryTrust`) — First-run security disclaimer for new directories
+2. **App Initialization** (`useAppInitialization`) — Creates LLM client, loads MCP servers, loads custom commands
+3. **Central State** (`useAppState`) — Single source of truth for 50+ state variables
+4. **Chat/Tool Flow** — User input → LLM → tool confirmation → execution → response
 
-### Key Directories
+### Top-level layout
 
-- `src/hooks/` - React hooks: `useAppState` (central state), `useToolHandler`, `useModeHandlers`, `useAppHandlers` (orchestrator), plus `chat-handler/useChatHandler` (LLM interaction, in subdir)
-- `src/app/` - `App.tsx` plus app-internal helpers (`utils/app-util.ts`, `utils/conversation-state.ts`, prompt sections, orchestration hooks in `app/hooks/`)
-- `src/ai-sdk-client/` - Wrapper over Vercel AI SDK: chat handler, providers, converters, tool helpers, error handling
-- `src/tools/` - Built-in tools (file ops, bash, search, web fetch). Registered in `src/tools/tool-manager.ts`; main file editors are `string_replace` and `write_file`
-- `src/components/` - Ink UI components
-- `src/config/` - Configuration loading and preferences
-- `src/commands/` - Built-in slash commands (`/model`, `/provider`, `/clear`, etc.)
-- `src/custom-commands/` - User-defined markdown commands from `.opencub/commands/`
-- `src/mcp/` - Model Context Protocol server integration
-- `src/tool-calling/` - XML/text tool-call parsers for the fallback path (non-native-tool models)
-- `src/services/` - Checkpoint manager, bash executor, file snapshots
-- `src/session/` - Chat session persistence (autosave / resume)
-- `src/schedule/` - Cron-based scheduled agent runs (`scheduler` mode)
-- `src/subagents/` - Subagent executor (delegated agent runs)
-- `src/auth/` - Copilot / Codex device-flow login
-- `src/lsp/` - Language server client integration
-- `src/wizards/` - Interactive setup flows (config, MCP, providers)
-- `src/plain/` - Non-Ink CLI shell used by `--plain`
+```
+src/
+├── cli.tsx              # Entry point (binary: cub)
+├── app/                 # App shell, orchestration, prompts
+├── hooks/               # React hooks (state, handlers, chat-handler)
+├── ui/                  # Ink components (was: components/)
+│   └── primitives/      # Low-level UI building blocks
+├── commands/            # Slash commands, registry, parser
+├── tools/               # Built-in tools, registry
+│   └── tool-calling/    # XML / JSON tool-call parsers (fallback path)
+├── llm/                 # LLM stack
+│   ├── ai-sdk-client/   # Vercel AI SDK wrapper
+│   ├── models/          # models.dev integration
+│   ├── model-database/  # Model metadata
+│   └── client-factory.ts
+├── integrations/        # External integrations
+│   ├── mcp/             # Model Context Protocol
+│   ├── lsp/             # Language Server Protocol
+│   └── vscode/          # VS Code extension server
+├── features/            # Product features
+│   ├── auth/            # Copilot / Codex device-flow login
+│   ├── session/         # Chat session persistence
+│   ├── schedule/        # Cron-scheduled agent runs
+│   ├── subagents/       # Delegated agent runs
+│   ├── custom-commands/ # User markdown commands from .opencub/commands/
+│   ├── init/            # /init wizard
+│   ├── wizards/         # Interactive setup flows
+│   ├── usage/           # Usage tracking
+│   └── plain/           # --plain Ink-free runtime
+├── shared/              # Shared utilities
+│   ├── utils/
+│   ├── types/
+│   ├── config/
+│   ├── context/
+│   ├── tokenization/
+│   ├── markdown-parser/
+│   ├── security/
+│   ├── services/
+│   ├── constants.ts
+│   ├── prompt-history.ts
+│   └── message-handler.ts
+└── test-utils/          # Shared test helpers
+```
 
 ### State Management Pattern
 
-All state lives in `src/hooks/useAppState.tsx`. Other hooks (`useChatHandler`, `useToolHandler`, `useModeHandlers`) receive state and setters from it. `src/app/App.tsx` orchestrates them via `useAppHandlers`. Global `src/utils/message-queue.tsx` lets deep components push chat messages without prop-drilling.
+All state lives in `src/hooks/useAppState.tsx`. Other hooks (`useChatHandler`, `useToolHandler`, `useModeHandlers`) receive state and setters from it. `src/app/App.tsx` orchestrates them via `useAppHandlers`. Global `src/shared/utils/message-queue.tsx` lets deep components push chat messages without prop-drilling.
 
 ### Tool System
 
@@ -80,7 +105,7 @@ File editing uses a content-based approach:
 - `string_replace`: Primary edit tool — replaces exact content
 - `write_file`: Whole file overwrites
 
-Two execution paths exist: native tool calling (preferred, via AI SDK) and an XML fallback for models that don't support tools. `LLMChatResponse.toolsDisabled` signals which path produced the response; the conversation loop only runs `parseToolCalls()` (in `src/tool-calling/`) when `toolsDisabled` is true.
+Two execution paths exist: native tool calling (preferred, via AI SDK) and XML/JSON fallbacks for models that don't support tools. `LLMChatResponse.toolsDisabled` signals which path produced the response; the conversation loop only runs `parseToolCalls()` (in `src/tools/tool-calling/`) when `toolsDisabled` is true.
 
 ### Command System
 
@@ -98,7 +123,7 @@ Environment variable substitution in config values: `$VAR`, `${VAR}`, `${VAR:-de
 
 ### LLM Client Architecture
 
-`src/client-factory.ts` creates clients via `createLLMClient(provider?)`. Uses Vercel AI SDK (`ai` v6) with `@ai-sdk/openai-compatible` for any OpenAI-compatible API, plus dedicated `@ai-sdk/anthropic` and `@ai-sdk/google` providers. The wrapper logic (streaming, tool calls, error handling, prepareStep, retries) lives in `src/ai-sdk-client/`.
+`src/llm/client-factory.ts` creates clients via `createLLMClient(provider?)`. Uses Vercel AI SDK (`ai` v6) with `@ai-sdk/openai-compatible` for any OpenAI-compatible API, plus dedicated `@ai-sdk/anthropic` and `@ai-sdk/google` providers. The wrapper logic (streaming, tool calls, error handling, prepareStep, retries) lives in `src/llm/ai-sdk-client/`.
 
 ## Code Style
 
@@ -122,4 +147,4 @@ Four user-facing modes (toggle with Shift+Tab during chat):
 - **yolo**: Automatically execute every tool without exception
 - **plan**: Show tool calls but don't execute
 
-There is also an internal **scheduler** mode used by `src/schedule/` for cron-driven runs; it disables interactive tools (`ask_user`, `agent`).
+There is also an internal **scheduler** mode used by `src/features/schedule/` for cron-driven runs; it disables interactive tools (`ask_user`, `agent`).

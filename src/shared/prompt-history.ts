@@ -4,7 +4,6 @@ import {MAX_PROMPT_HISTORY_SIZE} from '@/shared/constants';
 import {logError} from '@/shared/utils/message-queue';
 import type {InputState} from './types/hooks';
 
-const ENTRY_SEPARATOR = '\n---ENTRY_SEPARATOR---\n';
 const JSON_FORMAT_MARKER = '---JSON_FORMAT---';
 
 export class PromptHistory {
@@ -20,42 +19,17 @@ export class PromptHistory {
 	async loadHistory(): Promise<void> {
 		try {
 			const content = await fs.readFile(this.historyFile, 'utf8');
-
 			if (content.startsWith(JSON_FORMAT_MARKER)) {
-				// New JSON format with InputState objects
 				const jsonContent = content.slice(JSON_FORMAT_MARKER.length);
 				this.history = JSON.parse(jsonContent) as InputState[];
-			} else if (content.includes(ENTRY_SEPARATOR)) {
-				// LEGACY_MIGRATION_REMOVE_AFTER: 1.27.0
-				// Old format using ENTRY_SEPARATOR. Migrate to InputState on read.
-				const stringEntries = content
-					.split(ENTRY_SEPARATOR)
-					.filter(entry => entry.trim() !== '');
-				this.history = this.migrateStringArrayToInputState(stringEntries);
 			} else {
-				// LEGACY_MIGRATION_REMOVE_AFTER: 1.27.0
-				// Very old format using bare newlines. Migrate to InputState on read.
-				// Drop this branch and the ENTRY_SEPARATOR branch above once 1.27.0 ships.
-				const stringEntries = content
-					.split('\n')
-					.filter(line => line.trim() !== '');
-				this.history = this.migrateStringArrayToInputState(stringEntries);
+				this.history = [];
 			}
 			this.currentIndex = -1;
 		} catch {
-			// File doesn't exist yet, start with empty history
 			this.history = [];
 			this.currentIndex = -1;
 		}
-	}
-
-	private migrateStringArrayToInputState(
-		stringEntries: string[],
-	): InputState[] {
-		return stringEntries.map(entry => ({
-			displayValue: entry,
-			placeholderContent: {},
-		}));
 	}
 
 	async saveHistory(): Promise<void> {
@@ -69,7 +43,6 @@ export class PromptHistory {
 					'utf8',
 				);
 			} catch (error) {
-				// Silently fail to avoid disrupting the user experience
 				const errorMessage =
 					error instanceof Error ? error.message : 'Unknown error';
 				logError(`Failed to save prompt history: ${errorMessage}`);
@@ -103,16 +76,14 @@ export class PromptHistory {
 			this.history.splice(existingIndex, 1);
 		}
 
-		// Add to the end
 		this.history.push(inputState);
 
-		// Keep only the last MAX_PROMPT_HISTORY_SIZE entries
 		if (this.history.length > MAX_PROMPT_HISTORY_SIZE) {
 			this.history = this.history.slice(-MAX_PROMPT_HISTORY_SIZE);
 		}
 
 		this.currentIndex = -1;
-		void this.saveHistory(); // Fire and forget
+		void this.saveHistory();
 	}
 
 	getPrevious(): InputState | null {
@@ -133,24 +104,9 @@ export class PromptHistory {
 		if (this.currentIndex < this.history.length - 1) {
 			this.currentIndex++;
 			return this.history[this.currentIndex] ?? null;
-		} else {
-			this.currentIndex = -1;
-			return null; // Changed from empty string to null for consistency
 		}
-	}
-
-	// LEGACY_MIGRATION_REMOVE_AFTER: 1.27.0
-	// String-returning variants kept for backward compatibility with older callers.
-	// No production code uses them; they are only exercised by tests. Delete the
-	// three legacy methods below (and their specs) once 1.27.0 ships.
-	getPreviousString(): string | null {
-		const result = this.getPrevious();
-		return result?.displayValue ?? null;
-	}
-
-	getNextString(): string | null {
-		const result = this.getNext();
-		return result?.displayValue ?? '';
+		this.currentIndex = -1;
+		return null;
 	}
 
 	resetIndex(): void {
@@ -159,10 +115,6 @@ export class PromptHistory {
 
 	getHistory(): InputState[] {
 		return [...this.history];
-	}
-
-	getHistoryStrings(): string[] {
-		return this.history.map(entry => entry.displayValue);
 	}
 }
 

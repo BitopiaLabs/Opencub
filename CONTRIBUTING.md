@@ -191,7 +191,7 @@ git commit --no-verify -m "your message"
 All new features and bug fixes should include appropriate tests:
 
 1. **Test Suite**: We use AVA for testing with TypeScript support
-2. **Test Files**: Place test files alongside source code with `.spec.ts` extension (e.g., `src/utils/parser.spec.ts`). Cross-cutting tests that don't have a single source file (e.g., security tests covering multiple modules) live in topical directories like `src/security/`. Integration tests that spawn the CLI binary use the `cli-integration.spec.ts` naming pattern.
+2. **Test Files**: Place test files alongside source code with `.spec.ts` extension (e.g., `src/shared/utils/parser.spec.ts`). Cross-cutting tests that don't have a single source file (e.g., security tests covering multiple modules) live in topical directories like `src/shared/security/`. Integration tests that spawn the CLI binary use the `cli-integration.spec.ts` naming pattern.
 3. **Running Tests**: Execute the full test suite with:
 
    ```bash
@@ -304,8 +304,8 @@ When adding tests:
 For simple cases, place test files alongside the source code:
 
 ```
-src/utils/parser.ts
-src/utils/parser.spec.ts
+src/shared/utils/parser.ts
+src/shared/utils/parser.spec.ts
 ```
 
 For complex testing scenarios requiring multiple test files or shared test utilities, use a `__tests__` directory:

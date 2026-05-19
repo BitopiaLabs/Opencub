@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, rmSync, writeFileSync, readFileSync} from 'fs';
+import {existsSync, mkdirSync, rmSync, readFileSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';
 import test from 'ava';
@@ -7,9 +7,7 @@ import type {InputState} from './types/hooks';
 
 console.log('\nprompt-history.spec.ts');
 
-// Create a temporary test directory
 const testDir = join(tmpdir(), `opencub-test-${Date.now()}`);
-const ENTRY_SEPARATOR = '\n---ENTRY_SEPARATOR---\n';
 const JSON_FORMAT_MARKER = '---JSON_FORMAT---';
 
 // Helper to create an InputState object
@@ -237,53 +235,6 @@ test('resetIndex resets navigation', t => {
 	t.is(prev?.displayValue, 'command two', 'Should start from most recent');
 });
 
-test('getPreviousString returns string value', t => {
-	const history = createTestHistory();
-
-	history.addPrompt('test command');
-
-	const prevString = history.getPreviousString();
-	t.is(prevString, 'test command', 'Should return string value');
-});
-
-test('getPreviousString returns null for empty history', t => {
-	const history = createTestHistory();
-
-	t.is(
-		history.getPreviousString(),
-		null,
-		'Should return null for empty history',
-	);
-});
-
-test('getNextString returns string value', t => {
-	const history = createTestHistory();
-
-	history.addPrompt('command one');
-	history.addPrompt('command two');
-
-	history.getPrevious();
-	history.getPrevious();
-
-	const nextString = history.getNextString();
-	t.is(nextString, 'command two', 'Should return string value');
-});
-
-test('getNextString returns empty string at end', t => {
-	const history = createTestHistory();
-
-	history.addPrompt('command one');
-
-	history.getPrevious();
-
-	const nextString = history.getNextString();
-	t.is(
-		nextString,
-		'',
-		'Should return empty string when reaching end (legacy behavior)',
-	);
-});
-
 test('getHistory returns copy of history', t => {
 	const history = createTestHistory();
 
@@ -301,20 +252,6 @@ test('getHistory returns copy of history', t => {
 		history.getHistory().length,
 		2,
 		'Original history should be unchanged',
-	);
-});
-
-test('getHistoryStrings returns string array', t => {
-	const history = createTestHistory();
-
-	history.addPrompt(createInputState('command one', {id: 'data'}));
-	history.addPrompt('command two');
-
-	const strings = history.getHistoryStrings();
-	t.deepEqual(
-		strings,
-		['command one', 'command two'],
-		'Should return array of display values',
 	);
 });
 
@@ -462,11 +399,9 @@ test('history maintains order after adding many items', t => {
 	t.is(historyItems[49]?.displayValue, 'command 49');
 });
 
-test('migrateStringArrayToInputState preserves order', t => {
+test('addPrompt preserves order with mixed string and InputState inputs', t => {
 	const history = createTestHistory();
 
-	// We can't directly test the private method, but we can test its effect
-	// by testing the public API with different input types
 	history.addPrompt('first');
 	history.addPrompt(createInputState('second', {id: 'test'}));
 	history.addPrompt('third');
@@ -515,34 +450,6 @@ test('getNext after reaching end resets index to -1', t => {
 	// getNext at -1 should return null
 	const shouldBeNull = history.getNext();
 	t.is(shouldBeNull, null);
-});
-
-test('backwards compatibility - getPreviousString vs getPrevious', t => {
-	const history = createTestHistory();
-
-	history.addPrompt(createInputState('test', {id: 'data'}));
-
-	const inputState = history.getPrevious();
-	const stringValue = history.getPreviousString();
-
-	// After getPrevious, calling getPreviousString will try to go back again
-	// but since we're at the oldest, it should return the same
-	t.is(inputState?.displayValue, 'test');
-	t.is(stringValue, 'test');
-});
-
-test('backwards compatibility - getNextString returns empty string at end', t => {
-	const history = createTestHistory();
-
-	history.addPrompt('test');
-	history.getPrevious();
-
-	const nextString = history.getNextString();
-	t.is(
-		nextString,
-		'',
-		'Legacy method should return empty string, not null',
-	);
 });
 
 // File I/O Tests - Testing loadHistory and saveHistory
@@ -618,42 +525,6 @@ test('saveHistory persists data to disk', async t => {
 	t.deepEqual(loaded[1]?.placeholderContent, {key: 'value'});
 });
 
-test('loadHistory handles legacy ENTRY_SEPARATOR format', async t => {
-	const tempFile = join(testDir, `history-${Date.now()}-${Math.random()}.json`);
-
-	// Create a legacy format file manually
-	const legacyContent = `command 1${ENTRY_SEPARATOR}command 2${ENTRY_SEPARATOR}command 3`;
-	writeFileSync(tempFile, legacyContent, 'utf8');
-
-	const history = new PromptHistory(tempFile);
-	await history.loadHistory();
-
-	const loaded = history.getHistory();
-	t.is(loaded.length, 3, 'Should have loaded 3 entries');
-	t.is(loaded[0]?.displayValue, 'command 1');
-	t.is(loaded[1]?.displayValue, 'command 2');
-	t.is(loaded[2]?.displayValue, 'command 3');
-	t.deepEqual(loaded[0]?.placeholderContent, {}, 'Migrated entries should have empty placeholderContent');
-});
-
-test('loadHistory handles very old newline format', async t => {
-	const tempFile = join(testDir, `history-${Date.now()}-${Math.random()}.json`);
-
-	// Create a very old format file (newline-separated)
-	const oldContent = 'command 1\ncommand 2\ncommand 3\n';
-	writeFileSync(tempFile, oldContent, 'utf8');
-
-	const history = new PromptHistory(tempFile);
-	await history.loadHistory();
-
-	const loaded = history.getHistory();
-	t.is(loaded.length, 3, 'Should have loaded 3 entries');
-	t.is(loaded[0]?.displayValue, 'command 1');
-	t.is(loaded[1]?.displayValue, 'command 2');
-	t.is(loaded[2]?.displayValue, 'command 3');
-	t.deepEqual(loaded[0]?.placeholderContent, {}, 'Migrated entries should have empty placeholderContent');
-});
-
 test('saveHistory handles write errors gracefully', async t => {
 	// Use an invalid path that will cause write to fail (directory doesn't exist)
 	const invalidPath = '/nonexistent/directory/history.json';
@@ -667,24 +538,15 @@ test('saveHistory handles write errors gracefully', async t => {
 	});
 });
 
-test('migrateStringArrayToInputState converts strings correctly', t => {
+test('string prompts get empty placeholderContent', t => {
 	const history = createTestHistory();
 
-	// We can't call the private method directly, but we can test its effect
-	// by verifying that string prompts are converted to InputState format
 	history.addPrompt('string prompt 1');
 	history.addPrompt('string prompt 2');
 
-	const historyItems = history.getHistory();
-
-	for (const item of historyItems) {
+	for (const item of history.getHistory()) {
 		t.truthy(item.displayValue, 'Should have displayValue');
-		t.truthy(item.placeholderContent !== undefined, 'Should have placeholderContent');
-		t.deepEqual(
-			item.placeholderContent,
-			{},
-			'String prompts should have empty placeholderContent',
-		);
+		t.deepEqual(item.placeholderContent, {});
 	}
 });
 
