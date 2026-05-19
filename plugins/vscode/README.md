@@ -1,34 +1,34 @@
-# Nanocoder VS Code Extension
+# OpenCub VS Code Extension
 
-VS Code integration for [Nanocoder](https://github.com/Nano-Collective/nanocoder) - a local-first AI coding assistant.
+VS Code integration for [OpenCub](https://github.com/tylerthomas/opencub) - a local-first AI coding assistant.
 
 ## Features
 
-- **Active editor context**: The file you're focused on (and any selection inside it) is pushed to the CLI automatically and shown as a pill on the status line under the Nanocoder input (next to the mode, tune, and context indicators). The pill is attached to your next message, and long filenames are truncated so the line stays within one terminal row
+- **Active editor context**: The file you're focused on (and any selection inside it) is pushed to the CLI automatically and shown as a pill on the status line under the OpenCub input (next to the mode, tune, and context indicators). The pill is attached to your next message, and long filenames are truncated so the line stays within one terminal row
 - **Live Diff Preview**: See proposed file changes in VS Code's diff viewer before approving them in the CLI
-- **Automatic Connection**: Seamlessly connects to the Nanocoder CLI when running with `--vscode`
+- **Automatic Connection**: Seamlessly connects to the OpenCub CLI when running with `--vscode`
 - **Status Bar Integration**: Quick connection status and controls from the VS Code status bar
-- **Diagnostics Sharing**: VS Code's LSP diagnostics (errors, warnings) are shared with Nanocoder for context
+- **Diagnostics Sharing**: VS Code's LSP diagnostics (errors, warnings) are shared with OpenCub for context
 
 ## Installation
 
 ### Automatic Installation (Recommended)
 
-When you run Nanocoder with the `--vscode` flag for the first time, it will prompt you to install the extension automatically:
+When you run OpenCub with the `--vscode` flag for the first time, it will prompt you to install the extension automatically:
 
 ```bash
-nanocoder --vscode
+cub --vscode
 ```
 
 ### Manual Installation
 
 #### From VSIX
 
-After installing Nanocoder, the extension VSIX is bundled in the package:
+After installing OpenCub, the extension VSIX is bundled in the package:
 
 ```bash
 # Find the VSIX location (npm global install)
-code --install-extension $(npm root -g)/@nanocollective/nanocoder/assets/nanocoder-vscode.vsix
+code --install-extension $(npm root -g)/opencub/assets/opencub-vscode.vsix
 ```
 
 Or install via VS Code UI:
@@ -36,7 +36,7 @@ Or install via VS Code UI:
 1. Open VS Code
 2. Press `Ctrl+Shift+P` / `Cmd+Shift+P`
 3. Type "Extensions: Install from VSIX..."
-4. Select the `nanocoder-vscode.vsix` file
+4. Select the `opencub-vscode.vsix` file
 
 #### From Source
 
@@ -76,35 +76,35 @@ pnpm exec vsce package --allow-missing-repository --skip-license --no-dependenci
 
 ## Usage
 
-### Starting Nanocoder with VS Code Support
+### Starting OpenCub with VS Code Support
 
-Run Nanocoder with the `--vscode` flag to enable the WebSocket server:
+Run OpenCub with the `--vscode` flag to enable the WebSocket server:
 
 ```bash
-nanocoder --vscode
+cub --vscode
 ```
 
 Or with a custom port:
 
 ```bash
-nanocoder --vscode --vscode-port 51821
+cub --vscode --vscode-port 51821
 ```
 
 ### How It Works
 
-1. **Start the CLI**: Run `nanocoder --vscode` in your project directory
+1. **Start the CLI**: Run `cub --vscode` in your project directory
 2. **Extension connects**: The VS Code extension automatically connects to the CLI
-3. **View diffs**: When Nanocoder proposes file changes, a diff view opens in VS Code showing:
+3. **View diffs**: When OpenCub proposes file changes, a diff view opens in VS Code showing:
    - Original content on the left
    - Proposed changes on the right
    - Syntax highlighting for the file type
-4. **Approve/reject in CLI**: Use the Nanocoder CLI to approve or reject changes
+4. **Approve/reject in CLI**: Use the OpenCub CLI to approve or reject changes
 
 ### Active Editor Context
 
 The extension continuously pushes your current editor state to the CLI so the status line under the input always reflects what you're looking at:
 
-1. **Focus any file** — a `⊡ In App.tsx` pill appears on the Nanocoder status line (alongside the mode, tune, and context indicators).
+1. **Focus any file** — a `⊡ In App.tsx` pill appears on the OpenCub status line (alongside the mode, tune, and context indicators).
 2. **Select a range** — the pill switches to `⊡ App.tsx (L10-25)` and the selected code is captured for the next message.
 3. **Submit your message** — the pill is appended as a highlighted placeholder (e.g., `[@App.tsx (lines 10-25)]`). When a selection is present, the code is sent as a hidden block so the AI has it without cluttering the chat view.
 4. **No selection?** Only the filename hint is attached. The AI can read the file itself if it needs more.
@@ -122,16 +122,16 @@ Access via Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
 | Command                                | Description                                  |
 | -------------------------------------- | -------------------------------------------- |
-| `Nanocoder: Connect to Nanocoder`      | Manually connect to the running CLI          |
-| `Nanocoder: Disconnect from Nanocoder` | Disconnect from the CLI                      |
-| `Nanocoder: Start Nanocoder CLI`       | Open a terminal and run `nanocoder --vscode` |
+| `OpenCub: Connect to OpenCub`      | Manually connect to the running CLI          |
+| `OpenCub: Disconnect from OpenCub` | Disconnect from the CLI                      |
+| `OpenCub: Start OpenCub CLI`       | Open a terminal and run `cub --vscode` |
 
 ### Status Bar
 
 The status bar item shows the current connection state:
 
-- `$(plug) Nanocoder` - Not connected (click to connect)
-- `$(check) Nanocoder` - Connected to CLI
+- `$(plug) OpenCub` - Not connected (click to connect)
+- `$(check) OpenCub` - Connected to CLI
 - `$(check) model-name` - Connected and showing current model
 - `$(sync~spin) Connecting...` - Connection in progress
 
@@ -141,15 +141,15 @@ Configure the extension in VS Code settings (`Ctrl+,` / `Cmd+,`):
 
 | Setting                     | Default | Description                                      |
 | --------------------------- | ------- | ------------------------------------------------ |
-| `nanocoder.serverPort`      | `51820` | WebSocket server port for CLI communication      |
-| `nanocoder.autoConnect`     | `true`  | Automatically connect to CLI on VS Code startup  |
-| `nanocoder.showDiffPreview` | `true`  | Automatically show diff preview for file changes |
+| `opencub.serverPort`      | `51820` | WebSocket server port for CLI communication      |
+| `opencub.autoConnect`     | `true`  | Automatically connect to CLI on VS Code startup  |
+| `opencub.showDiffPreview` | `true`  | Automatically show diff preview for file changes |
 
 ## Architecture
 
 ```
 ┌─────────────────┐     WebSocket      ┌──────────────────┐
-│   VS Code       │◄──────────────────►│   Nanocoder CLI  │
+│   VS Code       │◄──────────────────►│   OpenCub CLI  │
 │   Extension     │    (port 51820)    │   (--vscode)     │
 └─────────────────┘                    └──────────────────┘
         │                                       │
@@ -189,14 +189,14 @@ The extension and CLI communicate via JSON messages over WebSocket:
 
 ### Extension not connecting?
 
-- Ensure Nanocoder is running with the `--vscode` flag
-- Check the Nanocoder output channel: `View > Output > Nanocoder`
+- Ensure OpenCub is running with the `--vscode` flag
+- Check the OpenCub output channel: `View > Output > OpenCub`
 - Verify port 51820 is not blocked or in use by another application
-- Try manually connecting via Command Palette: "Nanocoder: Connect to Nanocoder"
+- Try manually connecting via Command Palette: "OpenCub: Connect to OpenCub"
 
 ### Diff not showing?
 
-- Ensure `nanocoder.showDiffPreview` is enabled in VS Code settings
+- Ensure `opencub.showDiffPreview` is enabled in VS Code settings
 - Check that the extension is connected (status bar shows checkmark)
 - The diff appears when a tool proposes file changes, before you approve in the CLI
 
@@ -204,8 +204,8 @@ The extension and CLI communicate via JSON messages over WebSocket:
 
 - This can happen when the CLI restarts
 - Click the status bar item to reconnect
-- Enable `nanocoder.autoConnect` for automatic reconnection on startup
+- Enable `opencub.autoConnect` for automatic reconnection on startup
 
 ## License
 
-MIT - See the main [Nanocoder repository](https://github.com/Nano-Collective/nanocoder) for details.
+MIT - See the main [OpenCub repository](https://github.com/tylerthomas/opencub) for details.

@@ -1,6 +1,6 @@
 ---
 title: "LM Studio"
-description: "Configure LM Studio as a local AI provider for Nanocoder"
+description: "Configure LM Studio as a local AI provider for OpenCub"
 sidebar_order: 3
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Z.ai"
-description: "Configure Z.ai (Zhipu AI) as a cloud AI provider for Nanocoder"
+description: "Configure Z.ai (Zhipu AI) as a cloud AI provider for OpenCub"
 sidebar_order: 15
 ---
 

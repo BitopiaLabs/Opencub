@@ -1,6 +1,6 @@
 ---
 title: "MiniMax Coding"
-description: "Configure MiniMax Coding Plan as a native AI provider for Nanocoder"
+description: "Configure MiniMax Coding Plan as a native AI provider for OpenCub"
 sidebar_order: 24
 ---
 

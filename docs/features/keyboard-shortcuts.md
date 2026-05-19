@@ -1,6 +1,6 @@
 ---
 title: "Keyboard Shortcuts"
-description: "Keyboard shortcuts reference for Nanocoder"
+description: "Keyboard shortcuts reference for OpenCub"
 sidebar_order: 11
 ---
 

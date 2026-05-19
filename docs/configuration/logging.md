@@ -6,15 +6,15 @@ sidebar_order: 5
 
 # Logging Configuration
 
-Nanocoder includes structured logging with Pino, providing correlation tracking, performance monitoring, and automatic PII redaction.
+OpenCub includes structured logging with Pino, providing correlation tracking, performance monitoring, and automatic PII redaction.
 
 ## Quick Start
 
 ```bash
 # Environment Variables
-NANOCODER_LOG_LEVEL=debug          # Log level (trace, debug, info, warn, error, fatal)
-NANOCODER_LOG_DIR=/var/log/nanocoder # Log directory override
-NANOCODER_CORRELATION_ENABLED=true  # Enable correlation tracking
+OPENCUB_LOG_LEVEL=debug          # Log level (trace, debug, info, warn, error, fatal)
+OPENCUB_LOG_DIR=/var/log/opencub # Log directory override
+OPENCUB_CORRELATION_ENABLED=true  # Enable correlation tracking
 ```
 
 ## Features
@@ -28,41 +28,41 @@ NANOCODER_CORRELATION_ENABLED=true  # Enable correlation tracking
 
 Logs are always written to file. The default locations are platform-specific:
 
-- **macOS**: `~/Library/Logs/nanocoder`
-- **Linux/Unix**: `~/.local/state/nanocoder/logs` (or `$XDG_STATE_HOME/nanocoder/logs`)
-- **Windows**: `%LOCALAPPDATA%/nanocoder/logs`
+- **macOS**: `~/Library/Logs/opencub`
+- **Linux/Unix**: `~/.local/state/opencub/logs` (or `$XDG_STATE_HOME/opencub/logs`)
+- **Windows**: `%LOCALAPPDATA%/opencub/logs`
 
-You can override the default location using the `NANOCODER_LOG_DIR` environment variable.
+You can override the default location using the `OPENCUB_LOG_DIR` environment variable.
 
-To disable file logging entirely, set `NANOCODER_LOG_DISABLE_FILE=true`.
+To disable file logging entirely, set `OPENCUB_LOG_DISABLE_FILE=true`.
 
 ## Configuration Examples
 
 **Development:**
 ```bash
-NANOCODER_LOG_LEVEL=debug
-NANOCODER_CORRELATION_ENABLED=true
-NANOCODER_CORRELATION_DEBUG=true
+OPENCUB_LOG_LEVEL=debug
+OPENCUB_CORRELATION_ENABLED=true
+OPENCUB_CORRELATION_DEBUG=true
 ```
 
 **Production:**
 ```bash
-NANOCODER_LOG_LEVEL=info
-NANOCODER_LOG_DIR=/var/log/nanocoder
-NANOCODER_CORRELATION_ENABLED=true
-NANOCODER_CORRELATION_DEBUG=false
+OPENCUB_LOG_LEVEL=info
+OPENCUB_LOG_DIR=/var/log/opencub
+OPENCUB_CORRELATION_ENABLED=true
+OPENCUB_CORRELATION_DEBUG=false
 ```
 
 ## Environment Variables Reference
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NANOCODER_LOG_LEVEL` | Log level (trace, debug, info, warn, error, fatal) | `info` |
-| `NANOCODER_LOG_TO_FILE` | Enable file logging | `true` |
-| `NANOCODER_LOG_DIR` | Log directory override | Platform default |
-| `NANOCODER_LOG_DISABLE_FILE` | Disable file logging entirely | `false` |
-| `NANOCODER_CORRELATION_DEBUG` | Debug correlation tracking | `false` |
-| `NANOCODER_CORRELATION_ENABLED` | Enable correlation tracking | `true` |
+| `OPENCUB_LOG_LEVEL` | Log level (trace, debug, info, warn, error, fatal) | `info` |
+| `OPENCUB_LOG_TO_FILE` | Enable file logging | `true` |
+| `OPENCUB_LOG_DIR` | Log directory override | Platform default |
+| `OPENCUB_LOG_DISABLE_FILE` | Disable file logging entirely | `false` |
+| `OPENCUB_CORRELATION_DEBUG` | Debug correlation tracking | `false` |
+| `OPENCUB_CORRELATION_ENABLED` | Enable correlation tracking | `true` |
 
 ## Key Capabilities
 
@@ -129,9 +129,9 @@ await withNewCorrelationContext(async (context) => {
 
 ### Logs not appearing
 
-- Check `NANOCODER_LOG_LEVEL` allows your messages through (e.g. `debug` level won't show with `info` level set)
+- Check `OPENCUB_LOG_LEVEL` allows your messages through (e.g. `debug` level won't show with `info` level set)
 - Verify the log directory exists and is writable
-- Check `NANOCODER_LOG_DISABLE_FILE` is not set to `true`
+- Check `OPENCUB_LOG_DISABLE_FILE` is not set to `true`
 
 ### Performance degradation with logging
 

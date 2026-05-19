@@ -1,28 +1,28 @@
 ---
 title: "Configuration"
-description: "Configure Nanocoder providers, preferences, and settings"
+description: "Configure OpenCub providers, preferences, and settings"
 sidebar_order: 5
 ---
 
 # Configuration
 
-Nanocoder is configured through JSON files that control AI providers, MCP servers, user preferences, and more.
+OpenCub is configured through JSON files that control AI providers, MCP servers, user preferences, and more.
 
 ## Configuration File Locations
 
-Nanocoder looks for configuration in the following order (first found wins):
+OpenCub looks for configuration in the following order (first found wins):
 
 1. **Project-level** (highest priority): `agents.config.json` in your current working directory
    - Use this for project-specific providers, models, or API keys
    - Perfect for team sharing or repository-specific configurations
 
 2. **User-level**: Platform-specific configuration directory
-   - **macOS**: `~/Library/Preferences/nanocoder/agents.config.json`
-   - **Linux/Unix**: `~/.config/nanocoder/agents.config.json` (respects `XDG_CONFIG_HOME`)
-   - **Windows**: `%APPDATA%\nanocoder\agents.config.json`
+   - **macOS**: `~/Library/Preferences/opencub/agents.config.json`
+   - **Linux/Unix**: `~/.config/opencub/agents.config.json` (respects `XDG_CONFIG_HOME`)
+   - **Windows**: `%APPDATA%\opencub\agents.config.json`
    - Your global default configuration
 
-> **Note:** When `NANOCODER_CONFIG_DIR` is set, it takes full precedence — the project-level and home directory checks are skipped, and Nanocoder looks for `agents.config.json` only in the specified directory.
+> **Note:** When `OPENCUB_CONFIG_DIR` is set, it takes full precedence — the project-level and home directory checks are skipped, and OpenCub looks for `agents.config.json` only in the specified directory.
 
 > **Tip:** Use `/setup-config` to list all available configuration files and open any of them in your `$EDITOR`.
 
@@ -34,11 +34,11 @@ Keep API keys out of version control using environment variables. Variables are 
 
 | Variable | Description |
 |----------|-------------|
-| `NANOCODER_CONFIG_DIR` | Override the global configuration directory (skips all other config lookups) |
-| `NANOCODER_CONTEXT_LIMIT` | Default context limit (tokens) used when no session override or provider context config applies and the model is not resolved from models.dev. Enables auto-compact and `/usage` to work correctly. Can also be set via the `--context-max` CLI flag (which takes priority) |
-| `NANOCODER_DATA_DIR` | Override the application data directory for internal data like usage statistics |
-| `NANOCODER_INSTALL_METHOD` | Override installation detection (`npm`, `homebrew`, `nix`, `unknown`) |
-| `NANOCODER_DEFAULT_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout in milliseconds (default: 5000) |
+| `OPENCUB_CONFIG_DIR` | Override the global configuration directory (skips all other config lookups) |
+| `OPENCUB_CONTEXT_LIMIT` | Default context limit (tokens) used when no session override or provider context config applies and the model is not resolved from models.dev. Enables auto-compact and `/usage` to work correctly. Can also be set via the `--context-max` CLI flag (which takes priority) |
+| `OPENCUB_DATA_DIR` | Override the application data directory for internal data like usage statistics |
+| `OPENCUB_INSTALL_METHOD` | Override installation detection (`npm`, `homebrew`, `nix`, `unknown`) |
+| `OPENCUB_DEFAULT_SHUTDOWN_TIMEOUT` | Graceful shutdown timeout in milliseconds (default: 5000) |
 
 ### Provider & MCP Overrides
 
@@ -46,10 +46,10 @@ Override provider and MCP server configurations via environment variables. These
 
 | Variable | Description |
 |----------|-------------|
-| `NANOCODER_PROVIDERS` | JSON string of provider configurations (overrides all config files) |
-| `NANOCODER_PROVIDERS_FILE` | Path to a JSON file containing provider configurations (used if `NANOCODER_PROVIDERS` is not set) |
-| `NANOCODER_MCPSERVERS` | JSON string of MCP server configurations (overrides all config files) |
-| `NANOCODER_MCPSERVERS_FILE` | Path to a JSON file containing MCP server configurations (used if `NANOCODER_MCPSERVERS` is not set) |
+| `OPENCUB_PROVIDERS` | JSON string of provider configurations (overrides all config files) |
+| `OPENCUB_PROVIDERS_FILE` | Path to a JSON file containing provider configurations (used if `OPENCUB_PROVIDERS` is not set) |
+| `OPENCUB_MCPSERVERS` | JSON string of MCP server configurations (overrides all config files) |
+| `OPENCUB_MCPSERVERS_FILE` | Path to a JSON file containing MCP server configurations (used if `OPENCUB_MCPSERVERS` is not set) |
 
 See [Providers](providers/index.md) and [MCP Configuration](mcp-configuration.md) for format details and examples.
 
@@ -59,13 +59,13 @@ These are covered in detail on the [Logging](logging.md) page.
 
 | Variable | Description |
 |----------|-------------|
-| `NANOCODER_LOG_LEVEL` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
-| `NANOCODER_LOG_TO_FILE` | Enable file logging (`true`/`false`) |
-| `NANOCODER_LOG_DISABLE_FILE` | Disable file logging (`true` to disable) |
-| `NANOCODER_LOG_DIR` | Override log directory |
-| `NANOCODER_LOG_TRANSPORTS` | Configure logging transports (comma-separated) |
-| `NANOCODER_CORRELATION_ENABLED` | Enable/disable correlation tracking (default: `true`) |
-| `NANOCODER_CORRELATION_DEBUG` | Enable debug logging for correlation tracking |
+| `OPENCUB_LOG_LEVEL` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+| `OPENCUB_LOG_TO_FILE` | Enable file logging (`true`/`false`) |
+| `OPENCUB_LOG_DISABLE_FILE` | Disable file logging (`true` to disable) |
+| `OPENCUB_LOG_DIR` | Override log directory |
+| `OPENCUB_LOG_TRANSPORTS` | Configure logging transports (comma-separated) |
+| `OPENCUB_CORRELATION_ENABLED` | Enable/disable correlation tracking (default: `true`) |
+| `OPENCUB_CORRELATION_DEBUG` | Enable debug logging for correlation tracking |
 
 ### Environment Variable Substitution
 
@@ -79,12 +79,12 @@ See `.env.example` for setup instructions.
 
 ## Context Limit Resolution Order
 
-Nanocoder resolves a model's context limit in this order:
+OpenCub resolves a model's context limit in this order:
 
 1. Session override from `/context-max` or `--context-max`
 2. Provider `contextWindows[model]` in `agents.config.json`
 3. Provider `contextWindow` in `agents.config.json`
-4. `NANOCODER_CONTEXT_LIMIT`
+4. `OPENCUB_CONTEXT_LIMIT`
 5. models.dev metadata
 6. Built-in Ollama fallback map
 
@@ -92,7 +92,7 @@ This lets you persist context limits for unknown or local models without reapply
 
 ## Application Settings
 
-Beyond providers and MCP servers, `agents.config.json` supports application-level settings under the `nanocoder` key.
+Beyond providers and MCP servers, `agents.config.json` supports application-level settings under the `opencub` key.
 
 ### Auto-Compact
 
@@ -100,7 +100,7 @@ Automatically compress context when it reaches a percentage of the model's conte
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "autoCompact": {
       "enabled": true,
       "threshold": 60,
@@ -128,7 +128,7 @@ Configure automatic session saving and retention. See [Session Management](../fe
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "sessions": {
       "autoSave": true,
       "saveInterval": 30000,
@@ -154,11 +154,11 @@ Configure automatic session saving and retention. See [Session Management](../fe
 
 Configure how pasted text is handled in the input. By default, single-line pastes of 800 characters or fewer are inserted directly, while longer or multi-line pastes are collapsed into a `[Paste #N: X chars]` placeholder.
 
-You can change the threshold interactively via `/settings` → **Paste Threshold**, or by editing `nanocoder-preferences.json` directly:
+You can change the threshold interactively via `/settings` → **Paste Threshold**, or by editing `opencub-preferences.json` directly:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "paste": {
       "singleLineThreshold": 800
     }
@@ -170,15 +170,15 @@ You can change the threshold interactively via `/settings` → **Paste Threshold
 |--------|------|---------|-------------|
 | `singleLineThreshold` | number | `800` | Maximum characters for a single-line paste to be inserted directly. Pastes longer than this (or multi-line pastes) become placeholders. Must be a positive integer. |
 
-This setting is stored in `nanocoder-preferences.json` (see [Preferences](preferences.md) for file locations).
+This setting is stored in `opencub-preferences.json` (see [Preferences](preferences.md) for file locations).
 
 ### Default Development Mode
 
-Set the initial development mode for all new interactive sessions. Without this setting, Nanocoder always starts in **normal** mode. Once a session begins, you can still switch modes at any time using `/mode`.
+Set the initial development mode for all new interactive sessions. Without this setting, OpenCub always starts in **normal** mode. Once a session begins, you can still switch modes at any time using `/mode`.
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "defaultMode": "plan"
   }
 }
@@ -191,15 +191,15 @@ Set the initial development mode for all new interactive sessions. Without this 
 | `"yolo"` | Fully automatic — no confirmations at all |
 | `"plan"` | Read-only exploration mode — only read/search/list tools available |
 
-The `--mode` CLI flag always takes precedence over this config value. Non-interactive runs (`nanocoder run ...`) always default to `auto-accept` regardless of this setting.
+The `--mode` CLI flag always takes precedence over this config value. Non-interactive runs (`cub run ...`) always default to `auto-accept` regardless of this setting.
 
 ### Tool Auto-Approval
 
-Allow specific tools to run without confirmation, even in normal development mode. The `alwaysAllow` array accepts tool names — listed tools execute immediately without prompting for approval, and the same list also applies to non-interactive runs (`nanocoder run ...`).
+Allow specific tools to run without confirmation, even in normal development mode. The `alwaysAllow` array accepts tool names — listed tools execute immediately without prompting for approval, and the same list also applies to non-interactive runs (`cub run ...`).
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "alwaysAllow": ["execute_bash", "read_file", "find_files"]
   }
 }
@@ -211,7 +211,7 @@ Turn off individual tools globally with the top-level `disabledTools` array. Lis
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "disabledTools": ["execute_bash", "web_search"]
   }
 }
@@ -223,13 +223,13 @@ Resolution: project-level `agents.config.json` wins over the global config. The 
 
 ### Custom System Prompt
 
-Override or extend the built-in system prompt with your own. Useful when running small or context-constrained models where the default prompt consumes too many tokens, or when you want to specialize Nanocoder for a non-coding workflow.
+Override or extend the built-in system prompt with your own. Useful when running small or context-constrained models where the default prompt consumes too many tokens, or when you want to specialize OpenCub for a non-coding workflow.
 
 The simplest form replaces the entire built-in prompt with inline content:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "systemPrompt": {
       "content": "You are an AI model running on CPU. Be concise."
     }
@@ -241,10 +241,10 @@ Or load the prompt from a file (path is resolved relative to the working directo
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "systemPrompt": {
       "mode": "replace",
-      "file": "./.nanocoder/system-prompt.md"
+      "file": "./.opencub/system-prompt.md"
     }
   }
 }
@@ -254,7 +254,7 @@ Use `"mode": "append"` to keep the built-in prompt and add your text at the end:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "systemPrompt": {
       "mode": "append",
       "content": "Always respond in British English."
@@ -272,7 +272,7 @@ Use `"mode": "append"` to keep the built-in prompt and add your text at the end:
 **Notes:**
 - In `replace` mode, the built-in `## SYSTEM INFORMATION` section and AGENTS.md auto-append are skipped — include them yourself if you need them.
 - Tool definitions are still injected into the prompt for providers that don't support native tool calling. Tool availability is controlled separately via `disabledTools` and `/tune`.
-- If the file can't be read, Nanocoder logs a warning and falls back to the built-in prompt.
+- If the file can't be read, OpenCub logs a warning and falls back to the built-in prompt.
 - Project-level `agents.config.json` wins over the global config.
 
 ### Web Search
@@ -283,8 +283,8 @@ Brave's free tier includes 2,000 queries per month. [Get an API key here](https:
 
 ```json
 {
-  "nanocoder": {
-    "nanocoderTools": {
+  "opencub": {
+    "opencubTools": {
       "webSearch": {
         "apiKey": "$BRAVE_SEARCH_API_KEY"
       }

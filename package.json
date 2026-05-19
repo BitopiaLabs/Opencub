@@ -1,8 +1,8 @@
 {
-	"name": "@nanocollective/nanocoder",
+	"name": "opencub",
 	"main": "dist/cli.js",
 	"version": "1.26.1",
-	"description": "A local-first CLI coding agent that brings the power of agentic coding tools like Claude Code and Gemini CLI to local models or controlled APIs like OpenRouter",
+	"description": "A local-first CLI coding agent with multi-provider support, built for local models and small open-weights models",
 	"keywords": [
 		"cli",
 		"ai",
@@ -12,20 +12,21 @@
 		"openrouter",
 		"local",
 		"typescript",
-		"llama-cpp"
+		"llama-cpp",
+		"opencub"
 	],
-	"author": "Nano Collective",
+	"author": "Tyler Thomas",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Nano-Collective/nanocoder.git"
+		"url": "https://github.com/tylerthomas/opencub.git"
 	},
-	"homepage": "https://github.com/Nano-Collective/nanocoder#readme",
+	"homepage": "https://github.com/tylerthomas/opencub#readme",
 	"bugs": {
-		"url": "https://github.com/Nano-Collective/nanocoder/issues"
+		"url": "https://github.com/tylerthomas/opencub/issues"
 	},
 	"bin": {
-		"nanocoder": "dist/cli.js"
+		"cub": "dist/cli.js"
 	},
 	"type": "module",
 	"packageManager": "pnpm@11.0.9",
@@ -33,7 +34,7 @@
 		"node": ">=22"
 	},
 	"scripts": {
-		"build": "tsc && tsc-alias && cp source/commands/contributors.json dist/commands/contributors.json && chmod +x dist/cli.js",
+		"build": "tsc && tsc-alias && cp src/commands/contributors.json dist/commands/contributors.json && chmod +x dist/cli.js",
 		"build:credits": "./scripts/generate-credits.sh",
 		"dev": "tsc --watch",
 		"start": "node dist/cli.js",
@@ -53,16 +54,16 @@
 		"test:benchmark:explain": "tsx benchmarks/report.ts --explain",
 		"format": "biome check --write .",
 		"format:check": "biome check .",
-		"build:vscode": "cd plugins/vscode && pnpm run build && pnpm exec vsce package --allow-missing-repository --skip-license --no-dependencies -o ../../assets/nanocoder-vscode.vsix",
+		"build:vscode": "cd plugins/vscode && pnpm run build && pnpm exec vsce package --allow-missing-repository --skip-license --no-dependencies -o ../../assets/opencub-vscode.vsix",
 		"prepublishOnly": "pnpm run build && pnpm run build:vscode",
 		"generate:system-prompts": "tsx scripts/generate-system-prompts.ts",
 		"prepare": "husky"
 	},
 	"files": [
 		"dist",
-		"source/app/prompts/sections",
-		"source/config/themes.json",
-		"assets/nanocoder-vscode.vsix"
+		"src/app/prompts/sections",
+		"src/shared/config/themes.json",
+		"assets/opencub-vscode.vsix"
 	],
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.58",
@@ -131,10 +132,10 @@
 			"--no-warnings"
 		],
 		"files": [
-			"source/**/*.spec.ts",
-			"source/**/*.spec.tsx",
-			"!source/**/*-helpers.ts",
-			"!source/**/test-helpers.ts"
+			"src/**/*.spec.ts",
+			"src/**/*.spec.tsx",
+			"!src/**/*-helpers.ts",
+			"!src/**/test-helpers.ts"
 		],
 		"workerThreads": false,
 		"serial": true,
@@ -146,7 +147,7 @@
 	},
 	"c8": {
 		"exclude": [
-			"source/app/App.tsx"
+			"src/app/App.tsx"
 		],
 		"reporter": [
 			"text",

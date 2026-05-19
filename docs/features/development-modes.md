@@ -13,9 +13,9 @@ Toggle between modes with **Shift+Tab** during a chat session. The current mode 
 You can also boot directly into a specific mode with `--mode`, which works in both interactive and non-interactive runs:
 
 ```bash
-nanocoder --mode yolo                    # interactive, yolo
-nanocoder --mode plan run "audit auth"   # run mode, plan only
-nanocoder --mode=auto-accept             # fused form also works
+cub --mode yolo                    # interactive, yolo
+cub --mode plan run "audit auth"   # run mode, plan only
+cub --mode=auto-accept             # fused form also works
 ```
 
 Accepts `normal`, `auto-accept`, `yolo`, or `plan`. Invalid values exit with an error. When `--mode` is omitted, interactive sessions default to `normal` and `run` mode defaults to `auto-accept`.

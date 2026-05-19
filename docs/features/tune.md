@@ -8,7 +8,7 @@ sidebar_order: 11
 
 The `/tune` command opens a modal UI for adjusting runtime model behaviour. It lets you change tool profiles, compaction strategy, native tool calling, and model parameters — all without restarting your session.
 
-Settings are persisted to `nanocoder-preferences.json` and restored on next launch.
+Settings are persisted to `opencub-preferences.json` and restored on next launch.
 
 ## Opening Tune
 
@@ -94,7 +94,7 @@ Tune settings resolve from a 5-layer hierarchy (highest priority wins):
 1. **Hardcoded defaults** — `enabled: false`, `toolProfile: 'full'`, `aggressiveCompact: false`
 2. **Top-level config** — `tune` in `agents.config.json`
 3. **Per-provider config** — `tune` within a provider's configuration
-4. **Preferences** — saved via the `/tune` UI to `nanocoder-preferences.json`
+4. **Preferences** — saved via the `/tune` UI to `opencub-preferences.json`
 5. **Session override** — runtime changes in the current session
 
 ### Example: Per-Provider Config

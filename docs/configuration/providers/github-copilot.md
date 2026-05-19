@@ -1,12 +1,12 @@
 ---
 title: "GitHub Copilot"
-description: "Configure GitHub Copilot as a native AI provider for Nanocoder"
+description: "Configure GitHub Copilot as a native AI provider for OpenCub"
 sidebar_order: 22
 ---
 
 # GitHub Copilot
 
-Use your existing GitHub Copilot subscription to access AI models through Nanocoder. Authentication is handled via device OAuth flow — no API key needed.
+Use your existing GitHub Copilot subscription to access AI models through OpenCub. Authentication is handled via device OAuth flow — no API key needed.
 
 ## Configuration
 
@@ -24,7 +24,7 @@ The `sdkProvider: "github-copilot"` field enables the GitHub Copilot authenticat
 ## Setup
 
 1. Ensure you have an active [GitHub Copilot subscription](https://github.com/features/copilot)
-2. Run `/copilot-login` inside Nanocoder to authenticate via GitHub's device OAuth flow
+2. Run `/copilot-login` inside OpenCub to authenticate via GitHub's device OAuth flow
 3. Credentials are cached locally and refreshed automatically
 
 ## Notes

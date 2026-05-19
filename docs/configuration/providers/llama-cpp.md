@@ -1,6 +1,6 @@
 ---
 title: "llama.cpp"
-description: "Configure llama.cpp server as a local AI provider for Nanocoder"
+description: "Configure llama.cpp server as a local AI provider for OpenCub"
 sidebar_order: 2
 ---
 

@@ -23,7 +23,7 @@ Type `/` in the chat input to see available commands. All commands start with `/
 | `/status` | Display current status (CWD, provider, model, theme, available updates, AGENTS setup) |
 | `/tasks` | Manage task list for tracking complex work (see [Task Management](task-management.md)) |
 | `/model-database` | Browse coding models from OpenRouter (searchable, filterable by open/proprietary) |
-| `/settings` | Interactive menu to access Nanocoder settings (theme, title-shape, nanocoder-shape, paste-threshold) |
+| `/settings` | Interactive menu to access OpenCub settings (theme, title-shape, opencub-shape, paste-threshold) |
 | `/mcp` | Show connected MCP servers and their tools |
 | `/custom-commands` | List all custom commands |
 | `/checkpoint` | Save and restore conversation snapshots (see [Checkpointing](checkpointing.md)) |
@@ -31,7 +31,7 @@ Type `/` in the chat input to see available commands. All commands start with `/
 | `/context-max` | Set maximum context length for the current session, or inspect the resolved context source. Also available as `--context-max` CLI flag |
 | `/exit` | Exit the application |
 | `/export` | Export current session to markdown file |
-| `/update` | Update Nanocoder to the latest version |
+| `/update` | Update OpenCub to the latest version |
 | `/usage` | Get current model context usage visually |
 | `/lsp` | List connected LSP servers |
 | `/schedule` | Schedule recurring AI tasks (see [Scheduler](scheduler.md)) |
@@ -47,14 +47,14 @@ These shortcuts work directly in the chat input — no `/` prefix needed.
 
 | Syntax | Description |
 |--------|-------------|
-| `!command` | Execute bash commands directly without leaving Nanocoder (output becomes context for the LLM) |
+| `!command` | Execute bash commands directly without leaving OpenCub (output becomes context for the LLM) |
 | `@file` | Include file contents in messages via fuzzy search — press Tab to select from suggestions |
 | `@file:10-20` | Include specific line range from a file (line 10 to 20) |
 | `@file:10` | Include a single line from a file |
 
 ### File Mentions
 
-The `@` syntax triggers real-time fuzzy matching as you type. Nanocoder searches your project files (respecting `.gitignore`) and shows autocomplete suggestions. Press **Tab** to accept a suggestion.
+The `@` syntax triggers real-time fuzzy matching as you type. OpenCub searches your project files (respecting `.gitignore`) and shows autocomplete suggestions. Press **Tab** to accept a suggestion.
 
 You can narrow the context by specifying line ranges:
 
@@ -74,10 +74,10 @@ The `!` prefix runs a command in your shell and includes the output as context f
 
 ## Non-Interactive Mode
 
-Run Nanocoder without an interactive session for scripting and automation:
+Run OpenCub without an interactive session for scripting and automation:
 
 ```bash
-nanocoder run "Add error handling to src/api.ts"
+cub run "Add error handling to src/api.ts"
 ```
 
 This submits the prompt and exits when complete. Useful for CI pipelines, git hooks, or chaining with other tools.
@@ -88,10 +88,10 @@ By default, `run` uses auto-accept. Override with `--mode` to boot into a differ
 
 ```bash
 # Plan only — no changes executed
-nanocoder --mode plan run "analyze the auth module"
+cub --mode plan run "analyze the auth module"
 
 # No safety rails — auto-accepts every tool including bash
-nanocoder --mode yolo run "update README and push"
+cub --mode yolo run "update README and push"
 ```
 
-If a tool requires approval that the active mode won't grant, nanocoder prints `Tool approval required for: ...` and exits with status code `1`.
+If a tool requires approval that the active mode won't grant, opencub prints `Tool approval required for: ...` and exits with status code `1`.

@@ -1,6 +1,6 @@
 ---
 title: "OpenRouter"
-description: "Configure OpenRouter as a cloud AI provider for Nanocoder"
+description: "Configure OpenRouter as a cloud AI provider for OpenCub"
 sidebar_order: 10
 ---
 

@@ -166,7 +166,7 @@ jobs:
       - name: Generate coverage summary
         run: |
           pnpm exec c8 report --reporter=json-summary
-        # pnpm exec c8 report --reporter=json-summary --include='source/**/*.ts' --exclude='**/*.spec.ts'
+        # pnpm exec c8 report --reporter=json-summary --include='src/**/*.ts' --exclude='**/*.spec.ts'
 
       - name: Extract coverage percentage
         id: coverage
@@ -223,7 +223,7 @@ jobs:
             echo "✓ CLI build verified"
           fi
           if [ "$RUNNER_OS" == "Linux" ]; then
-            test -f assets/nanocoder-vscode.vsix
+            test -f assets/opencub-vscode.vsix
             echo "✓ VS Code extension verified"
           fi
         shell: bash

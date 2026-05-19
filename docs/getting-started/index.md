@@ -1,41 +1,41 @@
 ---
 title: "Getting Started"
-description: "Get up and running with Nanocoder quickly"
+description: "Get up and running with OpenCub quickly"
 sidebar_order: 3
 ---
 
 # Getting Started
 
-Welcome to Nanocoder! This section covers everything you need to install, configure, and start using Nanocoder.
+Welcome to OpenCub! This section covers everything you need to install, configure, and start using OpenCub.
 
 ## Quick Start
 
-1. **Install** Nanocoder via npm:
+1. **Install** OpenCub via npm:
 
    ```bash
-   npm install -g @nanocollective/nanocoder
+   npm install -g opencub
    ```
 
 2. **Run** in any project directory:
 
    ```bash
-   nanocoder
+   opencub
    ```
 
 3. **Configure** a provider when prompted, or run `/setup-providers` for the interactive wizard.
 
 ## CLI Options
 
-Nanocoder supports standard CLI arguments for quick information and help:
+OpenCub supports standard CLI arguments for quick information and help:
 
 ```bash
 # Show version information
-nanocoder --version
-nanocoder -v
+cub --version
+cub -v
 
 # Show help and available options
-nanocoder --help
-nanocoder -h
+cub --help
+cub -h
 ```
 
 **CLI Options Reference:**
@@ -57,7 +57,7 @@ nanocoder -h
 
 The `--provider` and `--model` flags allow you to specify the AI provider and model directly from the CLI, bypassing the need to use slash commands or edit configuration files. Providers must be pre-configured in your `agents.config.json` file.
 
-If an invalid provider or model is specified, nanocoder will show an error message indicating the issue.
+If an invalid provider or model is specified, opencub will show an error message indicating the issue.
 
 **Mode Flag:**
 
@@ -65,23 +65,23 @@ If an invalid provider or model is specified, nanocoder will show an error messa
 
 ```bash
 # Interactive, yolo from the start
-nanocoder --mode yolo
+cub --mode yolo
 
 # Non-interactive, plan only — produce a plan without executing changes
-nanocoder --mode plan run "analyze the auth module"
+cub --mode plan run "analyze the auth module"
 
 # Non-interactive, normal — will exit on the first tool that requires approval
-nanocoder --mode normal run "refactor db module"
+cub --mode normal run "refactor db module"
 ```
 
 If `--mode` is omitted, interactive mode starts in `normal` and `run` mode starts in `auto-accept` (the previous defaults).
 
 ## Interactive Mode
 
-To start Nanocoder in interactive mode (the default), simply run:
+To start OpenCub in interactive mode (the default), simply run:
 
 ```bash
-nanocoder
+cub
 ```
 
 This will open an interactive chat session where you can:
@@ -99,10 +99,10 @@ You can launch interactive mode with a specific provider and model using CLI fla
 
 ```bash
 # Start with specific provider
-nanocoder --provider ollama
+cub --provider ollama
 
 # Start with specific provider and model
-nanocoder --provider openrouter --model google/gemini-3.1-flash
+cub --provider openrouter --model google/gemini-3.1-flash
 ```
 
 This bypasses the need to use `/provider` or `/model` slash commands on startup.
@@ -112,32 +112,32 @@ This bypasses the need to use `/provider` or `/model` slash commands on startup.
 For automated tasks, scripting, or CI/CD pipelines, use the `run` command:
 
 ```bash
-nanocoder run "your prompt here"
+cub run "your prompt here"
 ```
 
 **Examples:**
 
 ```bash
 # Simple task
-nanocoder run "analyze the code in src/app.ts"
+cub run "analyze the code in src/app.ts"
 
 # Code generation
-nanocoder run "create a new React component for user login"
+cub run "create a new React component for user login"
 
 # Testing
-nanocoder run "write unit tests for all functions in utils.js"
+cub run "write unit tests for all functions in utils.js"
 
 # Refactoring
-nanocoder run "refactor the database connection to use a connection pool"
+cub run "refactor the database connection to use a connection pool"
 
 # With specific provider and model
-nanocoder --provider openrouter --model google/gemini-3.1-flash run "analyze src/app.ts"
+cub --provider openrouter --model google/gemini-3.1-flash run "analyze src/app.ts"
 
 # With context limit override (useful when model context isn't auto-detected)
-nanocoder --provider ollama --model llama3.1 --context-max 128k run "analyze src/app.ts"
+cub --provider ollama --model llama3.1 --context-max 128k run "analyze src/app.ts"
 
 # Flags after 'run' command
-nanocoder run --provider openrouter --model anthropic/claude-sonnet-4-20250514 "refactor database module"
+cub run --provider openrouter --model anthropic/claude-sonnet-4-20250514 "refactor database module"
 ```
 
 **Non-interactive mode behavior:**
@@ -146,36 +146,36 @@ nanocoder run --provider openrouter --model anthropic/claude-sonnet-4-20250514 "
 - Defaults to auto-accept (tools execute without confirmation); override with `--mode` (e.g. `--mode yolo` or `--mode plan`)
 - Renders through a dedicated shell — no welcome banner, no boot summary, no boxed user echo, no "ctrl+r to expand" hints. Assistant text prints as plain markdown; a single spinner status line shows progress below the transcript.
 - Tools render chronologically as they run (e.g. `⚒ Read 1 file`) and appear in stdout before the assistant's next response
-- If a tool requires approval that auto-accept won't grant (e.g. bash in `--mode auto-accept`, or any approval-gated tool in `--mode normal`), nanocoder prints `Tool approval required for: ...` and exits with status code `1`
+- If a tool requires approval that auto-accept won't grant (e.g. bash in `--mode auto-accept`, or any approval-gated tool in `--mode normal`), opencub prints `Tool approval required for: ...` and exits with status code `1`
 - Exits automatically when the task is complete
 - Uses specified provider/model if `--provider` and `--model` flags are provided
-- Respects `--context-max` flag or `NANOCODER_CONTEXT_LIMIT` env var for context limit override
+- Respects `--context-max` flag or `OPENCUB_CONTEXT_LIMIT` env var for context limit override
 
 **Skipping the directory trust prompt:**
 
-The first time Nanocoder runs in a new directory, it shows a security disclaimer asking you to confirm you trust the code in that directory. In CI/CD or scripted contexts there's no one to confirm, so non-interactive runs would hang on the prompt — pass `--trust-directory` to bypass it for that run:
+The first time OpenCub runs in a new directory, it shows a security disclaimer asking you to confirm you trust the code in that directory. In CI/CD or scripted contexts there's no one to confirm, so non-interactive runs would hang on the prompt — pass `--trust-directory` to bypass it for that run:
 
 ```bash
-nanocoder --trust-directory run "your prompt here"
+cub --trust-directory run "your prompt here"
 ```
 
 The override is ephemeral: it does **not** add the directory to `trustedDirectories` in your [preferences file](../configuration/preferences.md), so subsequent interactive sessions will still see the disclaimer. The flag only applies to `run`; using it without `run` prints a warning and is otherwise ignored.
 
 **Error Handling:**
 
-If you specify an invalid provider or model, nanocoder will show an error:
+If you specify an invalid provider or model, opencub will show an error:
 - Provider not found in `agents.config.json`: Shows available providers
 - Model not available for provider: Shows available models for that provider
 
 **Note:** When using non-interactive mode with VS Code integration, place any flags (like `--vscode` or `--vscode-port`) before the `run` command:
 
 ```bash
-nanocoder --vscode run "your prompt"
+cub --vscode run "your prompt"
 ```
 
 ## Next Steps
 
 - [Installation](installation.md) - Full installation options (npm, Homebrew, Nix, development setup)
-- [Uninstalling](uninstalling.md) - How to remove Nanocoder and clean up
+- [Uninstalling](uninstalling.md) - How to remove OpenCub and clean up
 - [Configuration](../configuration/index.md) - Set up AI providers, MCP servers, and preferences
 - [Features](../features/index.md) - Custom commands, checkpointing, development modes, and more

@@ -3,17 +3,17 @@ ARG VARIANT="22.04"
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-${VARIANT}
 
 # Metadata
-LABEL maintainer="Nano Collective <hello@nanocollective.com>"
-LABEL description="Development environment for Nanocoder - local-first AI coding assistant"
+LABEL maintainer="Tyler Thomas"
+LABEL description="Development environment for OpenCub - local-first AI coding assistant"
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
 	NODE_VERSION=22 \
 	PNPM_VERSION=latest \
-	# Nanocoder-specific environment variables
+	# OpenCub-specific environment variables
 	NODE_ENV=development \
-	NANOCODER_LOG_LEVEL=debug \
-	NANOCODER_LOG_TO_CONSOLE=true \
+	OPENCUB_LOG_LEVEL=debug \
+	OPENCUB_LOG_TO_CONSOLE=true \
 	# Locale settings
 	LC_ALL=en_US.UTF-8 \
 	LANG=en_US.UTF-8
@@ -63,7 +63,7 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
 	echo 'export PATH="/usr/local/bin:$PATH"' >> /home/vscode/.zshrc
 
 # Configure Git for the vscode user
-RUN git config --global --add safe.directory /workspaces/nanocoder && \
+RUN git config --global --add safe.directory /workspaces/opencub && \
 	git config --global core.autocrlf input && \
 	git config --global core.fileMode false && \
 	git config --global init.defaultBranch main && \
@@ -74,7 +74,7 @@ RUN git config --global --add safe.directory /workspaces/nanocoder && \
 RUN chown -R vscode:vscode /home/vscode
 
 # Set the working directory
-WORKDIR /workspaces/nanocoder
+WORKDIR /workspaces/opencub
 
 # Switch to non-root user
 USER vscode

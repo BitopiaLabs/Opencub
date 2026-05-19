@@ -1,16 +1,16 @@
 ---
 title: "AI Providers"
-description: "Configure AI providers for Nanocoder including Ollama, OpenRouter, and more"
+description: "Configure AI providers for OpenCub including Ollama, OpenRouter, and more"
 sidebar_order: 2
 ---
 
 # AI Provider Setup
 
-Nanocoder supports multiple AI providers including any OpenAI-compatible API, native Anthropic, Google Gemini, and GitHub Copilot through a unified provider configuration.
+OpenCub supports multiple AI providers including any OpenAI-compatible API, native Anthropic, Google Gemini, and GitHub Copilot through a unified provider configuration.
 
 ## Configuration Methods
 
-1. **Interactive Setup (Recommended for new users)**: Run `/setup-providers` inside Nanocoder for a guided wizard with provider templates. The wizard allows you to:
+1. **Interactive Setup (Recommended for new users)**: Run `/setup-providers` inside OpenCub for a guided wizard with provider templates. The wizard allows you to:
    - Choose between project-level or global configuration
    - Select from common provider templates
    - Add custom OpenAI-compatible providers manually
@@ -84,7 +84,7 @@ Use dedicated AI SDK packages for native API support, enabled via the `sdkProvid
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "providers": [
       {
         "name": "Local Ollama",
@@ -115,20 +115,20 @@ Override provider configurations via environment variables. These take **highest
 
 | Variable | Description |
 |----------|-------------|
-| `NANOCODER_PROVIDERS` | JSON string containing provider configurations |
-| `NANOCODER_PROVIDERS_FILE` | Path to a JSON file (used if `NANOCODER_PROVIDERS` is not set) |
+| `OPENCUB_PROVIDERS` | JSON string containing provider configurations |
+| `OPENCUB_PROVIDERS_FILE` | Path to a JSON file (used if `OPENCUB_PROVIDERS` is not set) |
 
 The JSON value accepts a direct array, or the standard `agents.config.json` wrapper formats:
 
 ```bash
 # Direct array
-export NANOCODER_PROVIDERS='[{"name":"my-provider","baseUrl":"http://localhost:1234/v1","models":["model-1"]}]'
+export OPENCUB_PROVIDERS='[{"name":"my-provider","baseUrl":"http://localhost:1234/v1","models":["model-1"]}]'
 
 # Wrapper format
-export NANOCODER_PROVIDERS='{"nanocoder":{"providers":[{"name":"my-provider","baseUrl":"http://localhost:1234/v1","models":["model-1"]}]}}'
+export OPENCUB_PROVIDERS='{"opencub":{"providers":[{"name":"my-provider","baseUrl":"http://localhost:1234/v1","models":["model-1"]}]}}'
 
 # File-based
-export NANOCODER_PROVIDERS_FILE=/path/to/providers.json
+export OPENCUB_PROVIDERS_FILE=/path/to/providers.json
 ```
 
 **Precedence order:** Environment variables > Project `agents.config.json` > Global `agents.config.json`
@@ -165,7 +165,7 @@ The `connectionPool` object accepts:
 
 ```json
 {
-	"nanocoder": {
+	"opencub": {
 		"providers": [
 			{
 				"name": "llama-cpp",

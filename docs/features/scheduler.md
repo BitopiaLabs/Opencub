@@ -8,7 +8,7 @@ sidebar_order: 6
 
 Some tasks are worth running regularly — checking for outdated dependencies, summarising recent commits, or scanning for common issues. The scheduler lets you define these as markdown prompts and run them automatically on a cron schedule.
 
-Tasks execute in non-interactive mode, so Nanocoder handles everything autonomously and logs the results for you to review.
+Tasks execute in non-interactive mode, so OpenCub handles everything autonomously and logs the results for you to review.
 
 ## Quick Start
 
@@ -25,9 +25,9 @@ Tasks execute in non-interactive mode, so Nanocoder handles everything autonomou
 
 ## How It Works
 
-Scheduled tasks are defined as markdown files in `.nanocoder/schedules/`. Each file contains a prompt that instructs the AI what to do when the schedule runs.
+Scheduled tasks are defined as markdown files in `.opencub/schedules/`. Each file contains a prompt that instructs the AI what to do when the schedule runs.
 
-When a scheduled task executes, Nanocoder:
+When a scheduled task executes, OpenCub:
 1. Loads the prompt from the schedule file
 2. Runs the AI with that prompt in non-interactive mode
 3. Records the execution result (success/error)
@@ -102,20 +102,20 @@ Shows execution logs for schedules.
 
 ### `/schedule start`
 
-Enters scheduler mode, where Nanocoder runs in the background and executes scheduled tasks. Press `Esc` to exit.
+Enters scheduler mode, where OpenCub runs in the background and executes scheduled tasks. Press `Esc` to exit.
 
 ## Storage
 
-- **Schedule configurations**: `.nanocoder/schedules.json`
-- **Schedule task files**: `.nanocoder/schedules/*.md`
-- **Execution logs**: `.nanocoder/schedule-runs.json`
+- **Schedule configurations**: `.opencub/schedules.json`
+- **Schedule task files**: `.opencub/schedules/*.md`
+- **Execution logs**: `.opencub/schedule-runs.json`
 
 Consider adding these to your `.gitignore`:
 
 ```gitignore
-.nanocoder/schedules.json
-.nanocoder/schedule-runs.json
-.nanocoder/schedules/
+.opencub/schedules.json
+.opencub/schedule-runs.json
+.opencub/schedules/
 ```
 
 ## Examples
@@ -152,7 +152,7 @@ Provide a summary of commits from the last 24 hours using git log. Group by auth
 
 ## Tips
 
-- **Test your prompts first**: Run your prompt manually with `nanocoder run "your prompt"` before scheduling it
+- **Test your prompts first**: Run your prompt manually with `cub run "your prompt"` before scheduling it
 - **Keep prompts focused**: Scheduled tasks work best with clear, specific requests
 - **Use absolute paths**: If your prompt references files, use absolute paths since the working directory may vary
 - **Check logs regularly**: Monitor `/schedule logs` to ensure tasks are running successfully

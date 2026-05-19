@@ -2,23 +2,23 @@
 * @will-lamerton @Avtrkrb
 
 # CLI specific files
-source/cli/ @will-lamerton @Avtrkrb
-source/commands/* @will-lamerton @Avtrkrb
+src/cli/ @will-lamerton @Avtrkrb
+src/commands/* @will-lamerton @Avtrkrb
 
 # AI SDK client
-source/ai-sdk-client/* @will-lamerton @Avtrkrb
+src/ai-sdk-client/* @will-lamerton @Avtrkrb
 
 # App and UI components
-source/app/* @will-lamerton @Avtrkrb
-source/components/* @will-lamerton @Avtrkrb
+src/app/* @will-lamerton @Avtrkrb
+src/components/* @will-lamerton @Avtrkrb
 
 # Configuration and setup
-source/config/* @will-lamerton @Avtrkrb
-source/init/* @will-lamerton @Avtrkrb
+src/config/* @will-lamerton @Avtrkrb
+src/init/* @will-lamerton @Avtrkrb
 
 # Model and AI related
-source/models/* @will-lamerton @Avtrkrb
-source/client-factory* @will-lamerton @Avtrkrb
+src/models/* @will-lamerton @Avtrkrb
+src/client-factory* @will-lamerton @Avtrkrb
 
 # VSCode plugin
 plugins/vscode/**/* @will-lamerton @Avtrkrb

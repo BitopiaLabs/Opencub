@@ -8,8 +8,8 @@
 	],
 	"ignoreBinaries": ["vsce", "semgrep"],
 	"ignore": [
-		"source/utils/message-queue.tsx",
-		"source/vscode/**/*.ts",
+		"src/shared/utils/message-queue.tsx",
+		"src/integrations/vscode/**/*.ts",
 		"plugins/**/*",
 		"scripts/fetch-models.js",
 		".husky/**",

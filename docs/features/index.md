@@ -1,16 +1,16 @@
 ---
 title: "Features"
-description: "A guided tour of Nanocoder's features, from your first session to advanced workflows"
+description: "A guided tour of OpenCub's features, from your first session to advanced workflows"
 sidebar_order: 6
 ---
 
 # Features
 
-This guide walks you through Nanocoder's features in the order you'll naturally discover them — starting with the basics you'll use every session, then building up to power-user workflows.
+This guide walks you through OpenCub's features in the order you'll naturally discover them — starting with the basics you'll use every session, then building up to power-user workflows.
 
 ## Your First Session
 
-When you launch Nanocoder for the first time in a project directory, you'll see a security disclaimer asking you to trust the directory. Once confirmed, you're in an interactive chat session with your AI assistant.
+When you launch OpenCub for the first time in a project directory, you'll see a security disclaimer asking you to trust the directory. Once confirmed, you're in an interactive chat session with your AI assistant.
 
 Here's what you need to know right away:
 
@@ -20,7 +20,7 @@ Type your message and press **Enter** to send. The AI streams its response token
 
 ### Giving the AI Context
 
-Use **`@`** followed by a filename to include file contents in your message. Nanocoder fuzzy-matches as you type and shows autocomplete suggestions — press **Tab** to select.
+Use **`@`** followed by a filename to include file contents in your message. OpenCub fuzzy-matches as you type and shows autocomplete suggestions — press **Tab** to select.
 
 ```
 Can you review @src/app.tsx for any issues?
@@ -34,7 +34,7 @@ What does this function do? @src/utils.ts:45-80
 
 ### Running Shell Commands
 
-Prefix any command with **`!`** to run it directly in your shell without leaving Nanocoder. The output becomes context for the AI.
+Prefix any command with **`!`** to run it directly in your shell without leaving OpenCub. The output becomes context for the AI.
 
 ```
 !git status
@@ -83,10 +83,10 @@ Toggle between modes with **Shift+Tab**. The current mode is shown in the status
 
 ## Non-Interactive Mode
 
-For scripting and automation, run Nanocoder without an interactive session:
+For scripting and automation, run OpenCub without an interactive session:
 
 ```bash
-nanocoder run "Add error handling to src/api.ts"
+cub run "Add error handling to src/api.ts"
 ```
 
 This submits the prompt, auto-accepts tool calls, and exits when complete. Run mode uses a minimal shell (plain-markdown assistant output, chronological tool one-liners, a single status line) so output pipes cleanly into other tools.
@@ -94,8 +94,8 @@ This submits the prompt, auto-accepts tool calls, and exits when complete. Run m
 Override the default mode with `--mode` — works both interactively and with `run`:
 
 ```bash
-nanocoder --mode yolo                      # interactive, no approvals
-nanocoder --mode plan run "audit auth"     # run mode, plan only
+cub --mode yolo                      # interactive, no approvals
+cub --mode plan run "audit auth"     # run mode, plan only
 ```
 
 See [Commands → Non-Interactive Mode](commands.md#non-interactive-mode) and [Development Modes](development-modes.md) for details.
@@ -126,7 +126,7 @@ Checkpoints save your conversation history, modified files, and model configurat
 
 ### Session Management
 
-Nanocoder [automatically saves your sessions](session-management.md) so you can pick up where you left off:
+OpenCub [automatically saves your sessions](session-management.md) so you can pick up where you left off:
 
 ```bash
 /resume         # browse recent sessions
@@ -147,7 +147,7 @@ For multi-step tasks, the [task management](task-management.md) system keeps you
 
 The AI also has access to task tools and will proactively create and update tasks when working on involved problems.
 
-## Customizing Nanocoder
+## Customizing OpenCub
 
 ### Project Setup with `/init`
 
@@ -157,7 +157,7 @@ The `AGENTS.md` file is automatically loaded every session, so the AI always kno
 
 ### Custom Commands
 
-[Custom commands](custom-commands.md) let you save reusable prompts as markdown files. Create them in `.nanocoder/commands/`:
+[Custom commands](custom-commands.md) let you save reusable prompts as markdown files. Create them in `.opencub/commands/`:
 
 ```bash
 /commands create review-code
@@ -186,14 +186,14 @@ Navigate with arrow keys, select files with **Space**, search with **`/`**, and 
 The [VS Code extension](vscode-extension.md) bridges your editor and the CLI:
 
 ```bash
-nanocoder --vscode
+cub --vscode
 ```
 
-Features include live diff previews of proposed changes, right-click "Ask Nanocoder about this" for selected code, and LSP diagnostics sharing.
+Features include live diff previews of proposed changes, right-click "Ask OpenCub about this" for selected code, and LSP diagnostics sharing.
 
 ### MCP Servers
 
-Extend Nanocoder's capabilities by connecting [MCP (Model Context Protocol) servers](../configuration/mcp-configuration.md). MCP servers add new tools the AI can use — from database queries to API calls to custom integrations.
+Extend OpenCub's capabilities by connecting [MCP (Model Context Protocol) servers](../configuration/mcp-configuration.md). MCP servers add new tools the AI can use — from database queries to API calls to custom integrations.
 
 ```bash
 /setup-mcp      # interactive setup wizard
@@ -209,7 +209,7 @@ Extend Nanocoder's capabilities by connecting [MCP (Model Context Protocol) serv
 /agents create my-agent   # create a custom subagent with AI help
 ```
 
-Subagents are defined as markdown files in `.nanocoder/agents/`. You can use a local model for cheap research and a cloud model for the main conversation.
+Subagents are defined as markdown files in `.opencub/agents/`. You can use a local model for cheap research and a cloud model for the main conversation.
 
 ### Scheduled Tasks
 
@@ -221,7 +221,7 @@ Automate recurring work with the [scheduler](scheduler.md):
 /schedule start
 ```
 
-Define task prompts as markdown files and schedule them with cron expressions. Nanocoder runs them non-interactively and logs the results.
+Define task prompts as markdown files and schedule them with cron expressions. OpenCub runs them non-interactively and logs the results.
 
 ## Feature Reference
 
@@ -239,5 +239,5 @@ Define task prompts as markdown files and schedule them with cron expressions. N
 | [Scheduler](scheduler.md) | Recurring AI tasks with cron expressions |
 | [VS Code Extension](vscode-extension.md) | Editor integration with live diff previews |
 | [Tune](tune.md) | Runtime model tuning for tool profiles, parameters, and compaction |
-| [Desktop Notifications](notifications.md) | Get notified when Nanocoder needs your attention |
+| [Desktop Notifications](notifications.md) | Get notified when OpenCub needs your attention |
 | [Keyboard Shortcuts](keyboard-shortcuts.md) | Complete keyboard shortcut reference |

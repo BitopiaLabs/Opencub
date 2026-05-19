@@ -20,7 +20,7 @@ const DEFAULT_CACHE_DIR =
 		: path.join(process.env.HOME || '~', '.cache');
 
 const cacheBase = xdgCache || DEFAULT_CACHE_DIR;
-const cacheDir = path.join(cacheBase, 'nanocoder');
+const cacheDir = path.join(cacheBase, 'opencub');
 const cacheFilePath = path.join(cacheDir, 'models.json');
 
 /**

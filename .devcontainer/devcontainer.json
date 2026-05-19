@@ -1,5 +1,5 @@
 {
-	"name": "Nanocoder Development Environment",
+	"name": "OpenCub Development Environment",
 	"dockerFile": "Dockerfile",
 
 	// Features to install on top of Dockerfile
@@ -72,7 +72,7 @@
 	// Mounts for caching and persistence
 	"mounts": [
 		// Cache pnpm store for faster installs
-		"source=nanocoder-pnpm-store,target=/home/vscode/.local/share/pnpm/store,type=volume"
+		"source=opencub-pnpm-store,target=/home/vscode/.local/share/pnpm/store,type=volume"
 	],
 
 	// Run arguments for container configuration
@@ -81,7 +81,7 @@
 		"--security-opt",
 		"seccomp=unconfined",
 		"--name",
-		"nanocoder-dev"
+		"opencub-dev"
 	],
 
 	// Lifecycle scripts for setup

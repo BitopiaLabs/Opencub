@@ -20,7 +20,7 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        pname = "nanocoder";
+        pname = "opencub";
         version = "1.26.1";
 
         nodejs = pkgs.nodejs_24;
@@ -42,7 +42,7 @@
           inherit pname version;
 
           src = pkgs.fetchFromGitHub {
-            owner = "nano-collective";
+            owner = "tylerthomas";
             repo = pname;
             rev = "v${version}";
             sha256 = "sha256-YRjUb6dNVWEEGgqnCZCOeEbF3QN3/HUgwfCH+X+IbSE=";
@@ -110,9 +110,9 @@
             cp -r plugins $out/lib/${pname}/
 
             # Copy static files not bundled by tsc (loaded at runtime via __dirname)
-            install -D source/config/themes.json $out/lib/${pname}/source/config/themes.json
-            mkdir -p $out/lib/${pname}/source/app/prompts
-            cp -r source/app/prompts/* $out/lib/${pname}/source/app/prompts/
+            install -D src/shared/config/themes.json $out/lib/${pname}/src/shared/config/themes.json
+            mkdir -p $out/lib/${pname}/src/app/prompts
+            cp -r src/app/prompts/* $out/lib/${pname}/src/app/prompts/
 
             # Create wrapper executable
             makeWrapper ${nodejs}/bin/node $out/bin/${pname} \
@@ -124,7 +124,7 @@
 
           meta = with pkgs.lib; {
             description = "A beautiful local-first coding agent running in your terminal - built by the community for the community ⚒";
-            homepage = "https://github.com/Nano-Collective/nanocoder";
+            homepage = "https://github.com/tylerthomas/opencub";
             license = licenses.mit;
           };
         });

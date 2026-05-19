@@ -1,6 +1,6 @@
 ---
 title: "Anthropic Claude"
-description: "Configure Anthropic Claude as a native AI provider for Nanocoder"
+description: "Configure Anthropic Claude as a native AI provider for OpenCub"
 sidebar_order: 20
 ---
 

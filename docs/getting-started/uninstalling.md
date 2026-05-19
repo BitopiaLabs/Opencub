@@ -1,34 +1,34 @@
 ---
 title: "Uninstalling"
-description: "How to uninstall Nanocoder and clean up configuration files"
+description: "How to uninstall OpenCub and clean up configuration files"
 sidebar_order: 3
 ---
 
-# Uninstalling Nanocoder
+# Uninstalling OpenCub
 
 ## Finding Your Installation
 
-If you're unsure how Nanocoder was installed, find the binary location first:
+If you're unsure how OpenCub was installed, find the binary location first:
 
 ```bash
-which nanocoder
+which opencub
 ```
 
 This will show the path — for example:
-- `/usr/local/bin/nanocoder` or `/usr/local/lib/node_modules/...` → npm
-- `/opt/homebrew/bin/nanocoder` or `.../Cellar/...` → Homebrew
+- `/usr/local/bin/opencub` or `/usr/local/lib/node_modules/...` → npm
+- `/opt/homebrew/bin/opencub` or `.../Cellar/...` → Homebrew
 - `/nix/store/...` → Nix
 
 ## NPM
 
 ```bash
-npm uninstall -g @nanocollective/nanocoder
+npm uninstall -g opencub
 ```
 
 ## Homebrew
 
 ```bash
-brew uninstall nanocoder
+brew uninstall opencub
 ```
 
 ## Nix
@@ -37,26 +37,26 @@ If installed via `nix run`, no uninstall is needed. If added to your system pack
 
 ## Troubleshooting
 
-If `nanocoder` still works after uninstalling, your shell may have cached the old path. Restart your terminal or run:
+If `opencub` still works after uninstalling, your shell may have cached the old path. Restart your terminal or run:
 
 ```bash
 hash -r
 ```
 
-If it persists, you may have multiple installations. Run `which nanocoder` again to find the remaining one and uninstall using the appropriate method above.
+If it persists, you may have multiple installations. Run `which opencub` again to find the remaining one and uninstall using the appropriate method above.
 
 ## Removing Configuration Files
 
-To also remove Nanocoder's configuration and preferences:
+To also remove OpenCub's configuration and preferences:
 
 ```bash
 # macOS
-rm -rf ~/Library/Preferences/nanocoder/
+rm -rf ~/Library/Preferences/opencub/
 
 # Linux
-rm -rf ~/.config/nanocoder/
+rm -rf ~/.config/opencub/
 
 # Per-project config (in each project directory)
 rm -f .mcp.json
-rm -rf .nanocoder/
+rm -rf .opencub/
 ```

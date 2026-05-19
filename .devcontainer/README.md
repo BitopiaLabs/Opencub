@@ -1,6 +1,6 @@
-# Nanocoder Devcontainer
+# OpenCub Devcontainer
 
-A complete, containerized development environment for Nanocoder - the local-first AI coding assistant.
+A complete, containerized development environment for OpenCub - the local-first AI coding assistant.
 
 ## Quick Start
 
@@ -13,8 +13,8 @@ A complete, containerized development environment for Nanocoder - the local-firs
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Nano-Collective/nanocoder.git
-   cd nanocoder
+   git clone https://github.com/tylerthomas/opencub.git
+   cd opencub
    ```
 
 2. **Open in VS Code**
@@ -265,7 +265,7 @@ API_BASE_URL=http://host.docker.internal:3000
 
 Open a terminal inside the container:
 - VS Code: `Terminal > Create New Terminal`
-- Docker CLI: `docker exec -it nanocoder-dev zsh`
+- Docker CLI: `docker exec -it opencub-dev zsh`
 
 ### Cleaning Up
 
@@ -276,7 +276,7 @@ Remove the container and volumes to start fresh:
 docker-compose down
 
 # Remove pnpm cache volume
-docker volume rm nanocoder-pnpm-store
+docker volume rm opencub-pnpm-store
 
 # Rebuild from scratch
 # In VS Code: Dev Containers: Rebuild Container
@@ -294,8 +294,8 @@ docker volume rm nanocoder-pnpm-store
 
 | Mount | Purpose | Persistence |
 |-------|---------|-------------|
-| `/workspaces/nanocoder` | Project source code | Host filesystem |
-| `nanocoder-pnpm-store` | pnpm package cache | Named volume |
+| `/workspaces/opencub` | Project source code | Host filesystem |
+| `opencub-pnpm-store` | pnpm package cache | Named volume |
 
 ### Network
 
@@ -305,8 +305,8 @@ docker volume rm nanocoder-pnpm-store
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/Nano-Collective/nanocoder/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Nano-Collective/nanocoder/discussions)
+- **Issues**: [GitHub Issues](https://github.com/tylerthomas/opencub/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/tylerthomas/opencub/discussions)
 - **Documentation**: [Main README](../README.md)
 
 ## Related Documentation

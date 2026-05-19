@@ -45,10 +45,10 @@ Checkpointing lets you save a snapshot of your current session — conversation 
 /checkpoint list
 ```
 
-When loading a checkpoint that would overwrite current work, Nanocoder prompts you to create a backup first.
+When loading a checkpoint that would overwrite current work, OpenCub prompts you to create a backup first.
 
 ## Storage
 
-Checkpoints are stored in `.nanocoder/checkpoints/` in your project directory. Each project has its own checkpoints. Consider adding `.nanocoder/checkpoints` to your `.gitignore`.
+Checkpoints are stored in `.opencub/checkpoints/` in your project directory. Each project has its own checkpoints. Consider adding `.opencub/checkpoints` to your `.gitignore`.
 
-> **Note:** Loading a checkpoint restores files immediately, but restoring conversation history requires restarting Nanocoder.
+> **Note:** Loading a checkpoint restores files immediately, but restoring conversation history requires restarting OpenCub.

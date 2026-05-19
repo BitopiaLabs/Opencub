@@ -6,8 +6,8 @@
 set -e
 
 VERSION=$1
-FORMULA_FILE="Formula/nanocoder.rb"
-NPM_PACKAGE="@nanocollective/nanocoder"
+FORMULA_FILE="Formula/opencub.rb"
+NPM_PACKAGE="opencub"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -27,14 +27,14 @@ echo ""
 
 # Step 1: Update version in formula file
 echo "Step 1: Updating version number in ${FORMULA_FILE}..."
-NPM_URL="https://registry.npmjs.org/${NPM_PACKAGE}/-/nanocoder-${VERSION}.tgz"
+NPM_URL="https://registry.npmjs.org/${NPM_PACKAGE}/-/opencub-${VERSION}.tgz"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # macOS requires -i '' for in-place editing
-  sed -i '' "s|url \"https://registry.npmjs.org/${NPM_PACKAGE}/-/nanocoder-.*\.tgz\"|url \"${NPM_URL}\"|" "$FORMULA_FILE"
+  sed -i '' "s|url \"https://registry.npmjs.org/${NPM_PACKAGE}/-/opencub-.*\.tgz\"|url \"${NPM_URL}\"|" "$FORMULA_FILE"
 else
   # Linux
-  sed -i "s|url \"https://registry.npmjs.org/${NPM_PACKAGE}/-/nanocoder-.*\.tgz\"|url \"${NPM_URL}\"|" "$FORMULA_FILE"
+  sed -i "s|url \"https://registry.npmjs.org/${NPM_PACKAGE}/-/opencub-.*\.tgz\"|url \"${NPM_URL}\"|" "$FORMULA_FILE"
 fi
 
 # Step 2: Download tarball and calculate SHA256
@@ -120,6 +120,6 @@ echo "  3. Commit: git commit -m 'chore: update homebrew formula to v${VERSION}'
 echo "  4. Push: git push"
 echo ""
 echo "To test the formula locally:"
-echo "  1. brew tap nano-collective/nanocoder https://github.com/Nano-Collective/nanocoder"
-echo "  2. brew install nanocoder"
-echo "  3. nanocoder --help"
+echo "  1. brew tap tylerthomas/opencub https://github.com/tylerthomas/opencub"
+echo "  2. brew install opencub"
+echo "  3. cub --help"

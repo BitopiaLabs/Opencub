@@ -1,6 +1,6 @@
 ---
 title: "Ollama"
-description: "Configure Ollama as a local AI provider for Nanocoder"
+description: "Configure Ollama as a local AI provider for OpenCub"
 sidebar_order: 1
 ---
 

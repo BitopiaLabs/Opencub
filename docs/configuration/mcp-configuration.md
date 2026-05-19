@@ -1,12 +1,12 @@
 ---
 title: "MCP Configuration"
-description: "Configure Model Context Protocol servers to extend Nanocoder's capabilities"
+description: "Configure Model Context Protocol servers to extend OpenCub's capabilities"
 sidebar_order: 3
 ---
 
 # MCP Server Configuration
 
-Configure [Model Context Protocol](https://github.com/modelcontextprotocol/servers) (MCP) servers to extend Nanocoder with external tools.
+Configure [Model Context Protocol](https://github.com/modelcontextprotocol/servers) (MCP) servers to extend OpenCub with external tools.
 
 ## Quick Start
 
@@ -45,7 +45,7 @@ Use `/mcp` to view connected servers and their tools. Use `/setup-mcp` for inter
 | Location | File | Purpose |
 |----------|------|---------|
 | **Project** | `.mcp.json` in project root | Project-specific servers, shared via version control |
-| **Global** | `.mcp.json` in `~/.config/nanocoder/` (Linux), `~/Library/Preferences/nanocoder/` (macOS), or `%APPDATA%\nanocoder\` (Windows) | Personal servers across all projects |
+| **Global** | `.mcp.json` in `~/.config/opencub/` (Linux), `~/Library/Preferences/opencub/` (macOS), or `%APPDATA%\opencub\` (Windows) | Personal servers across all projects |
 
 Both are loaded together. When the same server name exists in both, the project-level config takes precedence.
 
@@ -55,27 +55,27 @@ You can also define MCP servers via environment variables. These take **highest 
 
 | Variable | Description |
 |----------|-------------|
-| `NANOCODER_MCPSERVERS` | JSON string containing MCP server configurations |
-| `NANOCODER_MCPSERVERS_FILE` | Path to a JSON file (used if `NANOCODER_MCPSERVERS` is not set) |
+| `OPENCUB_MCPSERVERS` | JSON string containing MCP server configurations |
+| `OPENCUB_MCPSERVERS_FILE` | Path to a JSON file (used if `OPENCUB_MCPSERVERS` is not set) |
 
 The JSON value accepts either a direct array or the standard `mcpServers` wrapper format:
 
 **Direct array format:**
 
 ```bash
-export NANOCODER_MCPSERVERS='[{"name":"my-server","transport":"http","url":"https://example.com/mcp"}]'
+export OPENCUB_MCPSERVERS='[{"name":"my-server","transport":"http","url":"https://example.com/mcp"}]'
 ```
 
 **Wrapper format (same as `.mcp.json`):**
 
 ```bash
-export NANOCODER_MCPSERVERS='{"mcpServers":{"my-server":{"transport":"http","url":"https://example.com/mcp"}}}'
+export OPENCUB_MCPSERVERS='{"mcpServers":{"my-server":{"transport":"http","url":"https://example.com/mcp"}}}'
 ```
 
 **File-based:**
 
 ```bash
-export NANOCODER_MCPSERVERS_FILE=/path/to/mcp-servers.json
+export OPENCUB_MCPSERVERS_FILE=/path/to/mcp-servers.json
 ```
 
 **Precedence order:** Environment variables > Project `.mcp.json` > Global `.mcp.json`
@@ -106,7 +106,7 @@ Spawns a local process and communicates via stdin/stdout. Used for most MCP serv
 }
 ```
 
-> **Note:** For `uvx` commands, Nanocoder automatically adds `--native-tls` to use system certificates, fixing TLS issues in corporate proxy environments.
+> **Note:** For `uvx` commands, OpenCub automatically adds `--native-tls` to use system certificates, fixing TLS issues in corporate proxy environments.
 
 ### http
 
@@ -212,7 +212,7 @@ Run `/setup-mcp` for interactive configuration with:
 ## Troubleshooting
 
 **stdio servers:**
-- _Command not found_ — Verify the command is in your PATH. Nanocoder shows install hints for common tools (`npx`, `uvx`, `python`).
+- _Command not found_ — Verify the command is in your PATH. OpenCub shows install hints for common tools (`npx`, `uvx`, `python`).
 - _Permission denied_ — Check execute permissions on the command/script.
 
 **Remote servers (HTTP/WebSocket):**

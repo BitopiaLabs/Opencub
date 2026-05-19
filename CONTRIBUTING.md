@@ -1,6 +1,6 @@
-# Contributing to Nanocoder
+# Contributing to OpenCub
 
-Thank you for your interest in contributing to Nanocoder! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to the project.
+Thank you for your interest in contributing to OpenCub! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to the project.
 
 ## Table of Contents
 
@@ -16,8 +16,8 @@ Thank you for your interest in contributing to Nanocoder! We welcome contributio
 
 Before contributing, please:
 
-1. Read our [README](README.md) to understand what Nanocoder does
-2. Check our [issue tracker](https://github.com/Nano-Collective/nanocoder/issues) for existing issues
+1. Read our [README](README.md) to understand what OpenCub does
+2. Check our [issue tracker](https://github.com/tylerthomas/opencub/issues) for existing issues
 
 ## How to Contribute
 
@@ -48,8 +48,8 @@ Browse our open issues. If you find an unassigned issue you'd like to work on, c
 1. **Fork and clone the repository:**
 
    ```bash
-   git clone https://github.com/YOUR-USERNAME/nanocoder.git
-   cd nanocoder
+   git clone https://github.com/YOUR-USERNAME/opencub.git
+   cd opencub
    ```
 
 2. **Install dependencies:**
@@ -83,8 +83,8 @@ For a zero-setup, consistent development environment, we recommend using VS Code
 
 1. **Clone the repository** (if not already done)
    ```bash
-   git clone https://github.com/YOUR-USERNAME/nanocoder.git
-   cd nanocoder
+   git clone https://github.com/YOUR-USERNAME/opencub.git
+   cd opencub
    ```
 
 2. **Open in VS Code**
@@ -191,7 +191,7 @@ git commit --no-verify -m "your message"
 All new features and bug fixes should include appropriate tests:
 
 1. **Test Suite**: We use AVA for testing with TypeScript support
-2. **Test Files**: Place test files alongside source code with `.spec.ts` extension (e.g., `source/utils/parser.spec.ts`). Cross-cutting tests that don't have a single source file (e.g., security tests covering multiple modules) live in topical directories like `source/security/`. Integration tests that spawn the CLI binary use the `cli-integration.spec.ts` naming pattern.
+2. **Test Files**: Place test files alongside source code with `.spec.ts` extension (e.g., `src/utils/parser.spec.ts`). Cross-cutting tests that don't have a single source file (e.g., security tests covering multiple modules) live in topical directories like `src/security/`. Integration tests that spawn the CLI binary use the `cli-integration.spec.ts` naming pattern.
 3. **Running Tests**: Execute the full test suite with:
 
    ```bash
@@ -284,7 +284,7 @@ Comparing `help_module_count` and `interactive_module_count` is also a useful si
 #### Troubleshooting
 
 - **`dist/cli.js not found`** → Run `pnpm run build` before `pnpm test:benchmark`. The benchmark reads the compiled binary directly and doesn't trigger a build itself.
-- **`help_module_count` or `interactive_module_count` jumped** → A new import path was pulled into the startup graph. Check the diff for new imports in `source/cli.tsx` or its transitive dependencies. If the jump is intentional (you deliberately added a dependency), update the baseline.
+- **`help_module_count` or `interactive_module_count` jumped** → A new import path was pulled into the startup graph. Check the diff for new imports in `src/cli.tsx` or its transitive dependencies. If the jump is intentional (you deliberately added a dependency), update the baseline.
 - **`interactive_module_count` hit the 20s hard timeout** → Something in interactive boot is continuously resolving modules (never reaching steady state) or the app is hanging on I/O before startup completes. Run `node dist/cli.js` manually and see what it's doing.
 - **`audit_high_vulns` increased** → Check whether it's a new vulnerability or the known pre-existing `minimatch` transitive dep from AVA. Investigate before updating the baseline.
 - **`help_hash` changed unexpectedly** → Something altered `--help` output. Compare against the previous build to confirm it's intentional.
@@ -304,15 +304,15 @@ When adding tests:
 For simple cases, place test files alongside the source code:
 
 ```
-source/utils/parser.ts
-source/utils/parser.spec.ts
+src/utils/parser.ts
+src/utils/parser.spec.ts
 ```
 
 For complex testing scenarios requiring multiple test files or shared test utilities, use a `__tests__` directory:
 
 ```
-source/hooks/useInputState.ts
-source/hooks/__tests__/
+src/hooks/useInputState.ts
+src/hooks/__tests__/
   ├── test-helpers.ts
   ├── useInputState.deletion.spec.ts
   ├── useInputState.state-management.spec.ts
@@ -325,7 +325,7 @@ This pattern is useful when:
 - Tests need shared fixtures, mocks, or helper functions
 - Test complexity benefits from separation of concerns
 
-See `source/hooks/__tests__/` for examples of this pattern in practice.
+See `src/hooks/__tests__/` for examples of this pattern in practice.
 
 ## Coding Standards
 
@@ -345,7 +345,7 @@ See `source/hooks/__tests__/` for examples of this pattern in practice.
 
 ### Logging
 
-Nanocoder uses structured logging based on Pino. See [`docs/pino-logging.md`](docs/pino-logging.md) for details.
+OpenCub uses structured logging based on Pino. See [`docs/pino-logging.md`](docs/pino-logging.md) for details.
 
 ## Development Tips
 
@@ -433,15 +433,6 @@ git commit -m "release: vX.Y.Z"
 ### Getting Help
 
 - **GitHub Issues**: For bugs, features, and questions
-- **Discord Server**: Join our community Discord server for real-time discussions, help, and collaboration: [Join our Discord server](https://discord.gg/ktPDV6rekE)
-
-### Code of Conduct
-
-The Nano Collective's [Code of Conduct](https://docs.nanocollective.org/collective/organisation/community#code-of-conduct) applies to all contributors. Please read it before participating.
-
-### Paid Contribution
-
-Some contribution work is paid via scoped bounties from the Nano Collective community fund. The [Economics Charter](https://docs.nanocollective.org/collective/organisation/economics-charter) sets out how it works — when bounties exist, how scope is agreed before work begins, and how payment is processed via Open Source Collective. Reach out to a maintainer if you want to discuss whether a piece of work could be a bounty.
 
 ### Recognition
 
@@ -455,4 +446,4 @@ All contributors are recognized in the project. We appreciate:
 
 ---
 
-Thank you for contributing to Nanocoder! Your efforts help make local-first AI coding tools more accessible and powerful for everyone.
+Thank you for contributing to OpenCub! Your efforts help make local-first AI coding tools more accessible and powerful for everyone.

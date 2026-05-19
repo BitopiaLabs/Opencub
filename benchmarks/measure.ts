@@ -165,7 +165,7 @@ async function measureInteractiveStartup(
 				CI: '1',
 				// NODE_ENV=test makes `loadAllMCPConfigs()` skip the user's
 				// global `.mcp.json`, so the benchmark result only reflects
-				// nanocoder's own startup cost — not whatever MCP servers
+				// opencub's own startup cost — not whatever MCP servers
 				// the developer happens to have configured on their machine.
 				NODE_ENV: 'test',
 			},
@@ -229,7 +229,7 @@ export interface ModuleBreakdown {
 	};
 	topContributors: Array<{name: string; count: number}>;
 	/**
-	 * Top first-party `source/<dir>` directories by module count. Lets us
+	 * Top first-party `src/<dir>` directories by module count. Lets us
 	 * pinpoint which subsystems dominate the [source] bucket so we know
 	 * where to target further lazy-loading work.
 	 */
@@ -355,7 +355,7 @@ async function runWithUrlCapture(
 					MODULE_URL_FILE: urlFile,
 					CI: '1',
 					// Keep the user's global MCP config out of the graph
-					// so the explain breakdown only reflects nanocoder's own
+					// so the explain breakdown only reflects opencub's own
 					// boot cost. Matches `measureInteractiveStartup`.
 					NODE_ENV: 'test',
 				},
@@ -722,7 +722,7 @@ export async function measure(): Promise<Measurements> {
 
 	// Stability --------------------------------------------------------------
 	const toolsIndex = fs.readFileSync(
-		path.join(repoRoot, 'source/tools/index.ts'),
+		path.join(repoRoot, 'src/tools/index.ts'),
 		'utf8',
 	);
 	const staticToolCount = countArrayEntries(
@@ -731,12 +731,12 @@ export async function measure(): Promise<Measurements> {
 	);
 	// Resolve spread helpers manually.
 	const fileOpsIndex = fs.readFileSync(
-		path.join(repoRoot, 'source/tools/file-ops/index.ts'),
+		path.join(repoRoot, 'src/tools/file-ops/index.ts'),
 		'utf8',
 	);
 	const fileOpsCount = countArrayEntries(fileOpsIndex, /(?:return|=)\s*\[/);
 	const gitIndex = fs.readFileSync(
-		path.join(repoRoot, 'source/tools/git/index.ts'),
+		path.join(repoRoot, 'src/tools/git/index.ts'),
 		'utf8',
 	);
 	// Git tools array includes core tools plus conditional PR tool (counted once).
@@ -747,10 +747,7 @@ export async function measure(): Promise<Measurements> {
 	// layout), else fall back to the old eager `commandRegistry.register(
 	// [...])` call in `useAppInitialization.tsx`. The fallback keeps the
 	// benchmark runnable on older checkouts that predate the lazy refactor.
-	const lazyRegistryPath = path.join(
-		repoRoot,
-		'source/commands/lazy-registry.ts',
-	);
+	const lazyRegistryPath = path.join(repoRoot, 'src/commands/lazy-registry.ts');
 	let commandCount: number;
 	if (fs.existsSync(lazyRegistryPath)) {
 		const lazyRegistry = fs.readFileSync(lazyRegistryPath, 'utf8');
@@ -759,7 +756,7 @@ export async function measure(): Promise<Measurements> {
 		});
 	} else {
 		const appInit = fs.readFileSync(
-			path.join(repoRoot, 'source/hooks/useAppInitialization.tsx'),
+			path.join(repoRoot, 'src/hooks/useAppInitialization.tsx'),
 			'utf8',
 		);
 		commandCount = countArrayEntries(appInit, /commandRegistry\.register\(\[/, {

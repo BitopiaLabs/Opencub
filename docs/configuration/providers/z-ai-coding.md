@@ -1,6 +1,6 @@
 ---
 title: "Z.ai Coding"
-description: "Configure Z.ai Coding Subscription as a cloud AI provider for Nanocoder"
+description: "Configure Z.ai Coding Subscription as a cloud AI provider for OpenCub"
 sidebar_order: 16
 ---
 

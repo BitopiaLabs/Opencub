@@ -1,6 +1,6 @@
 ---
 title: "Google Gemini"
-description: "Configure Google Gemini as a native AI provider for Nanocoder"
+description: "Configure Google Gemini as a native AI provider for OpenCub"
 sidebar_order: 21
 ---
 

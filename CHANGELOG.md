@@ -6,7 +6,7 @@
 
 # 1.26.0
 
-- **BREAKING**: Removed redundant `nanocoderTools.alwaysAllow` setting. It duplicated the top-level `alwaysAllow` with no extra behaviour. Move any entries from `nanocoderTools.alwaysAllow` to the top-level `alwaysAllow` array in `agents.config.json`. The deprecated `agents.config.example.json` has also been removed.
+- **BREAKING**: Removed redundant `opencubTools.alwaysAllow` setting. It duplicated the top-level `alwaysAllow` with no extra behaviour. Move any entries from `opencubTools.alwaysAllow` to the top-level `alwaysAllow` array in `agents.config.json`. The deprecated `agents.config.example.json` has also been removed.
 
 - Added **nano mode** — a third tool profile under `/tune` designed for the smallest open-weights models or low-end hardware running larger models locally. Strictly more aggressive than `minimal`: drops `find_files`, `list_directory`, and `agent`; trims `CORE PRINCIPLES` and `CODING PRACTICES`; uses ≤4-line `TASK APPROACH`, `FILE OPERATIONS`, and `CONSTRAINTS` sections; replaces the verbose `SYSTEM INFORMATION` block with a single-line `## SYSTEM` line; and omits `AGENTS.md` from the prompt by default. Brings the system prompt from ~500–700 tokens (`minimal`) down to ~150–250 tokens. Includes a new "Nano (low-end hardware)" preset and an **Include AGENTS.md** toggle.
 
@@ -14,7 +14,7 @@
 
 - Added refined **non-interactive mode**. A new `--plain` flag streams output suitable for CI pipelines, scripts, and pipes — no Ink rendering, no interactive prompts, deterministic exit codes, and proper handling of stdin/stdout. Includes a dedicated `non-interactive-shell` component and full test coverage for the plain transport.
 
-- Reworked **VS Code extension** integration. Removed the "Ask Nanocoder" command in favour of a more natural flow: highlighted text and the currently focused file are automatically pulled into Nanocoder as context. Backed by a rewritten extension protocol, a simplified extension entrypoint, a new `useVSCodeServer` hook, and tighter UI hooks for the development mode indicator and chat input.
+- Reworked **VS Code extension** integration. Removed the "Ask OpenCub" command in favour of a more natural flow: highlighted text and the currently focused file are automatically pulled into OpenCub as context. Backed by a rewritten extension protocol, a simplified extension entrypoint, a new `useVSCodeServer` hook, and tighter UI hooks for the development mode indicator and chat input.
 
 - Added `/rename` command for renaming the current chat session. Accessible from the chat input and reflected in the development mode indicator. Thanks to @lordoski.
 
@@ -22,7 +22,7 @@
 
 - Added **custom system prompt** support via `agents.config.json`. Define a project-level system prompt that replaces or augments the built-in prompt sections, with full validation and prompt-builder integration. Closes #487.
 
-- Added per-provider and per-model **context window overrides** in `agents.config.json` via `contextWindow` and `contextWindows[model]`. New resolution order: session override (`/context-max`, `--context-max`) → provider model override → provider default → `NANOCODER_CONTEXT_LIMIT` → models.dev / Ollama fallback. `/usage`, status bar, auto-compact, and context reporting all use the active provider config consistently. Closes #455.
+- Added per-provider and per-model **context window overrides** in `agents.config.json` via `contextWindow` and `contextWindows[model]`. New resolution order: session override (`/context-max`, `--context-max`) → provider model override → provider default → `OPENCUB_CONTEXT_LIMIT` → models.dev / Ollama fallback. `/usage`, status bar, auto-compact, and context reporting all use the active provider config consistently. Closes #455.
 
 - Added subagent context window overrides so delegated agents can run with a different context limit than the main session. Thanks to @zerone0x.
 
@@ -34,7 +34,7 @@
 
 - Added `<function=...>` format to the tool-call parser for models that emit OpenAI-style function tags.
 
-- Added **Display Settings** panel under `/settings` ("Tool Results and Thinking") with two new toggles: **Show Thinking by default** (Ctrl+R) and **Expand Tool Results by default** (Ctrl+O), persisted to `nanocoder-preferences.json`. Thanks to @cleyesode. Closes #499.
+- Added **Display Settings** panel under `/settings` ("Tool Results and Thinking") with two new toggles: **Show Thinking by default** (Ctrl+R) and **Expand Tool Results by default** (Ctrl+O), persisted to `opencub-preferences.json`. Thanks to @cleyesode. Closes #499.
 
 - Added 12+ new themes to the bundled theme set.
 
@@ -108,26 +108,26 @@
 
 - Dependency updates: `ai` 6.0.116 → 6.0.174, `@ai-sdk/openai` 3.0.41 → 3.0.53, `@ai-sdk/google` 3.0.53 → 3.0.64, `@ai-sdk/openai-compatible` 2.0.35 → 2.0.41, `undici` 8.0.2 → 8.2.0, `react` 19.2.4 → 19.2.6, `yaml` 2.8.3 → 2.8.4, `dotenv` 17.3.1 → 17.4.2, `@nanocollective/get-md` 1.3.0 → 1.3.1, plus dev-dependency bumps for `@biomejs/biome`, `knip`, `tsc-alias`, `@ava/typescript`, `@vscode/vsce`, `@types/vscode`, `eslint`, and `strip-ansi`.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.25.2
 
 - Fixed Nix package: copy `themes.json` and prompt section files into the Nix store so `nix run` no longer crashes at startup
 - Fixed Nix package: corrected wrapper script heredoc indentation that broke the shebang line
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.25.1
 
 - Removed rogue document from `docs/`
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.25.0
 
 - Added **yolo mode** — a new development mode that auto-accepts every tool without exception, including bash commands and destructive git operations (hard reset, force delete, stash drop/clear). Cycles between normal → auto-accept → yolo → plan via Shift+Tab. The status bar turns red when yolo mode is active.
 
-- Added subagents — isolated child conversations that the LLM can delegate work to. Ships with two built-in agents: **Explore** (read-only codebase investigation) and **Reviewer** (code review with actionable feedback). Subagents are defined as markdown files with YAML frontmatter specifying name, description, model, and allowed tools. User-defined subagents can be placed in `.nanocoder/agents/`. Managed via the `/agents` command (`show`, `create`). Thanks to @brijeshkr for the initial subagent implementation. Closes #414.
+- Added subagents — isolated child conversations that the LLM can delegate work to. Ships with two built-in agents: **Explore** (read-only codebase investigation) and **Reviewer** (code review with actionable feedback). Subagents are defined as markdown files with YAML frontmatter specifying name, description, model, and allowed tools. User-defined subagents can be placed in `.opencub/agents/`. Managed via the `/agents` command (`show`, `create`). Thanks to @brijeshkr for the initial subagent implementation. Closes #414.
 
 - Added concurrent subagent execution. The LLM can launch multiple subagents in parallel, each with independent tool sets and live in-place progress rendering via the `AgentProgress` component.
 
@@ -143,11 +143,11 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Added ChatGPT Codex as a provider with OAuth device flow authentication (`/codex-login`), streaming response support via a dedicated `StreamingMessage` component, and Codex-specific credential management. Includes provider template and setup wizard integration.
 
-- Migrated `web_search` tool from Brave Search scraping to the official Brave Search API. Now requires a `webSearch.apiKey` in `agents.config.json` under `nanocoderTools`. Removes the `cheerio` scraping dependency.
+- Migrated `web_search` tool from Brave Search scraping to the official Brave Search API. Now requires a `webSearch.apiKey` in `agents.config.json` under `opencubTools`. Removes the `cheerio` scraping dependency.
 
-- Added `/setup-config` command that lists all config files (project and global `agents.config.json`, `.mcp.json`, `nanocoder-preferences.json`) with their paths and opens the selected one in your editor.
+- Added `/setup-config` command that lists all config files (project and global `agents.config.json`, `.mcp.json`, `opencub-preferences.json`) with their paths and opens the selected one in your editor.
 
-- Added configurable paste threshold for single-line paste handling, with tests for the configurable placeholder threshold. The threshold is a user preference in `nanocoder-preferences.json`. Changed the default config file for paste settings from `agents.config.json` to `nanocoder-preferences.json`. Thanks to @grenkoca.
+- Added configurable paste threshold for single-line paste handling, with tests for the configurable placeholder threshold. The threshold is a user preference in `opencub-preferences.json`. Changed the default config file for paste settings from `agents.config.json` to `opencub-preferences.json`. Thanks to @grenkoca.
 
 - Added live in-place task list display. Task progress now updates in place instead of appending repeated static lists to the conversation.
 
@@ -155,7 +155,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Redesigned the provider setup wizard with a unified model fetcher that auto-detects API compatibility (OpenAI-compatible, Ollama, Anthropic, Google) and fetches available models from the provider's endpoint. Simplified the provider step UI and added MiniMax and Kimi provider templates.
 
-- Fix: `alwaysAllow` config not being respected for `execute_bash`. Three interconnected bugs prevented it from working: top-level `alwaysAllow` was never loaded from `agents.config.json`, `isNanocoderToolAlwaysAllowed` only checked `nanocoderTools.alwaysAllow` not the top-level list, and `nonInteractiveAlwaysAllow` set `needsApproval` on AI SDK tools but the conversation loop evaluated it from the original registry entries. Closes #431.
+- Fix: `alwaysAllow` config not being respected for `execute_bash`. Three interconnected bugs prevented it from working: top-level `alwaysAllow` was never loaded from `agents.config.json`, `isOpenCubToolAlwaysAllowed` only checked `opencubTools.alwaysAllow` not the top-level list, and `nonInteractiveAlwaysAllow` set `needsApproval` on AI SDK tools but the conversation loop evaluated it from the original registry entries. Closes #431.
 
 - Fix: `dimColor` making text inaccessible to reading on some screens. Closes #440.
 
@@ -177,7 +177,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Added `/credits` command showing project contributors (auto-generated from git history via `pnpm run build:credits`) and dependency versions.
 
-- Added desktop notifications for tool confirmations, question prompts, and generation completions. Supports macOS (`terminal-notifier` with osascript fallback), Linux (`notify-send`), and Windows (PowerShell). Configurable per-event in `nanocoder-preferences.json` and in `/settings` with custom messages and optional sound. Includes a "Notifications" settings menu for preference management.
+- Added desktop notifications for tool confirmations, question prompts, and generation completions. Supports macOS (`terminal-notifier` with osascript fallback), Linux (`notify-send`), and Windows (PowerShell). Configurable per-event in `opencub-preferences.json` and in `/settings` with custom messages and optional sound. Includes a "Notifications" settings menu for preference management.
 
 - Added CLI quality metrics framework (`benchmarks/measure.ts`, `benchmarks/report.ts`) tracking correctness, performance (module count, boot time, bundle size), stability (tool/command counts, help text hash), and health (test counts, vulnerabilities).
 
@@ -191,11 +191,11 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Dependency updates
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.24.1
 
-- Added `--context-max` CLI flag for setting the context limit from the command line, complementing the existing `/context-max` command and `NANOCODER_CONTEXT_LIMIT` env variable.
+- Added `--context-max` CLI flag for setting the context limit from the command line, complementing the existing `/context-max` command and `OPENCUB_CONTEXT_LIMIT` env variable.
 
 - Removed time from the system prompt to keep the KV cache more stable across requests. Thanks to @initialxy. Closes #415.
 
@@ -205,17 +205,17 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Improved `search_file_contents` tool robustness.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.24.0
 
-- **BREAKING**: Removed legacy `~/.agents.config.json` config file support. Nanocoder no longer checks the home directory for a dot-prefixed config file. If you are still using this path, move your config to the platform-specific directory: `~/Library/Preferences/nanocoder/agents.config.json` (macOS), `~/.config/nanocoder/agents.config.json` (Linux), or `%APPDATA%\nanocoder\agents.config.json` (Windows).
+- **BREAKING**: Removed legacy `~/.agents.config.json` config file support. OpenCub no longer checks the home directory for a dot-prefixed config file. If you are still using this path, move your config to the platform-specific directory: `~/Library/Preferences/opencub/agents.config.json` (macOS), `~/.config/opencub/agents.config.json` (Linux), or `%APPDATA%\opencub\agents.config.json` (Windows).
 
-- **BREAKING**: Removed legacy `~/.nanocoder-preferences.json` preferences file support. Preferences are now only loaded from the platform-specific directory (e.g. `~/Library/Preferences/nanocoder/nanocoder-preferences.json` on macOS) or a project-level `nanocoder-preferences.json` in your working directory. To migrate, move your existing file: `mv ~/.nanocoder-preferences.json ~/Library/Preferences/nanocoder/nanocoder-preferences.json`
+- **BREAKING**: Removed legacy `~/.opencub-preferences.json` preferences file support. Preferences are now only loaded from the platform-specific directory (e.g. `~/Library/Preferences/opencub/opencub-preferences.json` on macOS) or a project-level `opencub-preferences.json` in your working directory. To migrate, move your existing file: `mv ~/.opencub-preferences.json ~/Library/Preferences/opencub/opencub-preferences.json`
 
 - **BREAKING**: Removed deprecated array format for MCP server configuration. Only the object format is now supported: `{ "mcpServers": { "serverName": { ... } } }`. If you are using the array format in `.mcp.json`, convert each array entry to an object key using the server name.
 
-- **BREAKING**: Removed `agents.config.json` fallback for MCP server loading. Global MCP servers must now be configured in `~/.config/nanocoder/.mcp.json` (Linux), `~/Library/Preferences/nanocoder/.mcp.json` (macOS), or `%APPDATA%\nanocoder\.mcp.json` (Windows). Provider configuration still uses `agents.config.json`.
+- **BREAKING**: Removed `agents.config.json` fallback for MCP server loading. Global MCP servers must now be configured in `~/.config/opencub/.mcp.json` (Linux), `~/Library/Preferences/opencub/.mcp.json` (macOS), or `%APPDATA%\opencub\.mcp.json` (Windows). Provider configuration still uses `agents.config.json`.
 
 - **BREAKING**: Removed `auth` and `reconnect` fields from MCP server configuration. The `auth` field was never functional (both HTTP and WebSocket transports logged warnings that it was unsupported). The `reconnect` field was never implemented. Use `headers` for HTTP authentication instead (e.g. `"headers": { "Authorization": "Bearer $TOKEN" }`).
 
@@ -223,7 +223,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Added `--provider` and `--model` CLI flags for non-interactive provider and model specification, allowing CI/CD scripts and automation to skip the setup wizard. Closes #394. Thanks to @james2doyle.
 
-- Added `NANOCODER_PROVIDERS` environment variable support for configuring providers without config files, useful for Docker containers and CI environments. Closes #307. Thanks to @kaustubha07.
+- Added `OPENCUB_PROVIDERS` environment variable support for configuring providers without config files, useful for Docker containers and CI environments. Closes #307. Thanks to @kaustubha07.
 
 - Added GitHub Copilot as a provider template with OAuth device flow authentication and `/copilot-login` command. Thanks to @yashksaini-coder.
 
@@ -255,7 +255,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Invalid CLI arguments no longer trigger the setup wizard. Thanks to @james2doyle.
 
-- Fix: Installation detector no longer falsely reports Homebrew on macOS when `HOMEBREW_PREFIX` is set but Nanocoder was installed via npm. Closes #392.
+- Fix: Installation detector no longer falsely reports Homebrew on macOS when `HOMEBREW_PREFIX` is set but OpenCub was installed via npm. Closes #392.
 
 - Fix: Preserve draft message when navigating through history with arrow keys.
 
@@ -271,21 +271,21 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Dependency updates: `ai` 6.0.116, `@ai-sdk/anthropic` 3.0.58, `@ai-sdk/google` 3.0.33, `@ai-sdk/openai-compatible` 2.0.30, `@modelcontextprotocol/sdk` 1.27.1, `undici` 7.24.0, `cheerio` 1.2.0, `dotenv` 17.3.1, `wrap-ansi` 10.0.0.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder.
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub.
 
 # 1.23.0
 
 - Added `ask_user` tool for interactive question prompts. The LLM can now present the user with a question and selectable options during a conversation, returning their answer to guide the next step. Uses a global question-queue to bridge the tool's suspended Promise with the Ink UI component.
 
-- Added per-project cron scheduler for running AI tasks on a schedule. Schedule files live in `.nanocoder/schedules/` as markdown prompts with YAML frontmatter, managed via the `/schedule` command (`create`, `add`, `remove`, `list`, `logs`, `start`). Includes cron expression parsing, sequential job queue with deduplication, dedicated scheduler mode with auto-accept, and run history logging.
+- Added per-project cron scheduler for running AI tasks on a schedule. Schedule files live in `.opencub/schedules/` as markdown prompts with YAML frontmatter, managed via the `/schedule` command (`create`, `add`, `remove`, `list`, `logs`, `start`). Includes cron expression parsing, sequential job queue with deduplication, dedicated scheduler mode with auto-accept, and run history logging.
 
-- Added centralized graceful shutdown system. A `ShutdownManager` now coordinates cleanup of all services (VS Code server, MCP client, LSP manager, health monitor, logger) on exit, preventing orphaned child processes and dangling connections. Configurable via `NANOCODER_DEFAULT_SHUTDOWN_TIMEOUT` env variable. Closes #239.
+- Added centralized graceful shutdown system. A `ShutdownManager` now coordinates cleanup of all services (VS Code server, MCP client, LSP manager, health monitor, logger) on exit, preventing orphaned child processes and dangling connections. Configurable via `OPENCUB_DEFAULT_SHUTDOWN_TIMEOUT` env variable. Closes #239.
 
 - Added file operation tools: `delete_file`, `move_file`, `create_directory`, and `copy_file`. Reorganized existing file tools into a `file-ops/` directory group.
 
 - Added readline keybind support to text input. Replaces `ink-text-input` with a custom `TextInput` component supporting Ctrl+W (delete word), Ctrl+U (kill to start), Ctrl+K (kill to end), Ctrl+A/E (jump to start/end), and Ctrl+B/F (move char). Closes #354.
 
-- Added `/context-max` command and `NANOCODER_CONTEXT_LIMIT` env variable for manual context length override on models not listed on models.dev. Resolution order: session override > env variable > models.dev > null. Closes #379.
+- Added `/context-max` command and `OPENCUB_CONTEXT_LIMIT` env variable for manual context length override on models not listed on models.dev. Resolution order: session override > env variable > models.dev > null. Closes #379.
 
 - Added `/ide` command matching the `--vscode` flag for toggling VS Code integration from within a session.
 
@@ -321,7 +321,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Dependency updates: `ai` 6.0.95, `@ai-sdk/anthropic` 3.0.46, `@ai-sdk/google` 3.0.30, `undici` 7.22.0, `sonic-boom` 4.2.1.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.22.5
 
@@ -379,7 +379,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Added `/explorer` command for interactive file browsing with tree view navigation, file preview with syntax highlighting, multi-file selection, search mode, and VS Code integration. Closes #298.
 
-- Added task management tools (`create_task`, `list_tasks`, `update_task`, `delete_task`) with `/tasks` slash command for models to track and manage progress on complex work. Tasks persist in `.nanocoder/tasks.json` and are automatically cleared on CLI boot and `/clear` command.
+- Added task management tools (`create_task`, `list_tasks`, `update_task`, `delete_task`) with `/tasks` slash command for models to track and manage progress on complex work. Tasks persist in `.opencub/tasks.json` and are automatically cleared on CLI boot and `/clear` command.
 
 - Added `/settings` command for interactive command menu to configure UI theme and shapes without editing config files directly.
 
@@ -407,7 +407,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Dependency lockfile issues resolved.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.21.0
 
@@ -421,9 +421,9 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Added `--version` and `--help` CLI command options for quick reference. Thanks to @Avtrkrb.
 
-- Added `/quit` command as an alternative way to exit Nanocoder. Thanks to @Avtrkrb.
+- Added `/quit` command as an alternative way to exit OpenCub. Thanks to @Avtrkrb.
 
-- Added `/nanocoder-shape` command for selecting branding font styles.
+- Added `/opencub-shape` command for selecting branding font styles.
 
 - Added keyboard shortcuts documentation to README.
 
@@ -449,7 +449,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Security audit dependencies updated.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.20.4
 
@@ -457,9 +457,9 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fixed `@modelcontextprotocol/sdk` dependency version to resolve npm audit security issue.
 
-- Fixed TLS certificate errors when using `uvx` MCP servers behind corporate proxies. Nanocoder now automatically adds `--native-tls` to uvx commands to use system certificates instead of rustls.
+- Fixed TLS certificate errors when using `uvx` MCP servers behind corporate proxies. OpenCub now automatically adds `--native-tls` to uvx commands to use system certificates instead of rustls.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.20.3
 
@@ -471,7 +471,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Improved `web_search` and `fetch_url` formatter layouts to match `execute_bash` style with consistent column alignment and spacing.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.20.2
 
@@ -487,13 +487,13 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Running `/init --force` added duplication to `AGENTS.md`.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.20.1
 
 Fix: React Context Error - useTitleShape must be used within a TitleShapeProvider
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.20.0
 
@@ -501,7 +501,7 @@ Happy New Year! We all hope you had a great holidays and are feeling refreshed r
 
 - Added Catpuccin themes (Latte, Frappe, Macchiato, Mocha) with gradient color support. Thanks to @Avtrkrb.
 
-- Added VS Code context menu integration - you can now right-click selected code and ask Nanocoder about it directly.
+- Added VS Code context menu integration - you can now right-click selected code and ask OpenCub about it directly.
 
 - Added comprehensive testing achieving 90%+ code coverage across components, hooks, tools, and utilities. Tests now include unit and integration coverage for critical paths.
 
@@ -533,7 +533,7 @@ Happy New Year! We all hope you had a great holidays and are feeling refreshed r
 
 - Added AI SDK error types for better tool call error handling. Thanks to @DenizOkcu.
 
-- Centralized ignored file patterns usage throughout Nanocoder for consistency. Thanks to @DenizOkcu.
+- Centralized ignored file patterns usage throughout OpenCub for consistency. Thanks to @DenizOkcu.
 
 - Refactored App component into focused modules (useAppState, useAppInitialization, useChatHandler, useToolHandler, useModeHandlers) for better maintainability.
 
@@ -619,7 +619,7 @@ Happy New Year! We all hope you had a great holidays and are feeling refreshed r
 
 - Fix: Removed line numbers from tagging files and read_file tool as it confused models when pattern matching content changes.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.19.2
 
@@ -633,17 +633,17 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: `/usage` command now correctly displays context usage information.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.19.1
 
 - Fix Nix releases.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.19.0
 
-- Added non-interactive mode for running Nanocoder in CI/CD pipelines and scripts. Pass commands via CLI arguments and Nanocoder will execute and exit automatically. Thanks to @namar0x0309.
+- Added non-interactive mode for running OpenCub in CI/CD pipelines and scripts. Pass commands via CLI arguments and OpenCub will execute and exit automatically. Thanks to @namar0x0309.
 
 - Added conversation checkpointing system with interactive loading for saving and restoring conversation state across sessions. Thanks to @akramcodez.
 
@@ -667,7 +667,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Refactored GitHub Actions workflows to reduce duplication and improve maintainability.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.18.0
 
@@ -687,7 +687,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Removed streaming for now as it continued having issues with layouts, flickering and more, especially with the upgrade to AI SDK v6.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.17.3
 
@@ -697,7 +697,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Improve error handling for Ollama JSON parsing. Addresses issue #87. Thanks to @JimStenstrom
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.17.2
 
@@ -707,7 +707,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 ^ Thanks to @Avtrkrb for finding and handling these fixes.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.17.1
 
@@ -717,7 +717,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix Close diff preview when user presses escape to cancel a tool in VS Code plugin.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.17.0
 
@@ -725,7 +725,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Several big overhauls and fixes within MCPs - thanks to @Avtrkrb for handling the bulk of this.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.5
 
@@ -735,13 +735,13 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Nix installation was broken. Fixed thanks to @Thomashighbaugh.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.4
 
 - Decouple config vs data directories to introduce clear separation between configuration and application data directories. Thanks to @bowmanjd pushing this update.
 
-- Update checker now attempts to detect how you installed Nanocoder and uses that to update with CLI with. It all also presents, update steps to the user correctly to do manually. Thanks to @fabriziosalmi for doing this.
+- Update checker now attempts to detect how you installed OpenCub and uses that to update with CLI with. It all also presents, update steps to the user correctly to do manually. Thanks to @fabriziosalmi for doing this.
 
 - Added Dracula theme.
 
@@ -751,13 +751,13 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Creating new lines in VSCode Terminal was broken. This has now been fixed.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.3
 
 - Fix: Update checker used old rendering method so it appeared broken and always checking for an update. This has now been resolved.
 
-- Fix: Config files now correctly use `~/.config/nanocoder/` (or platform equivalents) instead of `~/.local/share/nanocoder/`, restoring proper XDG semantic separation between configuration and data. Thanks to @bowmanjd for patching this.
+- Fix: Config files now correctly use `~/.config/opencub/` (or platform equivalents) instead of `~/.local/share/opencub/`, restoring proper XDG semantic separation between configuration and data. Thanks to @bowmanjd for patching this.
 
 - Fix: Many edge-case fixes in the markdown parser for assistant messages. Outputs are far cleaner now.
 
@@ -779,7 +779,7 @@ _In replacement:_
 
 _^ All of the above is in effort to better manage context when it comes to models using tools. Some smaller models, like Qwen 3 Coder 30B struggle from intense context rot so these improvements are the first in a set that'll help small models make more accurate and purposeful tool calls._
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.2
 
@@ -792,13 +792,13 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Model context limit tests updated to match actual implementation
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.1
 
 - Fix: Removed postinstall hook that caused installation failures due to missing scripts directory in published package. Models.dev data is now fetched on first use instead of during installation.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.16.0
 
@@ -808,7 +808,7 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Model asked for permission to call tools that didn't exist. It now errors and loops back to the model to correct itself.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.15.1
 
@@ -818,13 +818,13 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Fix: Node version requirement is now 20+.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.15.0
 
-- Big: Switched backend architecture to use AI SDK over LangGraph. This is a better fit for Nanocoder for many reasons. Thanks to @DenizOkcu for doing this switch.
+- Big: Switched backend architecture to use AI SDK over LangGraph. This is a better fit for OpenCub for many reasons. Thanks to @DenizOkcu for doing this switch.
 
-- Tag files and their contents into messages directly use the `@` symbol. Nanocoder will fuzzy search and allow to choose which files.
+- Tag files and their contents into messages directly use the `@` symbol. OpenCub will fuzzy search and allow to choose which files.
 
 - New message streaming to see agent respond in realtime. Toggle stream mode on and off via the `/streaming` command.
 
@@ -836,29 +836,29 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 
 - Improved non-native tool call parsing by refining the XML/JSON parsing flow.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 # 1.14.3
 
 - Added Nix package installation option. Thanks to @Lalit64 for closing issue #75.
 - Chore: bumped `get-md` package version to the latest.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.14.2
 
 - Fix: issue #71. Markdown tables and HTML entities are now rendering properly in model responses.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.14.1
 
-- Switched out Jina.ai that fetched LLM optimised markdown from URLs to our own, on-device, private Nano Collective package: [get-md](https://github.com/Nano-Collective/get-md).
+- Switched out Jina.ai that fetched LLM optimised markdown from URLs to an on-device, private package: [@nanocollective/get-md](https://www.npmjs.com/package/@nanocollective/get-md).
 - `search_files` tool now ignores contents of `.gitignore` over just a pre-defined set of common ignores.
 - If you use OpenRouter as a provider, it now logs "Nancoder" as the agent.
 - Fix: Added `parallel_tool_calls` to be equal to `false` in the LangGraph client. This helps bring some stability and flow to models especially when editing files.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.14.0
 
@@ -869,9 +869,9 @@ If there are any problems, feedback or thoughts please drop an issue or message 
   - Check for linting errors with Eslint
   - Run AVA tests
   - Test for unnused code and dependencies with Knip
-- The full test suite passes for version 1.14.0 with no errors or warnings. Nanocoder should feel and work more robustly than ever!
+- The full test suite passes for version 1.14.0 with no errors or warnings. OpenCub should feel and work more robustly than ever!
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.13.9
 
@@ -882,14 +882,14 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 - Fix: Removed duplicate `hooks` directories and consolidated into one.
 - Fix: Removed unneccessary `ollama` package.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.13.8
 
 - Fix: Issue #55
 - Rolling out testing to the release pipeline
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.13.7
 
@@ -901,12 +901,12 @@ If there are any problems, feedback or thoughts please drop an issue or message 
 - Fix: import aliases within the code now use `@/` syntax _without_ file extensions. This is an under-the-hood refactor to improve code readability and use more modern standards.
 - Fix: All but the last message in the chat was made static through Ink. This still causes _some_ terminal flicker if the last message was a long one. All messages are immediately made static now to further improve performance.
 
-If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using Nanocoder. 🙌
+If there are any problems, feedback or thoughts please drop an issue or message us through Discord! Thank you for using OpenCub. 🙌
 
 ## 1.13.6
 
 - Added `CHANGELOG.md` and rolled out changelogs to releases.
 - Updated the `/clear` command output UI to read "Chat Cleared." over "✔️ Chat Cleared..."
 - Refactored `langgraph-client.ts` to removed old methods that are no longer needed. Rolled out this change to `useChatHandler.tsx`. This results in smaller, more tidy files.
-- Fix: LangGraph errors leaked through to UI display. This is now tidied to be from Nanocoder.
+- Fix: LangGraph errors leaked through to UI display. This is now tidied to be from OpenCub.
 - Fix: Pressing Escape to cancel model responses was not instant and sometimes didn't work.

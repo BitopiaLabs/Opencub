@@ -1,6 +1,6 @@
 ---
 title: "Mistral AI"
-description: "Configure Mistral AI as a cloud AI provider for Nanocoder"
+description: "Configure Mistral AI as a cloud AI provider for OpenCub"
 sidebar_order: 12
 ---
 

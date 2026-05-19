@@ -12,7 +12,7 @@ This matters most when you're on extended coding sessions or using paid APIs whe
 
 ## How It Works
 
-Nanocoder has two compaction strategies, both available manually (`/compact`) and for auto-compact:
+OpenCub has two compaction strategies, both available manually (`/compact`) and for auto-compact:
 
 - **`llm` (default)** — Calls the active model to write a structured markdown summary of the older messages (context, decisions, files modified, tools used, open questions). The older messages are replaced with a single synthetic summary message, while the most recent messages are kept verbatim. Higher fidelity at the cost of one extra round-trip.
 - **`mechanical`** — Truncates each older message individually using regex heuristics. No network call, faster, lower fidelity. Used automatically as a fallback if the LLM path fails (network error, empty response, summary larger than original, etc.).
@@ -73,7 +73,7 @@ Before compression is applied, a backup is automatically created. You can restor
 
 ## Auto-Compact
 
-Nanocoder can automatically compress the context when it reaches a certain percentage of the model's context limit.
+OpenCub can automatically compress the context when it reaches a certain percentage of the model's context limit.
 
 ### Configuration
 
@@ -81,7 +81,7 @@ Add auto-compact settings to your `agents.config.json`:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "autoCompact": {
       "enabled": true,
       "threshold": 60,
@@ -113,7 +113,7 @@ Override auto-compact settings for the current session without modifying config 
 /compact --strategy mechanical  # Use mechanical compression for this session
 ```
 
-Session overrides are temporary and reset when you restart Nanocoder.
+Session overrides are temporary and reset when you restart OpenCub.
 
 ## How Compression Works
 
@@ -129,7 +129,7 @@ The older portion of the conversation is serialised as a transcript and sent to 
 
 The synthetic summary replaces the older messages while the most recent ones are kept verbatim. During the LLM round-trip, the input is locked so you can't accidentally submit a new message mid-compaction.
 
-If the model errors, returns nothing, or somehow produces a summary larger than the original, Nanocoder automatically falls back to the mechanical strategy for that invocation.
+If the model errors, returns nothing, or somehow produces a summary larger than the original, OpenCub automatically falls back to the mechanical strategy for that invocation.
 
 ### Mechanical Strategy
 
@@ -178,7 +178,7 @@ Use `/status` or `/usage` to see your current context utilization:
 This means either:
 - No compression has been performed yet
 - The backup was already restored and cleared
-- Nanocoder was restarted (backups don't persist across sessions)
+- OpenCub was restarted (backups don't persist across sessions)
 
 ### Auto-compact not triggering
 

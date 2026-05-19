@@ -1,6 +1,6 @@
 ---
 title: "LocalAI"
-description: "Configure LocalAI as a local AI provider for Nanocoder"
+description: "Configure LocalAI as a local AI provider for OpenCub"
 sidebar_order: 6
 ---
 

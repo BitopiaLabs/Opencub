@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Install Nanocoder via NPM, Homebrew, or Nix Flakes"
+description: "Install OpenCub via NPM, Homebrew, or Nix Flakes"
 sidebar_order: 2
 ---
 
@@ -13,13 +13,13 @@ sidebar_order: 2
 Install globally and use anywhere:
 
 ```bash
-npm install -g @nanocollective/nanocoder
+npm install -g opencub
 ```
 
 Then run in any directory:
 
 ```bash
-nanocoder
+cub
 ```
 
 ### Homebrew (macOS/Linux)
@@ -27,19 +27,19 @@ nanocoder
 First, tap the repository:
 
 ```bash
-brew tap nano-collective/nanocoder https://github.com/Nano-Collective/nanocoder
+brew tap tylerthomas/opencub https://github.com/tylerthomas/opencub
 ```
 
 Then install:
 
 ```bash
-brew install nanocoder
+brew install opencub
 ```
 
 Run in any directory:
 
 ```bash
-nanocoder
+cub
 ```
 
 To update:
@@ -48,22 +48,22 @@ To update:
 # Update Homebrew's tap cache first (important!)
 brew update
 
-# Then upgrade nanocoder
-brew upgrade nanocoder
+# Then upgrade opencub
+brew upgrade opencub
 ```
 
-> **Note**: If `brew upgrade nanocoder` shows the old version is already installed, run `brew update` first. Homebrew caches tap formulas locally and only refreshes them during `brew update`. Without updating the tap cache, you'll see the cached (older) version even if a newer formula exists in the repository.
+> **Note**: If `brew upgrade opencub` shows the old version is already installed, run `brew update` first. Homebrew caches tap formulas locally and only refreshes them during `brew update`. Without updating the tap cache, you'll see the cached (older) version even if a newer formula exists in the repository.
 
 ### Nix Flakes
 
-Run Nanocoder directly using:
+Run OpenCub directly using:
 
 ```bash
 # If you have flakes enabled in your Nix config:
-nix run github:Nano-Collective/nanocoder
+nix run github:tylerthomas/opencub
 
 # If you don't have flakes enabled:
-nix run --extra-experimental-features 'nix-command flakes' github:Nano-Collective/nanocoder
+nix run --extra-experimental-features 'nix-command flakes' github:tylerthomas/opencub
 ```
 
 Or install from `packages` output:
@@ -72,8 +72,8 @@ Or install from `packages` output:
 # flake.nix
 {
   inputs = {
-    nanocoder = {
-      url = "github:Nano-Collective/nanocoder";
+    opencub = {
+      url = "github:tylerthomas/opencub";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -82,14 +82,14 @@ Or install from `packages` output:
 # configuration.nix
 { pkgs, inputs, system, ... }: {
   environment.systemPackages = [
-    inputs.nanocoder.packages."${system}".default
+    inputs.opencub.packages."${system}".default
   ];
 }
 ```
 
 ## For Development
 
-If you want to contribute or modify Nanocoder:
+If you want to contribute or modify OpenCub:
 
 **Prerequisites:**
 
@@ -104,7 +104,7 @@ If you want to contribute or modify Nanocoder:
 
 ```bash
 git clone [repo-url]
-cd nanocoder
+cd opencub
 pnpm install
 ```
 

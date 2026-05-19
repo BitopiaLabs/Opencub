@@ -1,6 +1,6 @@
 ---
 title: "MLX Server"
-description: "Configure MLX Server as a local AI provider for Nanocoder"
+description: "Configure MLX Server as a local AI provider for OpenCub"
 sidebar_order: 4
 ---
 

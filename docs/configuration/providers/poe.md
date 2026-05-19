@@ -1,6 +1,6 @@
 ---
 title: "Poe"
-description: "Configure Poe as a cloud AI provider for Nanocoder"
+description: "Configure Poe as a cloud AI provider for OpenCub"
 sidebar_order: 14
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "GitHub Models"
-description: "Configure GitHub Models as a cloud AI provider for Nanocoder"
+description: "Configure GitHub Models as a cloud AI provider for OpenCub"
 sidebar_order: 13
 ---
 

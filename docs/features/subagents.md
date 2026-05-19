@@ -22,7 +22,7 @@ A maximum of 5 agents can run concurrently. Excess calls receive an error and ca
 
 ## Built-In Subagents
 
-Nanocoder ships with two built-in subagents:
+OpenCub ships with two built-in subagents:
 
 ### explore
 
@@ -50,7 +50,7 @@ Tools: read_file, search_file_contents, find_files, list_directory,
 /agents create code-reviewer
 ```
 
-This creates a template at `.nanocoder/agents/code-reviewer.md` and prompts the AI to help you write the agent definition.
+This creates a template at `.opencub/agents/code-reviewer.md` and prompts the AI to help you write the agent definition.
 
 ### By Copying a Built-In Agent
 
@@ -58,15 +58,15 @@ This creates a template at `.nanocoder/agents/code-reviewer.md` and prompts the 
 /agents copy explore
 ```
 
-This copies the full definition of the `research` agent (or any other agent) to `.nanocoder/agents/research.md` so you can customize it. The project-level copy takes priority over the built-in, so your modifications take effect immediately.
+This copies the full definition of the `research` agent (or any other agent) to `.opencub/agents/research.md` so you can customize it. The project-level copy takes priority over the built-in, so your modifications take effect immediately.
 
 This is the easiest way to tweak a built-in agent — adjust the system prompt, add or remove tools, change the model, etc.
 
 ### Manually
 
-Create a markdown file in `.nanocoder/agents/` (project-level) or `~/.config/nanocoder/agents/` (user-level):
+Create a markdown file in `.opencub/agents/` (project-level) or `~/.config/opencub/agents/` (user-level):
 
-`.nanocoder/agents/code-reviewer.md`:
+`.opencub/agents/code-reviewer.md`:
 
 ```markdown
 ---
@@ -126,14 +126,14 @@ Always use your tools — never guess.
 
 The `provider` must match a provider name configured in your `agents.config.json`.
 
-If you set `contextWindow`, Nanocoder creates that subagent with its own context limit override. This is useful when a lightweight research agent should run with a smaller local-model context than your main coding agent.
+If you set `contextWindow`, OpenCub creates that subagent with its own context limit override. This is useful when a lightweight research agent should run with a smaller local-model context than your main coding agent.
 
 ## Priority and Overrides
 
 Subagent definitions are loaded from three sources in priority order:
 
-1. **Project-level** (`.nanocoder/agents/`) — highest priority
-2. **User-level** (`~/.config/nanocoder/agents/`) — medium priority
+1. **Project-level** (`.opencub/agents/`) — highest priority
+2. **User-level** (`~/.config/opencub/agents/`) — medium priority
 3. **Built-in** — lowest priority
 
 A project-level agent with the same `name` as a built-in or user-level agent overrides it.
@@ -182,7 +182,7 @@ Displays the full definition of an agent — description, source, provider, mode
 /agents copy explore
 ```
 
-Copies the agent definition to `.nanocoder/agents/<name>.md`. The project-level copy takes priority immediately, so you can edit the file and the changes take effect on the next agent invocation.
+Copies the agent definition to `.opencub/agents/<name>.md`. The project-level copy takes priority immediately, so you can edit the file and the changes take effect on the next agent invocation.
 
 ### Create a New Agent
 

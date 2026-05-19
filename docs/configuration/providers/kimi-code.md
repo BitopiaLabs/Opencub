@@ -1,6 +1,6 @@
 ---
 title: "Kimi Code"
-description: "Configure Kimi Code as a native AI provider for Nanocoder"
+description: "Configure Kimi Code as a native AI provider for OpenCub"
 sidebar_order: 23
 ---
 

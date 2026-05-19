@@ -1,6 +1,6 @@
 ---
 title: "Custom Provider"
-description: "Configure any OpenAI-compatible API as a custom provider for Nanocoder"
+description: "Configure any OpenAI-compatible API as a custom provider for OpenCub"
 sidebar_order: 30
 ---
 

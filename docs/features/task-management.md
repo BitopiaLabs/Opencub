@@ -37,6 +37,6 @@ The AI will create a task list, mark tasks as in-progress or complete as it work
 
 ## Storage
 
-- Tasks are stored in `.nanocoder/tasks.json` in your project directory
+- Tasks are stored in `.opencub/tasks.json` in your project directory
 - Tasks are automatically cleared on startup and when using `/clear` to keep the list fresh
-- Consider adding `.nanocoder/tasks.json` to your `.gitignore`
+- Consider adding `.opencub/tasks.json` to your `.gitignore`

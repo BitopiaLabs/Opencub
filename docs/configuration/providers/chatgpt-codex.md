@@ -1,12 +1,12 @@
 ---
 title: "ChatGPT / Codex"
-description: "Configure ChatGPT / Codex as a native AI provider for Nanocoder"
+description: "Configure ChatGPT / Codex as a native AI provider for OpenCub"
 sidebar_order: 23
 ---
 
 # ChatGPT / Codex
 
-Use your existing ChatGPT subscription to access Codex models through Nanocoder. Authentication is handled via a browser-based login flow — no API key needed.
+Use your existing ChatGPT subscription to access Codex models through OpenCub. Authentication is handled via a browser-based login flow — no API key needed.
 
 ## Configuration
 
@@ -24,12 +24,12 @@ The `sdkProvider: "chatgpt-codex"` field enables the ChatGPT/Codex authenticatio
 ## Setup
 
 1. Ensure you have an active [ChatGPT subscription](https://chatgpt.com)
-2. Run `/codex-login` inside Nanocoder to authenticate via your browser
+2. Run `/codex-login` inside OpenCub to authenticate via your browser
 3. Credentials are cached locally and refreshed automatically
 
 ## Reasoning Traces
 
-GPT-5 and other reasoning models return chain-of-thought only when the Responses API is asked to emit it. Nanocoder sets `reasoningSummary: "auto"` and `reasoningEffort: "medium"` by default for this provider so reasoning shows up in the `⚙ Thinking` block out of the box. Toggle visibility with **Ctrl+R** or set `reasoningExpanded: true` in your preferences.
+GPT-5 and other reasoning models return chain-of-thought only when the Responses API is asked to emit it. OpenCub sets `reasoningSummary: "auto"` and `reasoningEffort: "medium"` by default for this provider so reasoning shows up in the `⚙ Thinking` block out of the box. Toggle visibility with **Ctrl+R** or set `reasoningExpanded: true` in your preferences.
 
 Override either setting via `tune.modelParameters` in `agents.config.json`:
 

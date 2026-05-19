@@ -17,10 +17,10 @@ Each command becomes a `/command` you can run during any session, with support f
 /commands create review-code
 
 # Or create the file manually
-mkdir -p .nanocoder/commands
+mkdir -p .opencub/commands
 ```
 
-`.nanocoder/commands/review-code.md`:
+`.opencub/commands/review-code.md`:
 
 ```markdown
 ---
@@ -43,10 +43,10 @@ Then invoke it:
 
 ## File Structure
 
-Commands live in `.nanocoder/commands/` in your project root. Each `.md` file becomes a command named after the file.
+Commands live in `.opencub/commands/` in your project root. Each `.md` file becomes a command named after the file.
 
 ```
-.nanocoder/commands/
+.opencub/commands/
   test.md              -> /test
   review.md            -> /review
   refactor/
@@ -159,7 +159,7 @@ When writing tests for this project, follow these conventions:
 When using the directory-as-command pattern, files in a `resources/` subdirectory are automatically loaded and passed as additional context. This is useful for bundling templates, configs, or reference documents alongside the command.
 
 ```
-.nanocoder/commands/
+.opencub/commands/
   api-gen/
     api-gen.md            -> The command (must match directory name)
     resources/
@@ -178,7 +178,7 @@ When using the directory-as-command pattern, files in a `resources/` subdirector
 
 ### `/commands create`
 
-Creates a new command file in `.nanocoder/commands/` and starts an AI-assisted session to write its content. The AI will ask what you want the command to do, then write the markdown file for you.
+Creates a new command file in `.opencub/commands/` and starts an AI-assisted session to write its content. The AI will ask what you want the command to do, then write the markdown file for you.
 
 ```bash
 /commands create lint-fix

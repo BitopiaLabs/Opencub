@@ -1,6 +1,6 @@
 ---
 title: "OpenAI"
-description: "Configure OpenAI as a cloud AI provider for Nanocoder"
+description: "Configure OpenAI as a cloud AI provider for OpenCub"
 sidebar_order: 11
 ---
 

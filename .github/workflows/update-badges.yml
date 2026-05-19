@@ -72,22 +72,22 @@ jobs:
           curl -s "https://img.shields.io/badge/build-${{ steps.build.outputs.status }}-${{ steps.build.outputs.color }}?style=for-the-badge&logo=githubactions" > badges/build.svg
 
           # NPM Downloads (monthly) - with for-the-badge style and npm logo
-          curl -s "https://img.shields.io/npm/dm/@nanocollective/nanocoder?style=for-the-badge&logo=npm" > badges/npm-downloads-monthly.svg
+          curl -s "https://img.shields.io/npm/dm/opencub?style=for-the-badge&logo=npm" > badges/npm-downloads-monthly.svg
 
           # NPM License - with for-the-badge style and npm logo
-          curl -s "https://img.shields.io/npm/l/@nanocollective/nanocoder?style=for-the-badge" > badges/npm-license.svg
+          curl -s "https://img.shields.io/npm/l/opencub?style=for-the-badge" > badges/npm-license.svg
 
           # GitHub Repo Size - with for-the-badge style and github logo
-          curl -s "https://img.shields.io/github/repo-size/Nano-Collective/nanocoder?style=for-the-badge&logo=github" > badges/repo-size.svg
+          curl -s "https://img.shields.io/github/repo-size/tylerthomas/opencub?style=for-the-badge&logo=github" > badges/repo-size.svg
 
           # GitHub Repo Stars - with for-the-badge style and github logo
-          curl -s "https://img.shields.io/github/stars/Nano-Collective/nanocoder?style=for-the-badge&logo=github" > badges/stars.svg
+          curl -s "https://img.shields.io/github/stars/tylerthomas/opencub?style=for-the-badge&logo=github" > badges/stars.svg
 
           # GitHub Forks - with for-the-badge style and github logo
-          curl -s "https://img.shields.io/github/forks/Nano-Collective/nanocoder?style=for-the-badge&logo=github" > badges/forks.svg
+          curl -s "https://img.shields.io/github/forks/tylerthomas/opencub?style=for-the-badge&logo=github" > badges/forks.svg
 
           # NPM version - with for-the-badge style and npm logo
-          curl -s "https://img.shields.io/npm/v/@nanocollective/nanocoder?style=for-the-badge&logo=npm" > badges/npm-version.svg
+          curl -s "https://img.shields.io/npm/v/opencub?style=for-the-badge&logo=npm" > badges/npm-version.svg
 
       - name: Update README with badges
         run: |
@@ -97,14 +97,14 @@ jobs:
             cp README.md README.md.tmp
             
             # Replace or add badges in the README
-            sed -i 's|!\[Build Status\].*|![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg)|' README.md.tmp || echo "Build badge not found, will add it"
-            sed -i 's|!\[Coverage\].*|![Coverage](https://github.com/Nano-Collective/nanocoder/raw/main/badges/coverage.svg)|' README.md.tmp || echo "Coverage badge not found, will add it"
-            sed -i 's|!\[Version\].*|![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-version.svg)|' README.md.tmp || echo "Version badge not found, will add it"
-            sed -i 's|!\[NPM Downloads\].*|![NPM Downloads](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-downloads-monthly.svg)|' README.md.tmp || echo "NPM downloads badge not found, will add it"
-            sed -i 's|!\[Stars\].*|![Stars](https://github.com/Nano-Collective/nanocoder/raw/main/badges/stars.svg)|' README.md.tmp || echo "Stars badge not found, will add it"
-            sed -i 's|!\[License\].*|![License](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-license.svg)|' README.md.tmp || echo "License badge not found, will add it"
-            sed -i 's|!\[Repo Size\].*|![Repo Size](https://github.com/Nano-Collective/nanocoder/raw/main/badges/repo-size.svg)|' README.md.tmp || echo "Repo size badge not found, will add it"
-            sed -i 's|!\[Forks\].*|![Forks](https://github.com/Nano-Collective/nanocoder/raw/main/badges/forks.svg)|' README.md.tmp || echo "Forks badge not found, will add it"
+            sed -i 's|!\[Build Status\].*|![Build Status](https://github.com/tylerthomas/opencub/raw/main/badges/build.svg)|' README.md.tmp || echo "Build badge not found, will add it"
+            sed -i 's|!\[Coverage\].*|![Coverage](https://github.com/tylerthomas/opencub/raw/main/badges/coverage.svg)|' README.md.tmp || echo "Coverage badge not found, will add it"
+            sed -i 's|!\[Version\].*|![Version](https://github.com/tylerthomas/opencub/raw/main/badges/npm-version.svg)|' README.md.tmp || echo "Version badge not found, will add it"
+            sed -i 's|!\[NPM Downloads\].*|![NPM Downloads](https://github.com/tylerthomas/opencub/raw/main/badges/npm-downloads-monthly.svg)|' README.md.tmp || echo "NPM downloads badge not found, will add it"
+            sed -i 's|!\[Stars\].*|![Stars](https://github.com/tylerthomas/opencub/raw/main/badges/stars.svg)|' README.md.tmp || echo "Stars badge not found, will add it"
+            sed -i 's|!\[License\].*|![License](https://github.com/tylerthomas/opencub/raw/main/badges/npm-license.svg)|' README.md.tmp || echo "License badge not found, will add it"
+            sed -i 's|!\[Repo Size\].*|![Repo Size](https://github.com/tylerthomas/opencub/raw/main/badges/repo-size.svg)|' README.md.tmp || echo "Repo size badge not found, will add it"
+            sed -i 's|!\[Forks\].*|![Forks](https://github.com/tylerthomas/opencub/raw/main/badges/forks.svg)|' README.md.tmp || echo "Forks badge not found, will add it"
             
             # If badges section doesn't exist, add it after the first heading
             if ! grep -q "Build Status\|Coverage\|Version\|NPM Downloads\|Stars\|License" README.md.tmp; then
@@ -113,14 +113,14 @@ jobs:
           \
           # Status Badges \
           \
-          ![Build Status](https://github.com/Nano-Collective/nanocoder/raw/main/badges/build.svg) \
-          ![Coverage](https://github.com/Nano-Collective/nanocoder/raw/main/badges/coverage.svg) \
-          ![Version](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-version.svg) \
-          ![NPM Downloads](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-downloads-monthly.svg) \
-          ![Stars](https://github.com/Nano-Collective/nanocoder/raw/main/badges/stars.svg) \
-          ![License](https://github.com/Nano-Collective/nanocoder/raw/main/badges/npm-license.svg) \
-          ![Repo Size](https://github.com/Nano-Collective/nanocoder/raw/main/badges/repo-size.svg) \
-          ![Forks](https://github.com/Nano-Collective/nanocoder/raw/main/badges/forks.svg) \
+          ![Build Status](https://github.com/tylerthomas/opencub/raw/main/badges/build.svg) \
+          ![Coverage](https://github.com/tylerthomas/opencub/raw/main/badges/coverage.svg) \
+          ![Version](https://github.com/tylerthomas/opencub/raw/main/badges/npm-version.svg) \
+          ![NPM Downloads](https://github.com/tylerthomas/opencub/raw/main/badges/npm-downloads-monthly.svg) \
+          ![Stars](https://github.com/tylerthomas/opencub/raw/main/badges/stars.svg) \
+          ![License](https://github.com/tylerthomas/opencub/raw/main/badges/npm-license.svg) \
+          ![Repo Size](https://github.com/tylerthomas/opencub/raw/main/badges/repo-size.svg) \
+          ![Forks](https://github.com/tylerthomas/opencub/raw/main/badges/forks.svg) \
           \
           ' README.md.tmp
             fi

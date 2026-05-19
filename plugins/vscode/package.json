@@ -1,12 +1,12 @@
 {
-	"name": "nanocoder-vscode",
-	"displayName": "Nanocoder",
-	"description": "VS Code integration for Nanocoder - local-first AI coding assistant",
+	"name": "opencub-vscode",
+	"displayName": "OpenCub",
+	"description": "VS Code integration for OpenCub - local-first AI coding assistant",
 	"version": "0.3.0",
-	"publisher": "nanocollective",
+	"publisher": "tylerthomas",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Nano-Collective/nanocoder.git"
+		"url": "https://github.com/tylerthomas/opencub.git"
 	},
 	"engines": {
 		"vscode": "^1.85.0"
@@ -20,7 +20,7 @@
 		"ai",
 		"coding",
 		"assistant",
-		"nanocoder",
+		"opencub",
 		"ollama",
 		"local"
 	],
@@ -32,40 +32,40 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "nanocoder.connect",
-				"title": "Connect to Nanocoder",
-				"category": "Nanocoder"
+				"command": "opencub.connect",
+				"title": "Connect to OpenCub",
+				"category": "OpenCub"
 			},
 			{
-				"command": "nanocoder.disconnect",
-				"title": "Disconnect from Nanocoder",
-				"category": "Nanocoder"
+				"command": "opencub.disconnect",
+				"title": "Disconnect from OpenCub",
+				"category": "OpenCub"
 			},
 			{
-				"command": "nanocoder.startCli",
-				"title": "Start Nanocoder CLI",
-				"category": "Nanocoder"
+				"command": "opencub.startCli",
+				"title": "Start OpenCub CLI",
+				"category": "OpenCub"
 			}
 		],
 		"configuration": {
-			"title": "Nanocoder",
+			"title": "OpenCub",
 			"properties": {
-				"nanocoder.serverPort": {
+				"opencub.serverPort": {
 					"type": "number",
 					"default": 51820,
-					"description": "WebSocket server port for communication with Nanocoder CLI"
+					"description": "WebSocket server port for communication with OpenCub CLI"
 				},
-				"nanocoder.autoConnect": {
+				"opencub.autoConnect": {
 					"type": "boolean",
 					"default": true,
-					"description": "Automatically connect to Nanocoder CLI on startup"
+					"description": "Automatically connect to OpenCub CLI on startup"
 				},
-				"nanocoder.autoStartCli": {
+				"opencub.autoStartCli": {
 					"type": "boolean",
 					"default": false,
-					"description": "Automatically start Nanocoder CLI if not running"
+					"description": "Automatically start OpenCub CLI if not running"
 				},
-				"nanocoder.showDiffPreview": {
+				"opencub.showDiffPreview": {
 					"type": "boolean",
 					"default": true,
 					"description": "Show diff preview before applying file changes"

@@ -1,12 +1,12 @@
 ---
 title: "Desktop Notifications"
-description: "Get notified when Nanocoder needs your attention"
+description: "Get notified when OpenCub needs your attention"
 sidebar_order: 14
 ---
 
 # Desktop Notifications
 
-When Nanocoder is running a long task in the background, you might switch to another window and miss when it needs your input. Desktop notifications let you know when attention is required.
+When OpenCub is running a long task in the background, you might switch to another window and miss when it needs your input. Desktop notifications let you know when attention is required.
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ You can also enable notification **sound**.
 
 ## How It Works
 
-Nanocoder uses native OS notification APIs — no bundled binaries or external dependencies.
+OpenCub uses native OS notification APIs — no bundled binaries or external dependencies.
 
 | Platform | Method | Icon Support |
 |----------|--------|:------------:|
@@ -31,25 +31,25 @@ Nanocoder uses native OS notification APIs — no bundled binaries or external d
 
 ### macOS — Getting the Best Experience
 
-By default, Nanocoder falls back to `osascript` which shows basic notifications without the Nanocoder icon. For the full experience with icon support and proper click-to-focus behaviour, install `terminal-notifier` via Homebrew:
+By default, OpenCub falls back to `osascript` which shows basic notifications without the OpenCub icon. For the full experience with icon support and proper click-to-focus behaviour, install `terminal-notifier` via Homebrew:
 
 ```bash
 brew install terminal-notifier
 ```
 
-Nanocoder will automatically detect and use it. You may need to allow notifications for `terminal-notifier` in **System Settings > Notifications** the first time.
+OpenCub will automatically detect and use it. You may need to allow notifications for `terminal-notifier` in **System Settings > Notifications** the first time.
 
 ### Linux
 
-Notifications use `notify-send`, which is included with most desktop environments (GNOME, KDE, etc.). The Nanocoder icon is included automatically when available.
+Notifications use `notify-send`, which is included with most desktop environments (GNOME, KDE, etc.). The OpenCub icon is included automatically when available.
 
 ## Configuration
 
-Notification preferences are stored in `nanocoder-preferences.json` under the `nanocoder.notifications` namespace. You can configure them via `/settings` or by editing the file directly:
+Notification preferences are stored in `opencub-preferences.json` under the `opencub.notifications` namespace. You can configure them via `/settings` or by editing the file directly:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "notifications": {
       "enabled": true,
       "sound": true,
@@ -61,7 +61,7 @@ Notification preferences are stored in `nanocoder-preferences.json` under the `n
       "customMessages": {
         "toolConfirmation": {
           "title": "Action Required",
-          "message": "Nanocoder needs your approval"
+          "message": "OpenCub needs your approval"
         }
       }
     }

@@ -1,6 +1,6 @@
 ---
 title: "vLLM"
-description: "Configure vLLM as a local AI provider for Nanocoder"
+description: "Configure vLLM as a local AI provider for OpenCub"
 sidebar_order: 5
 ---
 

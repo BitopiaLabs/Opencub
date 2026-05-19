@@ -6,7 +6,7 @@ sidebar_order: 7
 
 # Session Management
 
-Nanocoder automatically saves your conversations so you can close the terminal and pick up where you left off. Sessions are saved in the background — you don't need to do anything special.
+OpenCub automatically saves your conversations so you can close the terminal and pick up where you left off. Sessions are saved in the background — you don't need to do anything special.
 
 ## Resuming a Session
 
@@ -44,11 +44,11 @@ Sessions are stored in the platform-specific app data directory:
 
 | Platform | Default Path |
 |----------|-------------|
-| macOS | `~/Library/Application Support/nanocoder/sessions/` |
-| Linux | `~/.local/share/nanocoder/sessions/` |
-| Windows | `%APPDATA%/nanocoder/sessions/` |
+| macOS | `~/Library/Application Support/opencub/sessions/` |
+| Linux | `~/.local/share/opencub/sessions/` |
+| Windows | `%APPDATA%/opencub/sessions/` |
 
-This can be overridden via the `directory` config option or `NANOCODER_DATA_DIR` environment variable.
+This can be overridden via the `directory` config option or `OPENCUB_DATA_DIR` environment variable.
 
 ## Configuration
 
@@ -56,7 +56,7 @@ Customize session behaviour in your `agents.config.json`:
 
 ```json
 {
-  "nanocoder": {
+  "opencub": {
     "sessions": {
       "autoSave": true,
       "saveInterval": 30000,

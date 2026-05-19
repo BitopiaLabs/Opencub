@@ -1,0 +1,505 @@
+import React, {useEffect} from 'react';
+// Built-in commands are registered via a lazy registry so their modules
+// aren't loaded at startup — each command's handler is imported on first
+// invocation. See `src/commands/lazy-registry.ts`.
+import {lazyCommands} from '@/commands/lazy-registry';
+import {commandRegistry} from '@/commands/registry';
+import {CustomCommandExecutor} from '@/features/custom-commands/executor';
+import {CustomCommandLoader} from '@/features/custom-commands/loader';
+import {generateKey} from '@/features/session/key-generator';
+import {SubagentExecutor} from '@/features/subagents/subagent-executor';
+import {getSubagentLoader} from '@/features/subagents/subagent-loader';
+import {getLSPManager, type LSPInitResult} from '@/integrations/lsp/index';
+import {ConfigurationError, createLLMClient} from '@/llm/client-factory';
+import {getAppConfig, reloadAppConfig} from '@/shared/config/index';
+import {
+	getLastUsedModel,
+	loadPreferences,
+	updateLastUsed,
+} from '@/shared/config/preferences';
+import {validateProjectConfigSecurity} from '@/shared/config/validation';
+import {TIMEOUT_OUTPUT_FLUSH_MS} from '@/shared/constants';
+import {
+	setToolManagerGetter,
+	setToolRegistryGetter,
+} from '@/shared/message-handler';
+import type {CustomCommand} from '@/shared/types/commands';
+import {
+	LLMClient,
+	LSPConnectionStatus,
+	MCPConnectionStatus,
+} from '@/shared/types/core';
+import type {
+	MCPInitResult,
+	UpdateInfo,
+	UserPreferences,
+} from '@/shared/types/index';
+import {setAvailableSubagents} from '@/shared/utils/prompt-processor';
+import {getShutdownManager} from '@/shared/utils/shutdown';
+import {checkForUpdates} from '@/shared/utils/update-checker';
+import {setAgentToolExecutor, setAvailableAgentNames} from '@/tools/agent-tool';
+import {clearAllTasks} from '@/tools/tasks';
+import {ToolManager} from '@/tools/tool-manager';
+import {ErrorMessage, InfoMessage} from '@/ui/message-box';
+
+interface UseAppInitializationProps {
+	setClient: (client: LLMClient | null) => void;
+	setCurrentModel: (model: string) => void;
+	setCurrentProvider: (provider: string) => void;
+	setCurrentProviderConfig: (
+		providerConfig: import('@/shared/types/config').AIProviderConfig | null,
+	) => void;
+	setToolManager: (manager: ToolManager | null) => void;
+	setCustomCommandLoader: (loader: CustomCommandLoader | null) => void;
+	setCustomCommandExecutor: (executor: CustomCommandExecutor | null) => void;
+	setCustomCommandCache: (cache: Map<string, CustomCommand>) => void;
+	setStartChat: (start: boolean) => void;
+	setMcpInitialized: (initialized: boolean) => void;
+	setUpdateInfo: (info: UpdateInfo | null) => void;
+	setMcpServersStatus: (status: MCPConnectionStatus[]) => void;
+	setLspServersStatus: (status: LSPConnectionStatus[]) => void;
+	setPreferencesLoaded: (loaded: boolean) => void;
+	setCustomCommandsCount: (count: number) => void;
+	setSubagentsReady: (ready: boolean) => void;
+	addToChatQueue: (component: React.ReactNode) => void;
+	customCommandCache: Map<string, CustomCommand>;
+	setActiveMode: (mode: import('@/hooks/useAppState').ActiveMode) => void;
+	cliProvider?: string;
+	cliModel?: string;
+	/**
+	 * When true, init failures (no client) shut down the process with code 1
+	 * instead of leaving the run stuck in "Waiting for MCP servers..." — the
+	 * config wizard and chat queue are interactive-only surfaces that can't
+	 * resolve under `cub run`.
+	 */
+	nonInteractiveMode?: boolean;
+}
+
+export function useAppInitialization({
+	setClient,
+	setCurrentModel,
+	setCurrentProvider,
+	setCurrentProviderConfig,
+	setToolManager,
+	setCustomCommandLoader,
+	setCustomCommandExecutor,
+	setCustomCommandCache: _setCustomCommandCache,
+	setStartChat,
+	setMcpInitialized,
+	setUpdateInfo,
+	setMcpServersStatus,
+	setLspServersStatus,
+	setPreferencesLoaded,
+	setCustomCommandsCount,
+	setSubagentsReady,
+	addToChatQueue,
+	customCommandCache,
+	setActiveMode,
+	cliProvider,
+	cliModel,
+	nonInteractiveMode = false,
+}: UseAppInitializationProps) {
+	// Initialize LLM client and model
+	const initializeClient = async (
+		preferredProvider?: string,
+		preferredModel?: string,
+	): Promise<LLMClient | null> => {
+		const {client, actualProvider} = await createLLMClient(
+			preferredProvider,
+			preferredModel,
+		);
+		setClient(client);
+		setCurrentProvider(actualProvider);
+		setCurrentProviderConfig(client.getProviderConfig());
+
+		// Use CLI model if provided (already set by createLLMClient), otherwise try last used model
+		let finalModel: string;
+		if (preferredModel) {
+			finalModel = client.getCurrentModel();
+		} else {
+			// Try to use the last used model for this provider
+			const lastUsedModel = getLastUsedModel(actualProvider);
+
+			if (lastUsedModel) {
+				const availableModels = await client.getAvailableModels();
+				if (availableModels.includes(lastUsedModel)) {
+					client.setModel(lastUsedModel);
+					finalModel = lastUsedModel;
+				} else {
+					finalModel = client.getCurrentModel();
+				}
+			} else {
+				finalModel = client.getCurrentModel();
+			}
+		}
+
+		setCurrentModel(finalModel);
+		setCurrentProviderConfig(client.getProviderConfig());
+
+		// Save the preference - use actualProvider and the model that was actually set
+		updateLastUsed(actualProvider, finalModel);
+
+		return client;
+	};
+
+	// Load and cache custom commands
+	const loadCustomCommands = (loader: CustomCommandLoader) => {
+		loader.loadCommands();
+		const customCommands = loader.getAllCommands() || [];
+
+		// Populate command cache for better performance
+		customCommandCache.clear();
+		for (const command of customCommands) {
+			customCommandCache.set(command.name, command);
+			// Also cache aliases for quick lookup
+			if (command.metadata?.aliases) {
+				for (const alias of command.metadata.aliases) {
+					customCommandCache.set(alias, command);
+				}
+			}
+		}
+
+		// Set the count for display in Status component
+		setCustomCommandsCount(customCommands.length);
+	};
+
+	// Initialize MCP servers if configured
+	const initializeMCPServers = async (toolManager: ToolManager) => {
+		const config = getAppConfig();
+		if (config.mcpServers && config.mcpServers.length > 0) {
+			// Validate security for project-level configurations
+			validateProjectConfigSecurity(config.mcpServers);
+
+			// Initialize status array
+			const mcpStatus: MCPConnectionStatus[] = config.mcpServers.map(
+				server => ({
+					name: server.name,
+					status: 'pending' as const,
+				}),
+			);
+
+			// Define progress callback to update status silently
+			const onProgress = (result: MCPInitResult) => {
+				const statusIndex = mcpStatus.findIndex(
+					s => s.name === result.serverName,
+				);
+				if (statusIndex !== -1) {
+					if (result.success) {
+						mcpStatus[statusIndex] = {
+							name: result.serverName,
+							status: 'connected',
+						};
+					} else {
+						mcpStatus[statusIndex] = {
+							name: result.serverName,
+							status: 'failed',
+							errorMessage: result.error,
+						};
+					}
+					// Update the state with current status
+					setMcpServersStatus([...mcpStatus]);
+				}
+			};
+
+			try {
+				await toolManager.initializeMCP(config.mcpServers, onProgress);
+			} catch (error) {
+				// Mark all pending servers as failed
+				mcpStatus.forEach((status, index) => {
+					if (status.status === 'pending') {
+						mcpStatus[index] = {
+							...status,
+							status: 'failed',
+							errorMessage: String(error),
+						};
+					}
+				});
+				setMcpServersStatus([...mcpStatus]);
+			}
+			// Mark MCP as initialized whether successful or not
+			setMcpInitialized(true);
+		} else {
+			// No MCP servers configured, set empty status
+			setMcpServersStatus([]);
+			setMcpInitialized(true);
+		}
+	};
+
+	// Initialize LSP servers with auto-discovery
+	const initializeLSPServers = async () => {
+		const lspConfig = getAppConfig();
+		const lspManager = await getLSPManager({
+			rootUri: `file://${process.cwd()}`,
+			autoDiscover: true,
+			// Use custom servers from config if provided
+			servers: lspConfig.lspServers?.map(server => ({
+				name: server.name,
+				command: server.command,
+				args: server.args,
+				languages: server.languages,
+				env: server.env,
+			})),
+		});
+
+		// Initialize status array for configured servers
+		const lspStatus: LSPConnectionStatus[] = [];
+
+		// Add configured servers to status
+		if (lspConfig.lspServers) {
+			for (const server of lspConfig.lspServers) {
+				lspStatus.push({
+					name: server.name,
+					status: 'pending',
+				});
+			}
+		}
+
+		// Define progress callback to update status silently
+		const onProgress = (result: LSPInitResult) => {
+			const statusIndex = lspStatus.findIndex(
+				s => s.name === result.serverName,
+			);
+			if (statusIndex !== -1) {
+				if (result.success) {
+					lspStatus[statusIndex] = {
+						name: result.serverName,
+						status: 'connected',
+					};
+				} else {
+					// Don't mark auto-discovery failures as errors
+					lspStatus[statusIndex] = {
+						name: result.serverName,
+						status: 'failed',
+						errorMessage: result.error,
+					};
+				}
+				// Update the state with current status
+				setLspServersStatus([...lspStatus]);
+			}
+			// For auto-discovered servers, add them if successful
+			else if (result.success) {
+				lspStatus.push({
+					name: result.serverName,
+					status: 'connected',
+				});
+				setLspServersStatus([...lspStatus]);
+			}
+		};
+
+		try {
+			await lspManager.initialize({
+				autoDiscover: true,
+				servers: lspConfig.lspServers?.map(server => ({
+					name: server.name,
+					command: server.command,
+					args: server.args,
+					languages: server.languages,
+					env: server.env,
+				})),
+				onProgress,
+			});
+
+			// Mark any remaining pending servers as failed
+			lspStatus.forEach((status, index) => {
+				if (status.status === 'pending') {
+					lspStatus[index] = {
+						...status,
+						status: 'failed',
+						errorMessage: 'Connection timeout',
+					};
+				}
+			});
+			setLspServersStatus([...lspStatus]);
+		} catch (error) {
+			// Mark all pending servers as failed
+			lspStatus.forEach((status, index) => {
+				if (status.status === 'pending') {
+					lspStatus[index] = {
+						...status,
+						status: 'failed',
+						errorMessage: String(error),
+					};
+				}
+			});
+			setLspServersStatus([...lspStatus]);
+		}
+	};
+
+	const start = async (
+		toolManager: ToolManager,
+		newCustomCommandLoader: CustomCommandLoader,
+		preferences: UserPreferences,
+	): Promise<void> => {
+		try {
+			// Use CLI provider/model if provided, otherwise use preferences
+			const provider = cliProvider || preferences.lastProvider;
+			const model = cliModel || undefined;
+			const client = await initializeClient(provider, model);
+
+			// Create and initialize the SubagentExecutor if client was successfully created
+			if (client) {
+				const executor = new SubagentExecutor(toolManager, client);
+				setAgentToolExecutor(executor);
+			}
+		} catch (error) {
+			// Check if it's a ConfigurationError
+			if (error instanceof ConfigurationError) {
+				// Only trigger wizard if config is empty/missing, not for invalid CLI args
+				if (
+					error.isEmptyConfig ||
+					error.message.includes('No providers configured')
+				) {
+					if (nonInteractiveMode) {
+						// Wizard is interactive-only — exit cleanly under `run`.
+						addToChatQueue(
+							<ErrorMessage
+								key={generateKey('config-error')}
+								message="No providers configured. Run opencub interactively to set them up."
+								hideBox={true}
+							/>,
+						);
+					} else {
+						addToChatQueue(
+							<InfoMessage
+								key={generateKey('config-error')}
+								message="Configuration needed. Let's set up your providers..."
+								hideBox={true}
+							/>,
+						);
+						// Trigger wizard mode after showing UI
+						setTimeout(() => {
+							setActiveMode('configWizard');
+						}, 100);
+					}
+				} else {
+					// Invalid CLI provider/model - show error and don't trigger wizard
+					addToChatQueue(
+						<ErrorMessage
+							key={generateKey('config-error')}
+							message={error.message}
+							hideBox={true}
+						/>,
+					);
+				}
+			} else {
+				// Regular error - show simple error message
+				addToChatQueue(
+					<ErrorMessage
+						key={generateKey('init-error')}
+						message={`No providers available: ${String(error)}`}
+						hideBox={true}
+					/>,
+				);
+			}
+			// In non-interactive mode there's no human to recover via /provider
+			// or /model — keep init from blocking on a null client by exiting
+			// once the error has had a chance to flush to stdout.
+			if (nonInteractiveMode) {
+				setTimeout(() => {
+					void getShutdownManager().gracefulShutdown(1);
+				}, TIMEOUT_OUTPUT_FLUSH_MS);
+			}
+			// Leave client as null - the UI will handle this gracefully
+		}
+
+		try {
+			loadCustomCommands(newCustomCommandLoader);
+		} catch (error) {
+			addToChatQueue(
+				<ErrorMessage
+					key={generateKey('commands-error')}
+					message={`Failed to load custom commands: ${String(error)}`}
+					hideBox={true}
+				/>,
+			);
+		}
+	};
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Initialization effect should only run once on mount
+	useEffect(() => {
+		const initializeApp = async () => {
+			setClient(null);
+			setCurrentModel('');
+			setCurrentProviderConfig(null);
+
+			// Clear task list — fire-and-forget, just deletes a JSON file
+			void clearAllTasks();
+
+			const newToolManager = new ToolManager();
+			const newCustomCommandLoader = new CustomCommandLoader();
+			const newCustomCommandExecutor = new CustomCommandExecutor();
+
+			setToolManager(newToolManager);
+			setCustomCommandLoader(newCustomCommandLoader);
+			setCustomCommandExecutor(newCustomCommandExecutor);
+
+			// Load preferences - we'll pass them directly to avoid state timing issues
+			const preferences = loadPreferences();
+
+			// Mark preferences as loaded for display in Status component
+			setPreferencesLoaded(true);
+
+			// Set up the tool registry getter for the message handler
+			setToolRegistryGetter(() => newToolManager.getToolRegistry());
+
+			// Set up the tool manager getter for commands that need it
+			setToolManagerGetter(() => newToolManager);
+
+			commandRegistry.registerLazy(lazyCommands);
+
+			// === CRITICAL PATH ===
+			// LLM client + subagents are independent — run in parallel.
+			// Everything else (update check, MCP, LSP) runs in the background.
+			const subagentLoader = getSubagentLoader();
+			await Promise.all([
+				start(newToolManager, newCustomCommandLoader, preferences),
+				subagentLoader.initialize().then(async () => {
+					const availableAgents = await subagentLoader.listSubagents();
+					const agentSummaries = availableAgents.map(a => ({
+						name: a.name,
+						description: a.description,
+					}));
+					setAvailableSubagents(agentSummaries);
+					setAvailableAgentNames(agentSummaries);
+					setSubagentsReady(true);
+				}),
+			]);
+
+			// === SHOW CHAT UI ===
+			// The Status box was removed from startup (it's now /status),
+			// so nothing gates on MCP/LSP/update-check completing. Show
+			// the prompt immediately after the LLM client + subagents are
+			// ready. Everything else connects in the background.
+			setMcpInitialized(true);
+			setStartChat(true);
+
+			// === BACKGROUND WORK ===
+			// All three run concurrently after the chat is interactive.
+			// MCP tools register dynamically as servers connect; LSP
+			// diagnostics appear when ready; update banner shows when the
+			// npm check resolves.
+			void checkForUpdates()
+				.then(info => setUpdateInfo(info))
+				.catch(() => setUpdateInfo(null));
+
+			void initializeMCPServers(newToolManager);
+
+			void initializeLSPServers();
+		};
+
+		void initializeApp();
+	}, []);
+
+	return {
+		initializeClient,
+		loadCustomCommands,
+		initializeMCPServers,
+		reinitializeMCPServers: async (toolManager: ToolManager) => {
+			// Reload app config to get latest MCP servers
+			reloadAppConfig();
+			// Reinitialize MCP servers with new configuration
+			await initializeMCPServers(toolManager);
+		},
+		initializeLSPServers,
+	};
+}
