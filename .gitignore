@@ -107,7 +107,7 @@ agents
 component.md
 refactor.md
 
-# Nanocoder checkpoints (user data)
+# OpenCub checkpoints (user data)
 # These contain conversation snapshots and should not be committed
 **/checkpoints/
 
@@ -116,9 +116,9 @@ refactor.md
 
 coverage
 
-.nanocoder/tasks.json
-.nanocoder/schedule-runs.json
-.nanocoder/schedules.json
+.opencub/tasks.json
+.opencub/schedule-runs.json
+.opencub/schedules.json
 .generated-prompts/
 
 # Generated quality report (baseline.json is checked in, others are not)

@@ -1,316 +1,97 @@
-# Nanocoder Devcontainer
+# OpenCub Dev Container
 
-A complete, containerized development environment for Nanocoder - the local-first AI coding assistant.
+A reproducible, zero-setup development environment for [OpenCub](../README.md). Open the repository in any tool that understands the [Development Containers](https://containers.dev/) spec and you get a fully configured workspace in one click.
 
-## Quick Start
+---
 
-### Prerequisites
+## What's in the box
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- [Visual Studio Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+| Layer | Detail |
+|---|---|
+| Base image | `mcr.microsoft.com/devcontainers/base:ubuntu-22.04` |
+| Runtime | Node.js 22 (NodeSource), pnpm (latest), Biome (global) |
+| Shell | zsh + oh-my-zsh, with pnpm + Node on PATH |
+| Fonts | Fira Code (apt) and FiraCode Nerd Font (powerline glyphs) |
+| Extras | `jq`, `curl`, `wget`, `git`, `vim`, `unzip`, `build-essential`, `python3` |
+| User | `vscode` (non-root) at `/workspaces/opencub` |
+| VS Code extensions | Biome, TypeScript next, Prettier, GitLens |
+| Forwarded ports | `51820` (VS Code ↔ CLI WebSocket bridge) |
 
-### Getting Started
+The container is named `opencub-dev` and the pnpm store is persisted in a named volume (`opencub-pnpm-store`) for fast reinstalls.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Nano-Collective/nanocoder.git
-   cd nanocoder
-   ```
+---
 
-2. **Open in VS Code**
-   ```bash
-   code .
-   ```
+## Files
 
-3. **Reopen in Container**
-   - When VS Code prompts "Reopen in Container", click **"Reopen in Container"**
-   - Or press `F1` and select `Dev Containers: Reopen in Container`
+| File | Purpose |
+|---|---|
+| `devcontainer.json` | Dev Containers manifest — image, features, VS Code settings, ports, mounts, lifecycle |
+| `Dockerfile` | Image definition (Node 22, pnpm, Biome, fonts, zsh) |
+| `docker-compose.yml` | Compose-based alternative for running outside a Dev Containers host |
+| `scripts/post-create.sh` | Post-create hook: `pnpm install`, build, husky, scaffold `.env`, print summary |
 
-4. **Wait for Setup**
-   - The container will build on first use (~2-3 minutes)
-   - Dependencies will be installed automatically
-   - The project will be built automatically
-   - You're ready when you see "✨ Development environment ready!" in the terminal
+---
 
-5. **Start Development**
-   ```bash
-   # Run development mode with hot reload
-   pnpm run dev
+## How to use it
 
-   # Run all tests
-   pnpm test:all
+### VS Code / Cursor / Windsurf
 
-   # Start the application
-   pnpm run start
-   ```
+1. Install the **Dev Containers** extension.
+2. Open this repository.
+3. Run **Dev Containers: Reopen in Container**.
+4. Wait for the post-create script to install dependencies and build.
+5. Edit `.env` with your provider API keys.
+6. Run `pnpm run start` (or `cub` after `npm link`) to launch the CLI.
 
-## What's Included
+### GitHub Codespaces
 
-### Development Tools
+Click **Code → Codespaces → Create codespace on main**. The same `devcontainer.json` is used.
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Node.js** | 22.x LTS | JavaScript/TypeScript runtime |
-| **pnpm** | pinned via `packageManager` (Corepack) | Fast, disk-efficient package manager |
-| **Biome** | Latest | Fast formatter and linter |
-| **Git** | Latest | Version control |
-| **Zsh** + **Oh My Zsh** | Latest | Enhanced shell experience |
+### Plain Docker Compose
 
-### VS Code Extensions
-
-The following extensions are pre-installed:
-
-- **Biome** - Code formatting and linting
-- **TypeScript** - Enhanced TypeScript support
-- **GitLens** - Git supercharged
-- **Prettier** - Code formatting (alternative)
-
-### Pre-configured Settings
-
-- **Biome** is set as the default formatter
-- **Format on save** is enabled
-- **Organize imports on save** is enabled
-- **TypeScript** uses the workspace version
-- **Zsh** is configured as the default shell
-
-## Features
-
-### Zero-Setup Development
-
-All dependencies and tools are pre-installed in the container. No manual setup required on your host machine.
-
-### Consistent Environment
-
-Every developer gets the exact same tools and versions, eliminating "works on my machine" issues.
-
-### Fast Dependency Installation
-
-The pnpm store is cached in a named volume, making subsequent `pnpm install` commands much faster.
-
-### Network Access
-
-Full network access is enabled for:
-- Testing MCP servers (HTTP/WebSocket/stdio)
-- Fetching AI models via APIs
-- Installing dependencies from npm registry
-
-### Git Integration
-
-- Git operations work seamlessly inside the container
-- Pre-commit hooks (Husky) are configured automatically
-- Git credentials can be mounted for authenticated operations
-
-## Development Workflow
-
-### 1. Configure AI Providers
-
-Edit `.env` or `agents.config.json` to add your AI provider credentials:
+If you want the same image without a Dev Containers host:
 
 ```bash
-# Edit the example .env file created during setup
-nano .env
+cd .devcontainer
+docker compose up -d
+docker exec -it opencub-dev zsh
 ```
 
-```env
-# Example: OpenAI
-OPENAI_API_KEY=sk-...
+The repository is mounted into `/workspaces/opencub`; the pnpm store is cached in a named volume.
 
-# Example: Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
+---
 
-# Example: OpenAI-compatible
-OPENAI_COMPATIBLE_API_KEY=your-key
-OPENAI_COMPATIBLE_BASE_URL=https://api.example.com/v1
-```
+## Lifecycle
 
-### 2. Development Mode
+On first create, [`scripts/post-create.sh`](scripts/post-create.sh) runs:
 
-Run the application with hot reload:
+1. `pnpm install --frozen-lockfile`
+2. `pnpm run build`
+3. `pnpm run prepare` (husky)
+4. `pnpm test:format` + `pnpm test:types` (smoke; warnings are non-fatal)
+5. Copies `.env.example` → `.env` if missing
+6. Prints versions and next steps
+
+Re-run it any time with:
 
 ```bash
-pnpm run dev
+bash .devcontainer/scripts/post-create.sh
 ```
 
-### 3. Run Tests
+---
 
-Execute the complete test suite:
+## Customization
 
-```bash
-pnpm test:all
-```
+- **Node version.** Change `NODE_VERSION` in the `Dockerfile` and `node-version` in `.github/workflows/release.yml` together.
+- **Extra VS Code extensions.** Add to `customizations.vscode.extensions` in `devcontainer.json`.
+- **Git credentials.** Uncomment the `~/.gitconfig` mount in `docker-compose.yml` (or use the [Dev Containers Git credential forwarding](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials) docs for the VS Code path).
+- **Different port.** Change `forwardPorts` and the matching `ports` entry in `docker-compose.yml`. Make sure it also matches `opencub.serverPort` in the VS Code extension settings — see [`plugins/README.md`](../plugins/README.md).
 
-Individual test commands:
-
-```bash
-pnpm test:format    # Biome formatting check
-pnpm test:types     # TypeScript type checking
-pnpm test:lint      # ESLint
-pnpm test:ava       # AVA test runner
-pnpm test:knip      # Unused code detection
-```
-
-### 4. Build for Production
-
-```bash
-pnpm run build
-```
-
-### 5. Run Built Application
-
-```bash
-pnpm run start
-```
+---
 
 ## Troubleshooting
 
-### Container Won't Start
-
-**Problem:** Container fails to build or start
-
-**Solutions:**
-- Ensure Docker Desktop is running
-- Check Docker disk space (Docker > Settings > Resources > Disk image size)
-- Try rebuilding: `Dev Containers: Rebuild Container` from command palette
-
-### Dependencies Won't Install
-
-**Problem:** `pnpm install` fails during post-create setup
-
-**Solutions:**
-- Check network connectivity
-- Try manual install: `pnpm install --frozen-lockfile`
-- Clear pnpm cache: `pnpm store prune`
-
-### Git Operations Fail
-
-**Problem:** Cannot push/pull from Git
-
-**Solutions:**
-- Configure SSH keys in the container
-- Or mount your `.gitconfig` with credential helpers
-- Uncomment the Git volume mount in `docker-compose.yml`
-
-### Performance Issues
-
-**Problem:** File operations are slow
-
-**Solutions:**
-- Ensure you're using named volumes (not bind mounts) for pnpm cache
-- Check Docker Desktop resource limits
-- Use `.dockerignore` to exclude unnecessary files
-
-### VS Code Extensions Don't Load
-
-**Problem:** Extensions not available in container
-
-**Solutions:**
-- Rebuild the container: `Dev Containers: Rebuild Container`
-- Check `.devcontainer/devcontainer.json` for extension list
-- Install manually: `Extensions: Install Extensions` command
-
-## Advanced Usage
-
-### Custom Shell Configuration
-
-Edit `/home/vscode/.zshrc` inside the container to customize your shell:
-
-```bash
-# Open zsh config in container
-code ~/.zshrc
-```
-
-### Mounting Git Credentials
-
-To use your host's Git credentials, uncomment this line in `docker-compose.yml`:
-
-```yaml
-volumes:
-  - ${HOME}/.gitconfig:/home/vscode/.gitconfig:ro
-```
-
-### Exposing Additional Ports
-
-Add ports to `docker-compose.yml`:
-
-```yaml
-ports:
-  - "51820:51820"  # VS Code extension
-  - "3000:3000"    # Your custom port
-```
-
-### Environment Variables
-
-Add custom environment variables in `docker-compose.yml`:
-
-```yaml
-environment:
-  NODE_ENV: development
-  MY_CUSTOM_VAR: "value"
-```
-
-### Connecting to Local Services
-
-To connect to services running on your host machine:
-
-- **macOS/Windows**: Use `host.docker.internal`
-- **Linux**: Use `172.17.0.1` (default Docker bridge IP)
-
-Example:
-```env
-# In .env
-API_BASE_URL=http://host.docker.internal:3000
-```
-
-### Container Shell Access
-
-Open a terminal inside the container:
-- VS Code: `Terminal > Create New Terminal`
-- Docker CLI: `docker exec -it nanocoder-dev zsh`
-
-### Cleaning Up
-
-Remove the container and volumes to start fresh:
-
-```bash
-# Stop and remove container
-docker-compose down
-
-# Remove pnpm cache volume
-docker volume rm nanocoder-pnpm-store
-
-# Rebuild from scratch
-# In VS Code: Dev Containers: Rebuild Container
-```
-
-## Architecture
-
-### Container Image
-
-- **Base**: `mcr.microsoft.com/devcontainers/base:ubuntu-22.04`
-- **User**: Non-root `vscode` user for security
-- **Size**: ~1.5GB (acceptable for development)
-
-### Volume Mounts
-
-| Mount | Purpose | Persistence |
-|-------|---------|-------------|
-| `/workspaces/nanocoder` | Project source code | Host filesystem |
-| `nanocoder-pnpm-store` | pnpm package cache | Named volume |
-
-### Network
-
-- **Mode**: Bridge (default)
-- **Access**: Full network access for MCP testing
-- **Ports**: 51820 forwarded to host
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/Nano-Collective/nanocoder/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Nano-Collective/nanocoder/discussions)
-- **Documentation**: [Main README](../README.md)
-
-## Related Documentation
-
-- [Contributing Guide](../CONTRIBUTING.md) - Overall contribution guidelines
-- [OpenSpec Proposal](../openspec/changes/add-devcontainer-support/) - Design and specs
-- [Main README](../README.md) - Project overview and usage
+- **`pnpm: command not found` inside the container.** The image installs pnpm globally, but a fresh shell may need a new login. Run `exec zsh` or open a new terminal.
+- **VS Code can't connect to the CLI.** Start the CLI with `cub --vscode` (or `cub --vscode --vscode-port=51820`) inside the container and confirm port `51820` is forwarded.
+- **Slow first install.** That's the cold pnpm store. Subsequent rebuilds reuse the `opencub-pnpm-store` volume and are much faster.
+- **Permission errors writing to `/workspaces/opencub`.** Ensure your host user owns the repository directory before mounting; the container user is `vscode` (UID auto-mapped by the common-utils feature).

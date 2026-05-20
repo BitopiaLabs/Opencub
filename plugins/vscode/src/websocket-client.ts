@@ -39,7 +39,7 @@ export class WebSocketClient {
 
 				this.ws.on('open', () => {
 					this.isConnecting = false;
-					this.outputChannel.appendLine('Connected to Nanocoder CLI');
+					this.outputChannel.appendLine('Connected to OpenCub CLI');
 					this.clearReconnectTimer();
 					resolve(true);
 				});
@@ -54,7 +54,7 @@ export class WebSocketClient {
 				});
 
 				this.ws.on('close', () => {
-					this.outputChannel.appendLine('Disconnected from Nanocoder CLI');
+					this.outputChannel.appendLine('Disconnected from OpenCub CLI');
 					this.ws = null;
 					this.isConnecting = false;
 					if (this.shouldReconnect) {

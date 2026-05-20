@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Generates source/commands/contributors.json from git history.
+# Generates src/commands/contributors.json from git history.
 # Run automatically as part of `pnpm run build`.
 
 set -euo pipefail
 
-OUT="source/commands/contributors.json"
+OUT="src/commands/contributors.json"
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Not a git repo — skipping contributors generation"

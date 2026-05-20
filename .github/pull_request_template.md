@@ -31,3 +31,4 @@ Brief description of what this PR does
 - [ ] Documentation updated (if needed)
 - [ ] No breaking changes (or clearly documented)
 - [ ] Appropriate logging added using structured logging (see [CONTRIBUTING.md](../CONTRIBUTING.md#logging))
+- [ ] No secrets, tokens, private logs, or credentials are committed

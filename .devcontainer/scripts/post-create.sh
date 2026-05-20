@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Setting up Nanocoder development environment..."
+echo "🚀 Setting up OpenCub development environment..."
 
 # Install dependencies using pnpm
 echo "📦 Installing dependencies..."
@@ -43,5 +43,5 @@ echo "📚 Next steps:"
 echo "   1. Configure your AI providers in .env or agents.config.json"
 echo "   2. Run 'pnpm run dev' to start development mode"
 echo "   3. Run 'pnpm test:all' to run all tests"
-echo "   4. Run 'pnpm run start' to launch Nanocoder"
+echo "   4. Run 'pnpm run start' to launch OpenCub"
 echo ""

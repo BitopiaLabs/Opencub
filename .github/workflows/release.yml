@@ -33,7 +33,7 @@ jobs:
           echo "package-version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
           # Get latest NPM version (handle case where package doesn't exist yet)
-          NPM_VERSION=$(npm view @nanocollective/nanocoder version 2>/dev/null || echo "0.0.0")
+          NPM_VERSION=$(npm view opencub version 2>/dev/null || echo "0.0.0")
           echo "npm-version=$NPM_VERSION" >> $GITHUB_OUTPUT
 
           # Compare versions
@@ -99,27 +99,11 @@ jobs:
             exit 1
           fi
           echo "✅ Build successful: dist/cli.js exists"
-          if [ ! -f "assets/nanocoder-vscode.vsix" ]; then
+          if [ ! -f "assets/opencub-vscode.vsix" ]; then
             echo "❌ Build failed: VS Code extension not found"
             exit 1
           fi
-          echo "✅ VS Code extension built: assets/nanocoder-vscode.vsix exists"
-
-      - name: Extract Changelog
-        id: changelog
-        run: |
-          # Extract changelog for current version
-          CHANGELOG=$(node scripts/extract-changelog.js 2>&1)
-          if [ $? -eq 0 ]; then
-            echo "✅ Changelog extracted successfully"
-            # Use EOF to handle multi-line output
-            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-            echo "$CHANGELOG" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "⚠️ No changelog entry found, using default message"
-            echo "CHANGELOG=No changelog available for this version." >> $GITHUB_OUTPUT
-          fi
+          echo "✅ VS Code extension built: assets/opencub-vscode.vsix exists"
 
       - name: Publish to NPM
         run: npm publish --access public
@@ -132,34 +116,35 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version.outputs.package-version }}
-          release_name: nanocoder v${{ needs.check-version.outputs.package-version }}
+          release_name: opencub v${{ needs.check-version.outputs.package-version }}
           body: |
-            ## What's Changed
-
-            ${{ steps.changelog.outputs.CHANGELOG }}
-
-            ### Installation
+            ## Installation
             ```bash
-            npm install -g @nanocollective/nanocoder
+            npm install -g opencub
             ```
 
-            ### Usage
+            ## Usage
             ```bash
-            nanocoder
+            cub
             ```
-
-            **Full Changelog**: https://github.com/Nano-Collective/nanocoder/compare/v${{ needs.check-version.outputs.npm-version }}...v${{ needs.check-version.outputs.package-version }}
           draft: false
           prerelease: false
 
       - name: Send Discord Notification
         if: success()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "No Discord webhook configured; skipping notification."
+            exit 0
+          fi
+
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
-                "title": "🎉 New Release: Nanocoder v${{ needs.check-version.outputs.package-version }}",
-                "description": "A new version of Nanocoder has been released!\n\n[View the full changelog on GitHub](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.check-version.outputs.package-version }})",
+                "title": "🎉 New Release: OpenCub v${{ needs.check-version.outputs.package-version }}",
+                "description": "A new version of OpenCub has been released.\n\n[View the release on GitHub](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.check-version.outputs.package-version }})",
                 "color": 5763719,
                 "fields": [
                   {
@@ -169,7 +154,7 @@ jobs:
                   },
                   {
                     "name": "Installation",
-                    "value": "`npm install -g @nanocollective/nanocoder`",
+                    "value": "`npm install -g opencub`",
                     "inline": false
                   }
                 ],
@@ -180,7 +165,7 @@ jobs:
                 "url": "https://github.com/${{ github.repository }}/releases/tag/v${{ needs.check-version.outputs.package-version }}"
               }]
             }' \
-            ${{ secrets.DISCORD_WEBHOOK_URL }}
+            "$DISCORD_WEBHOOK_URL"
 
   update-nix:
     needs: [check-version, publish]
@@ -191,17 +176,8 @@ jobs:
     secrets:
       PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
-  update-homebrew:
-    needs: [check-version, publish, update-nix]
-    if: needs.check-version.outputs.should-publish == 'true'
-    uses: ./.github/workflows/update-homebrew.yml
-    with:
-      version: ${{ needs.check-version.outputs.package-version }}
-    secrets:
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-
   notify:
-    needs: [check-version, publish, update-nix, update-homebrew]
+    needs: [check-version, publish, update-nix]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -209,19 +185,14 @@ jobs:
         run: |
           if [ "${{ needs.check-version.outputs.should-publish }}" == "true" ]; then
             if [ "${{ needs.publish.result }}" == "success" ]; then
-              echo "🎉 Successfully published @nanocollective/nanocoder v${{ needs.check-version.outputs.package-version }} to NPM and created GitHub release!"
+              echo "🎉 Successfully published opencub v${{ needs.check-version.outputs.package-version }} to NPM and created GitHub release!"
               if [ "${{ needs.update-nix.result }}" == "success" ]; then
                 echo "✅ Nix package updated successfully!"
               else
                 echo "⚠️ Warning: Nix package update failed"
               fi
-              if [ "${{ needs.update-homebrew.result }}" == "success" ]; then
-                echo "✅ Homebrew formula updated successfully!"
-              else
-                echo "⚠️ Warning: Homebrew formula update failed"
-              fi
             else
-              echo "❌ Failed to publish @nanocollective/nanocoder v${{ needs.check-version.outputs.package-version }}"
+              echo "❌ Failed to publish opencub v${{ needs.check-version.outputs.package-version }}"
               exit 1
             fi
           else

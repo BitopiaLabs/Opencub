@@ -1,0 +1,186 @@
+import {Box, Text} from 'ink';
+import Spinner from 'ink-spinner';
+import React from 'react';
+import {useTheme} from '@/hooks/useTheme';
+import type {ActiveEditorState} from '@/integrations/vscode/vscode-server';
+import type {DevelopmentMode, ToolCall, TuneConfig} from '@/shared/types';
+import type {PendingQuestion} from '@/shared/utils/question-queue';
+import type {PendingToolApproval} from '@/shared/utils/tool-approval-queue';
+import {LiveCompactCounts} from '@/shared/utils/tool-result-display';
+import type {Task} from '@/tools/tasks/types';
+import CancellingIndicator from '@/ui/cancelling-indicator';
+import QuestionPrompt from '@/ui/question-prompt';
+import {TaskListDisplay} from '@/ui/task-list-display';
+import ToolConfirmation from '@/ui/tool-confirmation';
+import ToolExecutionIndicator from '@/ui/tool-execution-indicator';
+import UserInput from '@/ui/user-input';
+
+export interface ChatInputProps {
+	// Execution state
+	isCancelling: boolean;
+	isToolExecuting: boolean;
+	isToolConfirmationMode: boolean;
+	isQuestionMode: boolean;
+
+	// Tool state
+	pendingToolCalls: ToolCall[];
+	currentToolIndex: number;
+
+	// Question state (ask_question tool)
+	pendingQuestion: PendingQuestion | null;
+	onQuestionAnswer: (answer: string) => void;
+
+	// Subagent tool approval
+	pendingSubagentApproval: PendingToolApproval | null;
+	onSubagentToolApproval: (confirmed: boolean) => void;
+
+	// Client state
+	mcpInitialized: boolean;
+	client: unknown | null;
+
+	// Input state
+	customCommands: string[];
+	inputDisabled: boolean;
+	developmentMode: DevelopmentMode;
+	contextPercentUsed: number | null;
+	sessionName?: string;
+
+	// Tool display
+	compactToolCounts?: Record<string, number> | null;
+	onToggleCompactDisplay?: () => void;
+	compactToolDisplay?: boolean;
+	liveTaskList?: Task[] | null;
+
+	// Handlers
+	onToolConfirm: (confirmed: boolean) => void;
+	onToolCancel: () => void;
+	onSubmit: (message: string) => Promise<void>;
+	onCancel: () => void;
+	onToggleMode: () => void;
+	onToggleReasoningExpanded: () => void;
+	tune?: TuneConfig;
+
+	// VS Code active editor pushed from the extension (filename + optional selection)
+	activeEditor?: ActiveEditorState | null;
+	onDismissActiveEditor?: () => void;
+}
+
+/**
+ * Interactive chat input. Renders user input, tool confirmation prompts,
+ * question prompts, and in-flight indicators.
+ *
+ * Non-interactive (`run`) mode does not route through this component —
+ * see NonInteractiveShell.
+ *
+ * Unlike ChatHistory, this component CAN be conditionally mounted/unmounted.
+ * It does not contain ink's Static component, so it's safe to hide when
+ * modal dialogs are shown.
+ */
+export function ChatInput({
+	isCancelling,
+	isToolExecuting,
+	isToolConfirmationMode,
+	isQuestionMode,
+	pendingToolCalls,
+	currentToolIndex,
+	pendingQuestion,
+	onQuestionAnswer,
+	pendingSubagentApproval,
+	onSubagentToolApproval,
+	mcpInitialized,
+	client,
+	customCommands,
+	inputDisabled,
+	developmentMode,
+	contextPercentUsed,
+	sessionName,
+	compactToolCounts,
+	onToggleCompactDisplay,
+	compactToolDisplay,
+	liveTaskList,
+	onToolConfirm,
+	onToolCancel,
+	onSubmit,
+	onCancel,
+	onToggleMode,
+	onToggleReasoningExpanded,
+	tune,
+	activeEditor,
+	onDismissActiveEditor,
+}: ChatInputProps): React.ReactElement {
+	const {colors} = useTheme();
+
+	return (
+		<Box flexDirection="column" marginLeft={-1}>
+			{/* Live compact tool counts - running tally during auto-execution */}
+			{compactToolCounts && Object.keys(compactToolCounts).length > 0 && (
+				<LiveCompactCounts counts={compactToolCounts} />
+			)}
+
+			{/* Live task list - updates in-place below tool counts, above spinner */}
+			{liveTaskList && liveTaskList.length > 0 && (
+				<TaskListDisplay tasks={liveTaskList} title="Tasks" />
+			)}
+
+			{isCancelling && <CancellingIndicator />}
+
+			{/* Subagent Tool Approval — takes priority since subagent is blocked */}
+			{pendingSubagentApproval ? (
+				<ToolConfirmation
+					toolCall={pendingSubagentApproval.toolCall}
+					onConfirm={onSubagentToolApproval}
+					onCancel={() => onSubagentToolApproval(false)}
+				/>
+			) : /* Tool Confirmation */
+			isToolConfirmationMode && pendingToolCalls[currentToolIndex] ? (
+				<ToolConfirmation
+					toolCall={pendingToolCalls[currentToolIndex]}
+					onConfirm={onToolConfirm}
+					onCancel={onToolCancel}
+				/>
+			) : /* Tool Execution - skip indicator for streaming tools (they show their own progress) */
+			isToolExecuting &&
+				pendingToolCalls[currentToolIndex] &&
+				pendingToolCalls[currentToolIndex].function.name !== 'execute_bash' &&
+				pendingToolCalls[currentToolIndex].function.name !== 'agent' ? (
+				<ToolExecutionIndicator
+					toolName={pendingToolCalls[currentToolIndex].function.name}
+					currentIndex={currentToolIndex}
+					totalTools={pendingToolCalls.length}
+				/>
+			) : /* Question Prompt (ask_question tool) */
+			isQuestionMode && pendingQuestion ? (
+				<QuestionPrompt
+					question={pendingQuestion}
+					onAnswer={onQuestionAnswer}
+				/>
+			) : /* User Input */
+			mcpInitialized && client ? (
+				<UserInput
+					customCommands={customCommands}
+					onSubmit={msg => void onSubmit(msg)}
+					disabled={inputDisabled}
+					onCancel={onCancel}
+					onToggleMode={onToggleMode}
+					onToggleReasoningExpanded={onToggleReasoningExpanded}
+					onToggleCompactDisplay={onToggleCompactDisplay}
+					compactToolDisplay={compactToolDisplay}
+					developmentMode={developmentMode}
+					contextPercentUsed={contextPercentUsed}
+					sessionName={sessionName}
+					tune={tune}
+					activeEditor={activeEditor}
+					onDismissActiveEditor={onDismissActiveEditor}
+				/>
+			) : /* Client Missing */
+			mcpInitialized && !client ? (
+				<></>
+			) : (
+				/* Loading */
+				<Text color={colors.secondary}>
+					<Spinner type="dots" /> Loading...
+				</Text>
+			)}
+		</Box>
+	);
+}

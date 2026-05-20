@@ -5,7 +5,7 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"outDir": "dist",
-		"rootDir": "source",
+		"rootDir": "src",
 		"strict": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
@@ -18,16 +18,16 @@
 		"types": ["node"],
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["source/*"]
+			"@/*": ["src/*"]
 		}
 	},
-	"include": ["source/**/*"],
+	"include": ["src/**/*"],
 	"exclude": [
 		"dist",
 		"node_modules",
-		"source/**/__tests__/**/*",
-		"source/**/*.spec.tsx",
-		"source/**/*.spec.ts"
+		"src/**/__tests__/**/*",
+		"src/**/*.spec.tsx",
+		"src/**/*.spec.ts"
 	],
 	"ts-node": {
 		"esm": true,

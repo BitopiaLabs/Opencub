@@ -1,5 +1,5 @@
 /**
- * Protocol types for communication between VS Code extension and Nanocoder CLI
+ * Protocol types for communication between VS Code extension and OpenCub CLI
  */
 
 export const PROTOCOL_VERSION = '1.0.0';
@@ -26,7 +26,7 @@ export type ClientMessage =
 	| DiagnosticsResponseMessage
 	| ActiveEditorMessage;
 
-// File change notification (when nanocoder wants to modify a file)
+// File change notification (when opencub wants to modify a file)
 export interface FileChangeMessage {
 	type: 'file_change';
 	id: string;

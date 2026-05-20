@@ -250,7 +250,7 @@ function printBreakdown(label: string, breakdown: ModuleBreakdown): void {
 	}
 	if (breakdown.sourceHotspots.length > 0) {
 		console.log('');
-		console.log('  first-party hotspots (source/<dir>):');
+		console.log('  first-party hotspots (src/<dir>):');
 		for (const entry of breakdown.sourceHotspots) {
 			console.log(`    ${String(entry.count).padStart(5)}  ${entry.dir}`);
 		}

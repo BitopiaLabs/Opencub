@@ -19,7 +19,7 @@
 			"!**/*.spec.ts",
 			"!**/*.spec.tsx",
 			"!.husky",
-			"!.nanocoder"
+			"!.opencub"
 		]
 	},
 	"formatter": {

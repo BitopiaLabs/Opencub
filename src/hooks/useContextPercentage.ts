@@ -1,0 +1,137 @@
+import {useEffect, useRef} from 'react';
+import {
+	calculateTokenBreakdown,
+	calculateToolDefinitionsTokens,
+} from '@/features/usage/calculator';
+import {getModelContextLimit} from '@/llm/models/index';
+import type {AIProviderConfig, TuneConfig} from '@/shared/types/config';
+import {getTuneToolMode} from '@/shared/types/config';
+import type {DevelopmentMode, Message} from '@/shared/types/core';
+import type {Tokenizer} from '@/shared/types/tokenization';
+import {getLastBuiltPrompt} from '@/shared/utils/prompt-builder';
+import type {ToolManager} from '@/tools/tool-manager';
+
+interface UseContextPercentageProps {
+	currentModel: string;
+	currentProvider: string;
+	currentProviderConfig: AIProviderConfig | null;
+	messages: Message[];
+	tokenizer: Tokenizer;
+	getMessageTokens: (message: Message) => number;
+	toolManager: ToolManager | null;
+	streamingTokenCount: number;
+	contextLimit: number | null;
+	setContextPercentUsed: (value: number | null) => void;
+	setContextLimit: (value: number | null) => void;
+	developmentMode?: DevelopmentMode;
+	tune?: TuneConfig;
+}
+
+export function useContextPercentage({
+	currentModel,
+	currentProvider,
+	currentProviderConfig,
+	messages,
+	tokenizer,
+	getMessageTokens,
+	toolManager,
+	streamingTokenCount,
+	contextLimit,
+	setContextPercentUsed,
+	setContextLimit,
+	developmentMode = 'normal',
+	tune,
+}: UseContextPercentageProps): void {
+	const contextLimitRef = useRef<number | null>(null);
+	const lastResolvedKeyRef = useRef<string>('');
+
+	// Effect 1: Resolve context limit when model or provider changes
+	useEffect(() => {
+		if (!currentModel) {
+			contextLimitRef.current = null;
+			lastResolvedKeyRef.current = '';
+			setContextLimit(null);
+			setContextPercentUsed(null);
+			return;
+		}
+
+		const resolutionKey = `${currentProvider}:${currentModel}`;
+		if (resolutionKey === lastResolvedKeyRef.current) return;
+		lastResolvedKeyRef.current = resolutionKey;
+
+		let cancelled = false;
+
+		void getModelContextLimit(currentModel, {
+			providerConfig: currentProviderConfig ?? undefined,
+		}).then(limit => {
+			if (cancelled) return;
+			contextLimitRef.current = limit;
+			setContextLimit(limit);
+			if (!limit) {
+				setContextPercentUsed(null);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		currentModel,
+		currentProvider,
+		currentProviderConfig,
+		setContextLimit,
+		setContextPercentUsed,
+	]);
+
+	// Effect 2: Recalculate percentage when messages, streaming tokens, or context limit change
+	useEffect(() => {
+		const limit = contextLimitRef.current;
+		if (!limit) {
+			setContextPercentUsed(null);
+			return;
+		}
+
+		// Use the cached prompt which includes XML tool definitions when applicable
+		const systemPrompt = getLastBuiltPrompt();
+		const systemMessage: Message = {
+			role: 'system',
+			content: systemPrompt,
+		};
+
+		const breakdown = calculateTokenBreakdown(
+			[systemMessage, ...messages],
+			tokenizer,
+			(message: Message) => {
+				// System message won't be in the cache, use tokenizer directly
+				if (message.role === 'system') {
+					return tokenizer.countTokens(message);
+				}
+				return getMessageTokens(message);
+			},
+		);
+
+		// Include tool definition overhead (only when native tool calling is active)
+		// When tools are disabled (XML/JSON fallback), definitions are in the system prompt
+		const nativeToolsDisabled = getTuneToolMode(tune) !== 'native';
+		const toolDefTokens =
+			toolManager && !nativeToolsDisabled
+				? calculateToolDefinitionsTokens(
+						Object.keys(toolManager.getToolRegistry()).length,
+					)
+				: 0;
+
+		const total = breakdown.total + toolDefTokens + streamingTokenCount;
+		const percent = Math.round((total / limit) * 100);
+		setContextPercentUsed(percent);
+		// contextLimit is included to re-trigger calculation after async limit resolution
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [
+		messages,
+		tokenizer,
+		getMessageTokens,
+		toolManager,
+		streamingTokenCount,
+		setContextPercentUsed,
+		tune,
+	]);
+}

@@ -10,10 +10,10 @@ services:
 
     volumes:
       # Mount the project root to the workspace
-      - ../..:/workspaces/nanocoder:cached
+      - ../..:/workspaces/opencub:cached
 
       # Persist pnpm store cache for faster reinstalls
-      - nanocoder-pnpm-store:/home/vscode/.local/share/pnpm/store
+      - opencub-pnpm-store:/home/vscode/.local/share/pnpm/store
 
       # Optional: Mount Git credentials for authenticated operations
       # Uncomment the line below and adjust path as needed
@@ -26,11 +26,11 @@ services:
     # Using 'bridge' mode allows full network access for testing MCP servers
     network_mode: bridge
 
-    # Environment variables for Nanocoder development
+    # Environment variables for OpenCub development
     environment:
       NODE_ENV: development
-      NANOCODER_LOG_LEVEL: debug
-      NANOCODER_LOG_TO_CONSOLE: "true"
+      OPENCUB_LOG_LEVEL: debug
+      OPENCUB_LOG_TO_CONSOLE: "true"
 
     # Port forwarding for development services
     ports:
@@ -45,12 +45,12 @@ services:
       - seccomp:unconfined
 
     # Container name for easy identification
-    container_name: nanocoder-dev
+    container_name: opencub-dev
 
     # Use the vscode user for all operations
     user: vscode
 
 # Named volumes for persistence
 volumes:
-  nanocoder-pnpm-store:
+  opencub-pnpm-store:
     driver: local
