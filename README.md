@@ -11,11 +11,18 @@ commands, reviewing changes, and working with local or hosted language models.
 The project is written in TypeScript, uses Ink for the terminal UI, and exposes
 the `cub` command when installed as a package.
 
-- Repository: https://github.com/BitopiaLabs/Opencub
+- Repository: [github.com/BitopiaLabs/Opencub](https://github.com/BitopiaLabs/Opencub)
 - Package name: `opencub`
 - CLI command: `cub`
-- License: MIT
+- License: [MIT](LICENSE)
 - Runtime: Node.js 22 or newer
+
+## Project Docs
+
+- [Contributing Guide](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [VS Code Extension](plugins/README.md)
 
 ## What It Does
 
@@ -43,25 +50,25 @@ required API key or login flow for the provider you want to use.
 
 ### Install From npm
 
+Use this after `opencub` is published to npm:
+
 ```bash
 npm install -g opencub
 cub
 ```
+
+At the moment, the source install below is the reliable path for a fresh
+checkout.
 
 ### Run From Source
 
 ```bash
 git clone https://github.com/BitopiaLabs/Opencub.git
 cd Opencub
+npm install -g pnpm@11
 pnpm install --frozen-lockfile
 pnpm run build
 node dist/cli.js
-```
-
-If `pnpm` is not installed:
-
-```bash
-npm install -g pnpm@11
 ```
 
 ## Quick Start
@@ -168,7 +175,7 @@ config directory.
 | `agents.config.json` | Provider, model, tool, session, and runtime settings |
 | `opencub-preferences.json` | User preferences such as defaults and trusted directories |
 | `.mcp.json` | MCP server configuration |
-| `.env` | Environment variables used by config values |
+| [`.env.example`](.env.example) | Template for environment variables used by config values |
 
 On Linux, the default user config directory is `~/.config/opencub`. You can
 override it with `OPENCUB_CONFIG_DIR`.
@@ -199,7 +206,8 @@ Example provider config:
 }
 ```
 
-Use `.env.example` and `.mcp.example.json` as local templates when needed.
+Use [`.env.example`](.env.example) and
+[`.mcp.example.json`](.mcp.example.json) as local templates when needed.
 
 ## Modes
 
@@ -275,12 +283,12 @@ The packaged extension is written to:
 assets/opencub-vscode.vsix
 ```
 
-See `plugins/README.md` for extension usage.
+See [plugins/README.md](plugins/README.md) for extension usage.
 
 ## Contributing
 
-Contributions are welcome. Please read `CONTRIBUTING.md` before opening a pull
-request. For most changes, run at least:
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md)
+before opening a pull request. For most changes, run at least:
 
 ```bash
 pnpm test:format
@@ -289,7 +297,7 @@ pnpm test:types
 pnpm test:ava
 ```
 
-Report security issues using `SECURITY.md`, not a public issue.
+Report security issues using [SECURITY.md](SECURITY.md), not a public issue.
 
 ## License
 
