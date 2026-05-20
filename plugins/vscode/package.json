@@ -3,10 +3,10 @@
 	"displayName": "OpenCub",
 	"description": "VS Code integration for OpenCub - local-first AI coding assistant",
 	"version": "0.3.0",
-	"publisher": "tylerthomas",
+	"publisher": "BitopiaLabs",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/tylerthomas/opencub.git"
+		"url": "git+https://github.com/BitopiaLabs/Opencub.git"
 	},
 	"engines": {
 		"vscode": "^1.85.0"

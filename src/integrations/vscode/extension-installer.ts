@@ -117,7 +117,7 @@ export async function getExtensionStatus(): Promise<VSCodeStatus[]> {
 
 				const extensionInstalled = stdout
 					.toLowerCase()
-					.includes('tylerthomas.opencub-vscode');
+					.includes('bitopialabs.opencub-vscode');
 
 				return {
 					cli,

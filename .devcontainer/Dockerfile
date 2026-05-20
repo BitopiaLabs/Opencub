@@ -3,7 +3,7 @@ ARG VARIANT="22.04"
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-${VARIANT}
 
 # Metadata
-LABEL maintainer="Tyler Thomas"
+LABEL maintainer="BitopiaLabs"
 LABEL description="Development environment for OpenCub - local-first AI coding assistant"
 
 # Set environment variables

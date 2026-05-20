@@ -148,7 +148,7 @@ jobs:
             opencub
             ```
 
-            **Full Changelog**: https://github.com/tylerthomas/opencub/compare/v${{ needs.check-version.outputs.npm-version }}...v${{ needs.check-version.outputs.package-version }}
+            **Full Changelog**: https://github.com/BitopiaLabs/Opencub/compare/v${{ needs.check-version.outputs.npm-version }}...v${{ needs.check-version.outputs.package-version }}
           draft: false
           prerelease: false
 

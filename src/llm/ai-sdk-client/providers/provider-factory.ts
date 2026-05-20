@@ -272,7 +272,7 @@ export async function createProvider(
 	// Add OpenRouter-specific headers for app attribution
 	const headers: Record<string, string> = config.headers ?? {};
 	if (providerConfig.name.toLowerCase() === 'openrouter') {
-		headers['HTTP-Referer'] = 'https://github.com/tylerthomas/opencub';
+		headers['HTTP-Referer'] = 'https://github.com/BitopiaLabs/Opencub';
 		headers['X-Title'] = 'OpenCub';
 	}
 

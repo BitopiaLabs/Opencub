@@ -15,7 +15,7 @@ const UPDATE_COMMANDS = {
 } as const;
 
 const UPDATE_MESSAGES = {
-	NIX: 'To update, re-run: nix run github:tylerthomas/opencub (or update your flake).',
+	NIX: 'To update, re-run: nix run github:BitopiaLabs/Opencub (or update your flake).',
 	UNKNOWN:
 		'A new version is available. Please update using your package manager.',
 } as const;

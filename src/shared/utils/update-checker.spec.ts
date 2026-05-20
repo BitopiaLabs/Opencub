@@ -262,7 +262,7 @@ test('checkForUpdates: returns message for Nix installations (no executable comm
 
 	t.is(
 		result.updateMessage,
-		'To update, re-run: nix run github:tylerthomas/opencub (or update your flake).',
+		'To update, re-run: nix run github:BitopiaLabs/Opencub (or update your flake).',
 	);
 });
 

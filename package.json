@@ -15,15 +15,15 @@
 		"llama-cpp",
 		"opencub"
 	],
-	"author": "Tyler Thomas",
+	"author": "BitopiaLabs",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/tylerthomas/opencub.git"
+		"url": "git+https://github.com/BitopiaLabs/Opencub.git"
 	},
-	"homepage": "https://github.com/tylerthomas/opencub#readme",
+	"homepage": "https://github.com/BitopiaLabs/Opencub#readme",
 	"bugs": {
-		"url": "https://github.com/tylerthomas/opencub/issues"
+		"url": "https://github.com/BitopiaLabs/Opencub/issues"
 	},
 	"bin": {
 		"cub": "dist/cli.js"
