@@ -362,7 +362,7 @@ export function useAppInitialization({
 						addToChatQueue(
 							<InfoMessage
 								key={generateKey('config-error')}
-								message="Configuration needed. Let's set up your providers..."
+								message="No AI provider is configured yet. Choose a provider, enter its key or local URL, then select Finish setup."
 								hideBox={true}
 							/>,
 						);

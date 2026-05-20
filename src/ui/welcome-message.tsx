@@ -46,14 +46,19 @@ export default memo(function WelcomeMessage() {
 					>
 						<Box marginBottom={1}>
 							<Text color={colors.primary} bold>
-								✻ Version {packageJson.version} ✻
+								OpenCub {packageJson.version}
 							</Text>
 						</Box>
 
-						<Text color={colors.text}>Quick tips:</Text>
-						<Text color={colors.secondary}>• Use natural language</Text>
-						<Text color={colors.secondary}>• /help for commands</Text>
-						<Text color={colors.secondary}>• Ctrl+C to quit</Text>
+						<Text color={colors.text}>
+							Local-first AI coding in your terminal.
+						</Text>
+						<Text color={colors.secondary}>
+							Ask for analysis, edits, commands, or plans.
+						</Text>
+						<Text color={colors.secondary}>
+							Use /help for commands, /exit to quit.
+						</Text>
 					</Box>
 				</>
 			) : (
@@ -64,7 +69,7 @@ export default memo(function WelcomeMessage() {
 					</Gradient>
 
 					<TitledBoxWithPreferences
-						title={`✻ Welcome to OpenCub ${packageJson.version} ✻`}
+						title={`OpenCub ${packageJson.version}`}
 						width={boxWidth}
 						borderColor={colors.primary}
 						paddingX={2}
@@ -72,28 +77,42 @@ export default memo(function WelcomeMessage() {
 						flexDirection="column"
 						marginBottom={1}
 					>
-						<Box paddingBottom={1}>
-							<Text color={colors.text}>Tips for getting started:</Text>
-						</Box>
 						<Box paddingBottom={1} flexDirection="column">
-							<Text color={colors.secondary}>
-								{isNormal
-									? '1. Use natural language to describe your task.'
-									: '1. Use natural language to describe what you want to build.'}
+							<Text color={colors.text} bold>
+								Local-first AI coding assistant for your terminal.
 							</Text>
 							<Text color={colors.secondary}>
-								2. Ask for file analysis, editing, bash commands and more.
-							</Text>
-							<Text color={colors.secondary}>
-								{isNormal
-									? '3. Be specific for best results.'
-									: '3. Be specific as you would with another engineer for best results.'}
-							</Text>
-							<Text color={colors.secondary}>
-								4. Type /exit or press Ctrl+C to quit.
+								Connect OpenAI, OpenRouter, Ollama, or another provider and ask
+								OpenCub to inspect, edit, test, and explain your codebase.
 							</Text>
 						</Box>
-						<Text color={colors.text}>/help for help</Text>
+
+						<Box paddingBottom={1} flexDirection="column">
+							<Text color={colors.text}>Try asking:</Text>
+							<Text color={colors.secondary}>
+								{isNormal
+									? '1. Analyze this project and find the highest-risk issues.'
+									: '1. Analyze this project and find the highest-risk issues before release.'}
+							</Text>
+							<Text color={colors.secondary}>
+								2. Refactor the auth flow and update the related tests.
+							</Text>
+							<Text color={colors.secondary}>
+								{isNormal
+									? '3. Explain how to run and debug this repository.'
+									: '3. Explain how to run and debug this repository, including required environment variables.'}
+							</Text>
+						</Box>
+
+						<Box flexDirection="column">
+							<Text color={colors.secondary}>
+								Commands: /help for actions, /model to switch model, /mode to
+								change approvals, /exit to quit.
+							</Text>
+							<Text color={colors.secondary}>
+								Tip: start with plan mode when you want a review before edits.
+							</Text>
+						</Box>
 					</TitledBoxWithPreferences>
 				</>
 			)}

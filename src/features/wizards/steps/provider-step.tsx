@@ -132,7 +132,7 @@ export function ProviderStep({
 			? [
 					{label: 'Add another provider', value: 'templates'},
 					{label: 'Edit existing providers', value: 'edit'},
-					{label: 'Done & Save', value: 'done'},
+					{label: 'Finish setup', value: 'done'},
 					...(configExists && onDelete
 						? [{label: 'Delete config file', value: 'delete'}]
 						: []),
@@ -147,7 +147,7 @@ export function ProviderStep({
 			label: template.name,
 			value: template.id,
 		})),
-		...(providers.length > 0 ? [{label: 'Done & Save', value: 'done'}] : []),
+		...(providers.length > 0 ? [{label: 'Finish setup', value: 'done'}] : []),
 	];
 
 	const editOptions: TemplateOption[] = providers.map((provider, index) => ({
@@ -584,13 +584,14 @@ export function ProviderStep({
 			<Box flexDirection="column">
 				<Box marginBottom={1}>
 					<Text bold color={colors.primary}>
-						Let's add AI providers. Would you like to use a template?
+						Connect an AI provider to start using OpenCub.
 					</Text>
 				</Box>
 				{providers.length > 0 && (
-					<Box marginBottom={1}>
-						<Text color={colors.success}>
-							{providers.length} provider(s) already added
+					<Box marginBottom={1} flexDirection="column">
+						<Text color={colors.success}>Configured providers:</Text>
+						<Text color={colors.secondary}>
+							{providers.map(p => p.name).join(', ')}
 						</Text>
 					</Box>
 				)}
@@ -607,13 +608,17 @@ export function ProviderStep({
 			<Box flexDirection="column">
 				<Box marginBottom={1}>
 					<Text bold color={colors.primary}>
-						Choose a provider template:
+						Choose a provider template.
 					</Text>
 				</Box>
 				{providers.length > 0 && (
-					<Box marginBottom={1}>
-						<Text color={colors.success}>
-							Added: {providers.map(p => p.name).join(', ')}
+					<Box marginBottom={1} flexDirection="column">
+						<Text color={colors.success}>Configured providers:</Text>
+						<Text color={colors.secondary}>
+							{providers.map(p => p.name).join(', ')}
+						</Text>
+						<Text color={colors.secondary}>
+							Select Finish setup when you are done.
 						</Text>
 					</Box>
 				)}
@@ -732,7 +737,7 @@ export function ProviderStep({
 				) : (
 					<Box>
 						<Text color={colors.secondary}>
-							Press Enter to continue | Shift+Tab to go back
+							Enter: continue | Shift+Tab: back | Esc: cancel
 						</Text>
 					</Box>
 				)}
