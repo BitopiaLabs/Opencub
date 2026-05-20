@@ -1,260 +1,296 @@
 <p align="center">
-  <img src="assets/hero.png" alt="OpenCub — your local AI coding agent. Many models. All on your machine." width="900">
+  <img src="assets/hero.png" alt="OpenCub terminal coding assistant" width="900">
 </p>
 
 # OpenCub
 
-> A local-first CLI coding agent with multi-provider support, built for local models and small open-weights models.
+OpenCub is a local-first AI coding assistant for the terminal. It provides an
+interactive CLI for asking questions about a codebase, editing files, running
+commands, reviewing changes, and working with local or hosted language models.
 
-OpenCub (`cub`) is a terminal-based AI coding assistant. It runs entirely on your machine, talks to whichever LLM provider you point it at — including local runtimes like Ollama, llama.cpp, LM Studio, MLX Server — and exposes a rich tool surface (file editing, shell, git, search, MCP) plus an interactive Ink UI for chat, planning, checkpoints, and approvals.
+The project is written in TypeScript, uses Ink for the terminal UI, and exposes
+the `cub` command when installed as a package.
 
-- **Repository:** https://github.com/BitopiaLabs/Opencub
-- **License:** MIT
-- **Node:** ≥ 22
+- Repository: https://github.com/BitopiaLabs/Opencub
+- Package name: `opencub`
+- CLI command: `cub`
+- License: MIT
+- Runtime: Node.js 22 or newer
 
----
+## What It Does
 
-## Highlights
+- Runs as an interactive terminal assistant or a non-interactive `run` command.
+- Supports local model runtimes and hosted API providers.
+- Provides tools for reading, editing, searching, and organizing project files.
+- Can run shell commands, inspect git state, and work with common git commands.
+- Supports MCP servers through project and user configuration.
+- Includes approval modes for normal work, planning, automation, and trusted
+  local workflows.
+- Includes an optional VS Code companion extension for editor context and diff
+  review.
 
-- **Local-first.** Designed for small open-weights models running on your hardware. Hosted providers are first-class too.
-- **Multi-provider.** 18+ providers out of the box: Ollama, llama.cpp, MLX Server, LM Studio, OpenAI, Anthropic, Google Gemini, OpenRouter, Mistral, GitHub Copilot, GitHub Models, ChatGPT/Codex, Z.AI, Kimi, Minimax, Poe, plus a generic OpenAI-compatible "Custom" adapter.
-- **Rich tool surface.** File ops, ripgrep-backed search, shell execution, full git suite (status, diff, commit, branch, stash, push, pull, PR), web fetch + search, LSP diagnostics, task lists, and subagents.
-- **Two runtimes.** Interactive Ink UI for chat sessions; a lightweight `--plain` runtime for CI / non-TTY scripting.
-- **Development modes.** `normal`, `auto-accept`, `yolo`, and `plan` — explicit confirmation policies you choose per session.
-- **Safety first.** First-run directory trust prompt, per-tool approval, checkpointing, and a built-in security disclaimer.
-- **MCP support.** Load Model Context Protocol servers from `.mcp.json` (project) or your user config.
-- **VS Code integration.** Optional companion extension that streams diffs and selection context to/from the CLI over a local WebSocket. See [`plugins/README.md`](plugins/README.md).
-- **Devcontainer included.** Zero-setup dev environment with Node 22, pnpm, Biome, and Fira Code Nerd Font. See [`.devcontainer/README.md`](.devcontainer/README.md).
+## Requirements
 
----
+- Node.js >= 22
+- pnpm 11.x for source development
+- A configured model provider
+
+For local models, install and run a compatible server such as Ollama,
+llama.cpp server, LM Studio, or MLX Server. For hosted models, configure the
+required API key or login flow for the provider you want to use.
 
 ## Installation
 
-### From npm (recommended)
+### Install From npm
 
 ```bash
 npm install -g opencub
 cub
 ```
 
-### From source
+### Run From Source
 
 ```bash
 git clone https://github.com/BitopiaLabs/Opencub.git
 cd Opencub
 pnpm install --frozen-lockfile
 pnpm run build
-node dist/cli.js          # or: ./dist/cli.js
+node dist/cli.js
 ```
 
-> Don't have pnpm? `npm install -g pnpm@11` first. `npm install` also works in a pinch since dependencies are declared in `package.json`.
+If `pnpm` is not installed:
 
----
+```bash
+npm install -g pnpm@11
+```
 
-## Quick start
+## Quick Start
 
-Launch the interactive session and walk through the first-run wizard to configure a provider:
+Start the interactive UI:
 
 ```bash
 cub
 ```
 
-Or skip the prompts and run one-shot from any shell / CI job:
+On first run, OpenCub opens a provider setup wizard. Choose a provider template,
+enter the required values, and save the configuration.
+
+Run a one-shot prompt:
 
 ```bash
-cub --provider ollama --model llama3.1 run "summarize src/cli.tsx"
-cub --provider openrouter --model google/gemini-3.1-flash run "find dead code in src/tools"
+cub --provider OpenAI --model your-model-name run "review this repository"
 ```
 
-### Provider login flows
-
-Providers that use OAuth device flow have dedicated subcommands:
+When running from source, replace `cub` with `node dist/cli.js`:
 
 ```bash
-cub copilot login            # GitHub Copilot device flow
-cub codex login              # ChatGPT / Codex device flow
+node dist/cli.js --provider OpenAI --model your-model-name run "review this repository"
 ```
 
-Credentials are stored in your platform's standard config directory (overridable via `OPENCUB_CONFIG_DIR`).
+## CLI Usage
 
----
-
-## Usage
-
-```
+```text
 Usage: cub [options] [command]
 
 Commands:
-  copilot login [provider-name]   Log in to GitHub Copilot (device flow).
+  copilot login [provider-name]   Log in to GitHub Copilot.
+  codex login [provider-name]     Log in to ChatGPT / Codex.
+  run                             Run a single prompt non-interactively.
 
 Options:
   -v, --version       Show version number
   -h, --help          Show help
-  --vscode            Run in VS Code mode (start the WebSocket bridge)
-  --vscode-port       Specify VS Code port (default 51820)
-  --provider          AI provider (must exist in agents.config.json)
-  --model             Model name (must be available for the provider)
-  --context-max       Max context length in tokens (k/K suffix, e.g. 128k)
-  --mode              Development mode: normal | auto-accept | yolo | plan
-                      Default: normal interactively, auto-accept for `run`.
-  --trust-directory   Skip the first-run directory trust prompt (run only)
-  --plain             Lightweight, Ink-free runtime (run only; auto in CI)
-  --no-plain          Force the Ink runtime even in CI / non-TTY
-  run                 Run a single prompt non-interactively
+  --vscode            Run in VS Code mode
+  --vscode-port       Specify VS Code port
+  --provider          Provider name from agents.config.json
+  --model             Model name configured for the provider
+  --context-max       Maximum context length, for example 8192 or 128k
+  --mode              normal | auto-accept | yolo | plan
+  --trust-directory   Skip directory trust prompt for this run command
+  --plain             Use the lightweight non-UI runtime for run commands
+  --no-plain          Force the Ink UI runtime in CI or non-TTY environments
 ```
 
-### Examples
+Examples:
 
 ```bash
-cub --provider openrouter --model google/gemini-3.1-flash run "analyze src/app.ts"
-cub --provider ollama --model llama3.1 --context-max 128k
-cub --mode yolo run "refactor database module"
 cub --mode plan
-cub --trust-directory run "analyze src/app.ts"
-cub --plain run "summarize README.md"
+cub --provider OpenAI --model your-model-name
+cub --provider Ollama --model your-local-model --context-max 128k
+cub --plain run "summarize the main architecture"
+cub --trust-directory run "find the highest-risk test failures"
 ```
 
----
+## Providers
+
+OpenCub includes setup templates for:
+
+- Ollama
+- llama.cpp server
+- MLX Server
+- LM Studio
+- OpenAI
+- Anthropic Claude
+- Google Gemini
+- OpenRouter
+- Mistral AI
+- Z.ai
+- Z.ai Coding Subscription
+- GitHub Models
+- GitHub Copilot
+- ChatGPT / Codex
+- Kimi Code
+- MiniMax Coding Plan
+- Poe
+- Custom OpenAI-compatible providers
+
+GitHub Copilot and ChatGPT / Codex use login flows:
+
+```bash
+cub copilot login
+cub codex login "ChatGPT / Codex"
+```
+
+For source builds:
+
+```bash
+node dist/cli.js copilot login
+node dist/cli.js codex login "ChatGPT / Codex"
+```
 
 ## Configuration
 
-OpenCub uses two layers of config:
+OpenCub looks for configuration in the current project first, then in the user
+config directory.
 
-| File | Scope | Purpose |
-|---|---|---|
-| `agents.config.json` | project (cwd) | provider + model setup, per-project overrides |
-| `~/.config/opencub/preferences.json` (or platform equivalent) | user | global defaults, last-used model, update check, themes |
-| `.mcp.json` | project | MCP servers loaded for this project (`.mcp.example.json` ships as a template) |
-| `.env` | project | Variables referenced from configs via `$VAR_NAME` (`.env.example` ships as a template) |
+| File | Purpose |
+| --- | --- |
+| `agents.config.json` | Provider, model, tool, session, and runtime settings |
+| `opencub-preferences.json` | User preferences such as defaults and trusted directories |
+| `.mcp.json` | MCP server configuration |
+| `.env` | Environment variables used by config values |
 
-Run `cub` once and the interactive wizard will create / merge a working `agents.config.json` for you. To bootstrap an env file:
+On Linux, the default user config directory is `~/.config/opencub`. You can
+override it with `OPENCUB_CONFIG_DIR`.
 
-```bash
-cp .env.example .env
-```
-
-### Common environment variables
+Useful environment variables:
 
 ```bash
-OPENROUTER_API_KEY=...
 OPENAI_API_KEY=...
-ZAI_AUTH_TOKEN=...
-FALLBACK_MODEL=your-model
-
-OPENCUB_CONFIG_DIR=/custom/config        # override config location
-OPENCUB_DATA_DIR=/custom/data            # override data location
-OPENCUB_LOG_LEVEL=debug                  # trace|debug|info|warn|error
+OPENROUTER_API_KEY=...
+OPENCUB_CONFIG_DIR=/custom/config
+OPENCUB_DATA_DIR=/custom/data
+OPENCUB_LOG_LEVEL=debug
 OPENCUB_LOG_TO_FILE=true
-OPENCUB_LOG_TO_CONSOLE=true
 ```
 
-See [`.env.example`](.env.example) for the full list.
+Example provider config:
 
-### Supported providers
+```json
+{
+  "providers": [
+    {
+      "name": "OpenAI",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "$OPENAI_API_KEY",
+      "models": ["your-model-name"]
+    }
+  ]
+}
+```
 
-`ollama`, `llama-cpp`, `mlx-server`, `lmstudio`, `openai`, `anthropic`, `gemini`, `openrouter`, `mistral`, `z-ai`, `z-ai-coding`, `github-models`, `github-copilot`, `chatgpt-codex`, `kimi-code`, `minimax-coding`, `poe`, plus a generic `custom` adapter for any OpenAI-compatible endpoint.
+Use `.env.example` and `.mcp.example.json` as local templates when needed.
 
----
+## Modes
 
-## Tools
-
-The agent has access to a curated set of safe, well-tested tools — each with its own approval policy:
-
-- **Files:** `read-file`, `write-file`, `string-replace`, `create-directory`, `copy-file`, `move-file`, `delete-file`, `find-files`, `list-directory`, `search-file-contents`
-- **Shell:** `execute-bash` (sandboxed approval flow)
-- **Git:** `git-status`, `git-diff`, `git-log`, `git-add`, `git-commit`, `git-branch`, `git-stash`, `git-reset`, `git-push`, `git-pull`, `git-pr`
-- **Web:** `fetch-url`, `web-search`
-- **Code intelligence:** `lsp-get-diagnostics`
-- **Agent control:** `agent-tool` (subagents), `ask-question`, task management (`create-task`, `update-task`, `list-tasks`, `delete-task`)
-- **MCP:** any tool exposed by your configured MCP servers
-
-Each tool's behavior, parameters, and approval policy live next to its source in `src/tools/`.
-
----
-
-## Development modes
-
-| Mode | Tool execution |
-|---|---|
-| `normal` | Per-tool approval prompts (default for interactive) |
-| `auto-accept` | Auto-confirm safe / read-only tools (default for `run`) |
-| `yolo` | Auto-confirm everything (use with care) |
-| `plan` | Read-only; the agent plans without touching the filesystem |
-
----
+| Mode | Behavior |
+| --- | --- |
+| `normal` | Ask before running tools that need approval. This is the interactive default. |
+| `auto-accept` | Automatically approve safe operations. This is the default for `run`. |
+| `plan` | Review and plan without changing files. |
+| `yolo` | Approve all tool calls automatically. Use only in trusted repositories. |
 
 ## Development
 
+Install dependencies and build:
+
 ```bash
 pnpm install --frozen-lockfile
-
-pnpm run build          # tsc + tsc-alias, produces dist/cli.js
-pnpm run dev            # tsc --watch
-pnpm run start          # node dist/cli.js
-
-pnpm test:all           # full pipeline
-pnpm test:ava           # unit + integration tests (5,500+ tests)
-pnpm test:types         # tsc --noEmit
-pnpm test:lint          # biome lint
-pnpm test:format        # biome check
-pnpm test:knip          # unused export detection
-pnpm test:audit         # pnpm audit
-pnpm test:security      # semgrep scan
-pnpm test:benchmark     # benchmark report
-
-pnpm run build:vscode   # bundles plugins/vscode into assets/opencub-vscode.vsix
+pnpm run build
+pnpm run start
 ```
 
-### Project layout
-
-```
-src/
-  cli.tsx              # entry point + fast-path flag parsing
-  app/                 # top-level Ink application
-  commands/            # slash-commands (/agents, /init, /model, ...)
-  features/            # auth, init, plain, schedule, session, subagents, wizards
-  hooks/               # chat handler, conversation loop, tool executor
-  integrations/        # vscode + lsp bridges
-  llm/                 # provider factory + AI SDK clients
-  shared/              # config, types, services, utilities
-  tools/               # the agent's tool surface (file, git, shell, web, ...)
-  ui/                  # Ink components
-plugins/vscode/        # VS Code companion extension
-.devcontainer/         # ready-to-go dev container
-benchmarks/            # tokenizer + perf benchmarks
-scripts/               # credits generator, model fetcher, test helpers
-```
-
-### Testing notes
-
-- Tests run under [AVA](https://github.com/avajs/ava) in **serial** mode (`workerThreads: false`) — see `package.json#ava`.
-- Test files live alongside source as `*.spec.ts` / `*.spec.tsx`.
-- Use `node --import=tsx` semantics; you do not need a separate build step.
-
----
-
-## Updating
-
-OpenCub checks for new releases on a throttled schedule and prints the right update command for your install method (`npm`, `homebrew`, `nix`, or a generic message). To check / update manually:
+Common development commands:
 
 ```bash
-npm update -g opencub                     # npm
-brew upgrade opencub                      # homebrew (if installed via brew)
-nix run github:BitopiaLabs/Opencub        # nix
+pnpm run dev            # TypeScript watch mode
+pnpm test:format        # Biome format check
+pnpm test:lint          # Biome lint
+pnpm test:types         # TypeScript type check
+pnpm test:ava           # Unit and integration tests
+pnpm test:knip          # Unused dependency/export checks
+pnpm test:audit         # Dependency audit
+pnpm test:security      # Semgrep scan
+pnpm test:all           # Full local test script
+pnpm run build:vscode   # Build the VS Code extension package
 ```
 
----
+## Project Layout
+
+```text
+src/
+  cli.tsx              CLI entry point and argument parsing
+  app/                 Top-level Ink application
+  commands/            Slash commands and command registry
+  features/            Auth, setup, sessions, scheduling, wizards, plain mode
+  hooks/               Chat loop, prompt handling, tool execution hooks
+  integrations/        VS Code, LSP, and MCP integrations
+  llm/                 Provider factory and AI SDK clients
+  shared/              Config, types, services, utilities, logging
+  tools/               File, shell, git, web, LSP, task, and agent tools
+  ui/                  Ink components
+
+plugins/vscode/        VS Code companion extension
+assets/                Project assets and packaged VS Code extension
+benchmarks/            Benchmark scripts
+scripts/               Build and maintenance scripts
+.devcontainer/         Development container setup
+```
+
+## VS Code Extension
+
+The VS Code companion extension is maintained in `plugins/vscode`. It can start
+or connect to the OpenCub CLI, send editor context to the terminal assistant,
+and display generated diffs for review.
+
+Build the extension package:
+
+```bash
+pnpm run build:vscode
+```
+
+The packaged extension is written to:
+
+```text
+assets/opencub-vscode.vsix
+```
+
+See `plugins/README.md` for extension usage.
 
 ## Contributing
 
-Issues, discussions, and PRs are welcome at the [GitHub repository](https://github.com/BitopiaLabs/Opencub). Before opening a PR:
+Contributions are welcome. Please read `CONTRIBUTING.md` before opening a pull
+request. For most changes, run at least:
 
-1. `pnpm test:format && pnpm test:lint && pnpm test:types`
-2. `pnpm test:ava` (full suite must stay green)
-3. Add or update tests for any user-visible behavior change.
+```bash
+pnpm test:format
+pnpm test:lint
+pnpm test:types
+pnpm test:ava
+```
 
----
+Report security issues using `SECURITY.md`, not a public issue.
 
 ## License
 
-[MIT](LICENSE) © BitopiaLabs
+OpenCub is released under the [MIT License](LICENSE).
