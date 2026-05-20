@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import {PendingChange, FileChangeMessage} from './protocol';
 
 // Custom URI scheme for virtual documents (won't trigger linters)
@@ -85,6 +84,14 @@ export class DiffManager {
 	 */
 	getPendingChange(id: string): PendingChange | undefined {
 		return this.pendingChanges.get(id);
+	}
+
+	/**
+	 * Get the newest pending change, used by command-palette approve/reject commands.
+	 */
+	getLatestPendingChange(): PendingChange | undefined {
+		const changes = this.getPendingChanges();
+		return changes[changes.length - 1];
 	}
 
 	/**
@@ -218,69 +225,10 @@ export class DiffManager {
 	}
 
 	/**
-	 * Apply a pending change to the actual file
+	 * Resolve a pending change after the CLI accepts or rejects it.
+	 * The CLI remains the source of truth for executing file edits.
 	 */
-	async applyChange(id: string): Promise<boolean> {
-		const change = this.pendingChanges.get(id);
-		if (!change) {
-			vscode.window.showErrorMessage(`Change ${id} not found`);
-			return false;
-		}
-
-		try {
-			// Close diff editors first
-			await this.closeEditors(id);
-
-			const uri = vscode.Uri.file(change.filePath);
-
-			// Check if file exists
-			const fileExists = fs.existsSync(change.filePath);
-
-			if (fileExists) {
-				// Open the document and apply changes
-				const document = await vscode.workspace.openTextDocument(uri);
-				const edit = new vscode.WorkspaceEdit();
-				const fullRange = new vscode.Range(
-					document.positionAt(0),
-					document.positionAt(document.getText().length),
-				);
-				edit.replace(uri, fullRange, change.newContent);
-				await vscode.workspace.applyEdit(edit);
-				await document.save();
-			} else {
-				// Create new file
-				const dirPath = path.dirname(change.filePath);
-				if (!fs.existsSync(dirPath)) {
-					fs.mkdirSync(dirPath, {recursive: true});
-				}
-				fs.writeFileSync(change.filePath, change.newContent, 'utf-8');
-
-				// Open the new file
-				const document = await vscode.workspace.openTextDocument(uri);
-				await vscode.window.showTextDocument(document);
-			}
-
-			// Remove from pending
-			this.removePendingChange(id);
-
-			vscode.window.showInformationMessage(
-				`Applied changes to ${path.basename(change.filePath)}`,
-			);
-			return true;
-		} catch (error) {
-			vscode.window.showErrorMessage(
-				`Failed to apply changes: ${
-					error instanceof Error ? error.message : error
-				}`,
-			);
-			return false;
-		}
-	}
-
-	/**
-	 * Reject a pending change
-	 */
-	async rejectChange(id: string): Promise<boolean> {
+	async resolveChange(id: string): Promise<boolean> {
 		const change = this.pendingChanges.get(id);
 		if (!change) {
 			return false;
@@ -290,10 +238,6 @@ export class DiffManager {
 		await this.closeEditors(id);
 
 		this.removePendingChange(id);
-
-		vscode.window.showInformationMessage(
-			`Rejected changes to ${path.basename(change.filePath)}`,
-		);
 		return true;
 	}
 
@@ -309,22 +253,12 @@ export class DiffManager {
 	}
 
 	/**
-	 * Apply all pending changes
+	 * Resolve all pending changes.
 	 */
-	async applyAll(): Promise<void> {
-		const changes = this.getPendingChanges();
-		for (const change of changes) {
-			await this.applyChange(change.id);
-		}
-	}
-
-	/**
-	 * Reject all pending changes
-	 */
-	rejectAll(): void {
+	resolveAll(): void {
 		const ids = Array.from(this.pendingChanges.keys());
 		for (const id of ids) {
-			this.rejectChange(id);
+			void this.resolveChange(id);
 		}
 	}
 

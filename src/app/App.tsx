@@ -116,6 +116,10 @@ export default function App({
 	// useVSCodeServer needs `onPrompt` immediately, and `handleUserSubmit`
 	// is bound after appHandlers exists (it needs handleMessageSubmit).
 	const vscodePromptDispatcher = useVSCodePromptDispatcher({logger});
+	const vscodeToolApprovalRef = React.useRef({
+		apply: (_id: string) => {},
+		reject: (_id: string) => {},
+	});
 
 	const effectiveVscodeEnabled = vscodeMode || appState.isVscodeEnabled;
 
@@ -125,6 +129,8 @@ export default function App({
 		currentModel: appState.currentModel,
 		currentProvider: appState.currentProvider,
 		onPrompt: vscodePromptDispatcher.handleVSCodePrompt,
+		onChangeApplied: id => vscodeToolApprovalRef.current.apply(id),
+		onChangeRejected: id => vscodeToolApprovalRef.current.reject(id),
 	});
 
 	// Create theme context value
@@ -269,6 +275,31 @@ export default function App({
 		abortController: appState.abortController,
 		setAbortController: appState.setAbortController,
 	});
+
+	React.useEffect(() => {
+		vscodeToolApprovalRef.current = {
+			apply: id => {
+				if (!appState.isToolConfirmationMode) {
+					logger.warn(
+						{changeId: id},
+						'Ignoring VS Code apply without pending tool confirmation',
+					);
+					return;
+				}
+				toolHandler.handleToolConfirmation(true);
+			},
+			reject: id => {
+				if (!appState.isToolConfirmationMode) {
+					logger.warn(
+						{changeId: id},
+						'Ignoring VS Code reject without pending tool confirmation',
+					);
+					return;
+				}
+				toolHandler.handleToolConfirmation(false);
+			},
+		};
+	}, [appState.isToolConfirmationMode, logger, toolHandler]);
 
 	// All app-level structured logging lives in this hook so the orchestrator
 	// stays focused on render/state composition.

@@ -14,7 +14,7 @@ test('ProviderStep renders with initial options', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /Let's add AI providers/);
+	t.regex(output!, /Connect an AI provider to start using OpenCub/);
 });
 
 test('ProviderStep shows template selection option', t => {
@@ -88,7 +88,8 @@ test('ProviderStep shows provider count when providers exist', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /ollama, OpenRouter/);
 });
 
 test('ProviderStep renders without crashing when onBack is provided', t => {
@@ -135,7 +136,7 @@ test('ProviderStep renders with correct initial state', t => {
 
 	// First frame should show initial options
 	const firstFrame = frames[0];
-	t.regex(firstFrame, /Let's add AI providers/);
+	t.regex(firstFrame, /Connect an AI provider to start using OpenCub/);
 });
 
 // ============================================================================
@@ -147,7 +148,7 @@ test('ProviderStep renders template selection mode', t => {
 
 	const output = lastFrame();
 	// Initial mode shows the prompt to choose templates
-	t.regex(output!, /Let's add AI providers/);
+	t.regex(output!, /Connect an AI provider to start using OpenCub/);
 });
 
 test('ProviderStep shows provider templates in list', t => {
@@ -214,7 +215,8 @@ test('ProviderStep shows single provider count', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /provider1/);
 });
 
 test('ProviderStep shows multiple providers count', t => {
@@ -239,7 +241,8 @@ test('ProviderStep shows multiple providers count', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /provider1, provider2/);
 });
 
 test('ProviderStep handles empty existingProviders array', t => {
@@ -250,7 +253,7 @@ test('ProviderStep handles empty existingProviders array', t => {
 	const output = lastFrame();
 	t.truthy(output);
 	// Should not show provider count when none exist
-	t.notRegex(output!, /provider\(s\) already added/);
+	t.notRegex(output!, /Configured providers/);
 });
 
 // ============================================================================
@@ -294,7 +297,7 @@ test('ProviderStep renders SelectInput component', t => {
 	);
 });
 
-test('ProviderStep shows Done & Save option when providers exist', t => {
+test('ProviderStep shows Finish setup option when providers exist', t => {
 	const existingProviders = [
 		{
 			name: 'test',
@@ -311,14 +314,14 @@ test('ProviderStep shows Done & Save option when providers exist', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /Done & Save/);
+	t.regex(output!, /Finish setup/);
 });
 
-test('ProviderStep does not show Done & Save option when no providers exist', t => {
+test('ProviderStep does not show Finish setup option when no providers exist', t => {
 	const {lastFrame} = render(<ProviderStep onComplete={() => {}} />);
 
 	const output = lastFrame();
-	t.notRegex(output!, /Done & Save/);
+	t.notRegex(output!, /Finish setup/);
 });
 
 test('ProviderStep shows correct text color for provider count', t => {
@@ -339,7 +342,8 @@ test('ProviderStep shows correct text color for provider count', t => {
 
 	// Component should render the provider count
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /test/);
 });
 
 test('ProviderStep renders multiple provider names when added', t => {
@@ -365,7 +369,8 @@ test('ProviderStep renders multiple provider names when added', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /2 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /ollama, OpenRouter/);
 });
 
 // ============================================================================
@@ -452,8 +457,8 @@ test('ProviderStep shows all initial options without providers', t => {
 	const output = lastFrame();
 	t.regex(output!, /Choose from common templates/);
 	t.regex(output!, /Add custom provider manually/);
-	// Should not show Done & Save when no providers
-	t.notRegex(output!, /Done & Save/);
+	// Should not show Finish setup when no providers
+	t.notRegex(output!, /Finish setup/);
 	// Should not show edit when no providers
 	t.notRegex(output!, /Edit existing providers/);
 });
@@ -477,7 +482,7 @@ test('ProviderStep shows all initial options with providers', t => {
 	const output = lastFrame();
 	t.regex(output!, /Add another provider/);
 	t.regex(output!, /Edit existing providers/);
-	t.regex(output!, /Done & Save/);
+	t.regex(output!, /Finish setup/);
 	t.notRegex(output!, /Choose from common templates/);
 	t.notRegex(output!, /Add custom provider manually/);
 });
@@ -510,7 +515,7 @@ test('ProviderStep renders with all props combined', t => {
 	// Should show all relevant options
 	t.regex(output!, /Add another provider/);
 	t.regex(output!, /Edit existing providers/);
-	t.regex(output!, /Done & Save/);
+	t.regex(output!, /Finish setup/);
 	t.regex(output!, /Delete config file/);
 	t.notRegex(output!, /Choose from common templates/);
 	t.notRegex(output!, /Add custom provider manually/);
@@ -543,7 +548,8 @@ test('ProviderStep shows provider count message', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /3 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /provider1, provider2, provider3/);
 });
 
 // ============================================================================
@@ -576,7 +582,8 @@ test('ProviderStep handles provider with apiKey', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /openrouter/);
 });
 
 test('ProviderStep handles provider with empty models array', t => {
@@ -596,7 +603,8 @@ test('ProviderStep handles provider with empty models array', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /test/);
 });
 
 test('ProviderStep handles provider with multiple models', t => {
@@ -616,7 +624,8 @@ test('ProviderStep handles provider with multiple models', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /1 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /ollama/);
 });
 
 test('ProviderStep handles many providers', t => {
@@ -636,7 +645,8 @@ test('ProviderStep handles many providers', t => {
 	);
 
 	const output = lastFrame();
-	t.regex(output!, /5 provider\(s\) already added/);
+	t.regex(output!, /Configured providers/);
+	t.regex(output!, /p1, p2, p3, p4, p5/);
 });
 
 // ============================================================================

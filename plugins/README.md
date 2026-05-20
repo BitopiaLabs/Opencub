@@ -13,7 +13,8 @@ First-party companion plugins for [OpenCub](../README.md). Each subdirectory is 
 A thin extension that pairs with `cub --vscode`. It opens a local WebSocket (default port `51820`) and:
 
 - Shows connection status in the VS Code status bar (`OpenCub` ↔ `$(check) <model>`)
-- Renders agent-proposed file changes as native diff previews you can accept/reject
+- Renders agent-proposed file changes as native diff previews
+- Lets you apply or reject the current OpenCub change from the command palette
 - Streams the active file and current selection to the CLI so prompts can use them as context
 - Opens files the agent wants you to look at
 - Returns LSP diagnostics on request so the agent sees the same red squiggles you do
@@ -25,6 +26,8 @@ A thin extension that pairs with `cub --vscode`. It opens a local WebSocket (def
 | `opencub.connect` | Connect to OpenCub CLI |
 | `opencub.disconnect` | Disconnect from OpenCub CLI |
 | `opencub.startCli` | Start OpenCub CLI (opens a terminal and runs `cub --vscode`) |
+| `opencub.applyChange` | Apply Current Change |
+| `opencub.rejectChange` | Reject Current Change |
 
 ### Settings
 
@@ -32,7 +35,7 @@ A thin extension that pairs with `cub --vscode`. It opens a local WebSocket (def
 |---|---|---|---|
 | `opencub.serverPort` | number | `51820` | Must match the CLI's `--vscode-port` |
 | `opencub.autoConnect` | boolean | `true` | Connect automatically on startup |
-| `opencub.autoStartCli` | boolean | `false` | Auto-launch the CLI if not running |
+| `opencub.autoStartCli` | boolean | `false` | Auto-launch the CLI if the first connection attempt fails |
 | `opencub.showDiffPreview` | boolean | `true` | Show the diff preview before applying edits |
 
 ### Source layout
@@ -81,7 +84,7 @@ The CLI helper `cub` can also install / detect it for you — see `src/integrati
 ### Run end-to-end
 
 1. Build the extension (or install the shipped `.vsix`).
-2. In VS Code, set `opencub.serverPort` if you changed it from `51820`.
+2. In VS Code, set `opencub.serverPort` if you changed it from `51820`. The extension also checks the CLI fallback range from that port through `+10`.
 3. In a terminal inside the same workspace, run `cub --vscode`.
 4. The status bar pill switches to `$(check) <model>`. Edits the agent proposes appear as diff previews.
 

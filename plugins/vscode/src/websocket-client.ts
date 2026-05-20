@@ -36,8 +36,10 @@ export class WebSocketClient {
 				this.outputChannel.appendLine(`Connecting to ${url}...`);
 
 				this.ws = new WebSocket(url);
+				let opened = false;
 
 				this.ws.on('open', () => {
+					opened = true;
 					this.isConnecting = false;
 					this.outputChannel.appendLine('Connected to OpenCub CLI');
 					this.clearReconnectTimer();
@@ -57,7 +59,7 @@ export class WebSocketClient {
 					this.outputChannel.appendLine('Disconnected from OpenCub CLI');
 					this.ws = null;
 					this.isConnecting = false;
-					if (this.shouldReconnect) {
+					if (this.shouldReconnect && opened) {
 						this.scheduleReconnect(port);
 					}
 				});

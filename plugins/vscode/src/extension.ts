@@ -19,6 +19,7 @@ let statusBarItem: vscode.StatusBarItem;
 let outputChannel: vscode.OutputChannel;
 let activeEditorDebounce: NodeJS.Timeout | null = null;
 let lastActiveEditorPayload: string | null = null;
+let isStartingCli = false;
 
 export function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel('OpenCub');
@@ -45,6 +46,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('opencub.connect', connect),
 		vscode.commands.registerCommand('opencub.disconnect', disconnect),
 		vscode.commands.registerCommand('opencub.startCli', startCli),
+		vscode.commands.registerCommand('opencub.applyChange', applyCurrentChange),
+		vscode.commands.registerCommand('opencub.rejectChange', rejectCurrentChange),
 	);
 
 	// Push active editor state to the CLI so the input box can show an
@@ -82,19 +85,41 @@ export function deactivate() {
 // Connection management
 async function connect(): Promise<void> {
 	const config = vscode.workspace.getConfiguration('opencub');
-	const port = config.get<number>('serverPort', DEFAULT_PORT);
+	const requestedPort = config.get<number>('serverPort', DEFAULT_PORT);
+	const autoStartCli = config.get<boolean>('autoStartCli', false);
 
-	updateStatusBar(false, 'Connecting...');
+	const ports = Array.from({length: 11}, (_, index) => requestedPort + index)
+		.filter(port => port > 0 && port < 65536);
+	let connected = false;
+	let connectedPort = requestedPort;
 
-	const connected = await wsClient.connect(port);
+	for (const port of ports) {
+		updateStatusBar(false, `Connecting ${port}...`);
+		connected = await wsClient.connect(port);
+		if (connected) {
+			connectedPort = port;
+			break;
+		}
+	}
 
 	if (connected) {
+		isStartingCli = false;
 		updateStatusBar(true);
 		sendWorkspaceContext();
 		sendActiveEditor();
-		vscode.window.showInformationMessage('Connected to OpenCub CLI');
+		vscode.window.showInformationMessage(
+			connectedPort === requestedPort
+				? 'Connected to OpenCub CLI'
+				: `Connected to OpenCub CLI on fallback port ${connectedPort}`,
+		);
 	} else {
 		updateStatusBar(false);
+
+		if (autoStartCli && !isStartingCli) {
+			startCli();
+			return;
+		}
+
 		const action = await vscode.window.showWarningMessage(
 			'Could not connect to OpenCub CLI. Is it running?',
 			'Start CLI',
@@ -109,6 +134,7 @@ async function connect(): Promise<void> {
 }
 
 function disconnect(): void {
+	isStartingCli = false;
 	wsClient.disconnect();
 	updateStatusBar(false);
 	vscode.window.showInformationMessage('Disconnected from OpenCub CLI');
@@ -168,6 +194,52 @@ function handleFileChange(message: FileChangeMessage): void {
 		// Show diff immediately
 		diffManager.showDiff(message.id);
 	}
+}
+
+async function applyCurrentChange(): Promise<void> {
+	const change = diffManager.getLatestPendingChange();
+	if (!change) {
+		vscode.window.showInformationMessage('No pending OpenCub change to apply.');
+		return;
+	}
+
+	const sent = wsClient.send({
+		type: 'apply_change',
+		id: change.id,
+	});
+
+	if (!sent) {
+		vscode.window.showWarningMessage('OpenCub CLI is not connected.');
+		return;
+	}
+
+	await diffManager.resolveChange(change.id);
+	vscode.window.showInformationMessage(
+		`Applied ${path.basename(change.filePath)} through OpenCub CLI.`,
+	);
+}
+
+async function rejectCurrentChange(): Promise<void> {
+	const change = diffManager.getLatestPendingChange();
+	if (!change) {
+		vscode.window.showInformationMessage('No pending OpenCub change to reject.');
+		return;
+	}
+
+	const sent = wsClient.send({
+		type: 'reject_change',
+		id: change.id,
+	});
+
+	if (!sent) {
+		vscode.window.showWarningMessage('OpenCub CLI is not connected.');
+		return;
+	}
+
+	await diffManager.resolveChange(change.id);
+	vscode.window.showInformationMessage(
+		`Rejected ${path.basename(change.filePath)} through OpenCub CLI.`,
+	);
 }
 
 function handleCloseDiff(message: CloseDiffMessage): void {
@@ -238,8 +310,16 @@ function severityToString(
 }
 
 function startCli(): void {
+	if (isStartingCli) {
+		vscode.window.showInformationMessage('OpenCub CLI is already starting.');
+		return;
+	}
+
+	isStartingCli = true;
 	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 	const cwd = workspaceFolder?.uri.fsPath || process.cwd();
+	const config = vscode.workspace.getConfiguration('opencub');
+	const port = config.get<number>('serverPort', DEFAULT_PORT);
 
 	// Create terminal and run opencub
 	const terminal = vscode.window.createTerminal({
@@ -247,7 +327,9 @@ function startCli(): void {
 		cwd,
 	});
 
-	terminal.sendText('cub --vscode');
+	terminal.sendText(
+		port === DEFAULT_PORT ? 'cub --vscode' : `cub --vscode --vscode-port ${port}`,
+	);
 	terminal.show();
 
 	// Try to connect after a delay

@@ -22,6 +22,8 @@ interface UseVSCodeServerProps {
 		},
 	) => void;
 	onDiagnosticsReceived?: (diagnostics: DiagnosticInfo[]) => void;
+	onChangeApplied?: (id: string) => void;
+	onChangeRejected?: (id: string) => void;
 }
 
 interface UseVSCodeServerReturn {
@@ -64,6 +66,8 @@ export function useVSCodeServer({
 	currentProvider,
 	onPrompt,
 	onDiagnosticsReceived,
+	onChangeApplied,
+	onChangeRejected,
 }: UseVSCodeServerProps): UseVSCodeServerReturn {
 	const serverRef = useRef<VSCodeServer | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
@@ -76,6 +80,8 @@ export function useVSCodeServer({
 	// Store callbacks in refs to avoid re-creating server on callback changes
 	const onPromptRef = useRef(onPrompt);
 	const onDiagnosticsReceivedRef = useRef(onDiagnosticsReceived);
+	const onChangeAppliedRef = useRef(onChangeApplied);
+	const onChangeRejectedRef = useRef(onChangeRejected);
 	const currentModelRef = useRef(currentModel);
 	const currentProviderRef = useRef(currentProvider);
 
@@ -87,6 +93,14 @@ export function useVSCodeServer({
 	useEffect(() => {
 		onDiagnosticsReceivedRef.current = onDiagnosticsReceived;
 	}, [onDiagnosticsReceived]);
+
+	useEffect(() => {
+		onChangeAppliedRef.current = onChangeApplied;
+	}, [onChangeApplied]);
+
+	useEffect(() => {
+		onChangeRejectedRef.current = onChangeRejected;
+	}, [onChangeRejected]);
 
 	useEffect(() => {
 		currentModelRef.current = currentModel;
@@ -113,6 +127,12 @@ export function useVSCodeServer({
 				},
 				onDiagnosticsResponse: diagnostics => {
 					onDiagnosticsReceivedRef.current?.(diagnostics);
+				},
+				onChangeApplied: id => {
+					onChangeAppliedRef.current?.(id);
+				},
+				onChangeRejected: id => {
+					onChangeRejectedRef.current?.(id);
 				},
 				onActiveEditor: state => {
 					setRawActiveEditor(state.filePath ? state : null);

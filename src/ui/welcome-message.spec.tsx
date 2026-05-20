@@ -56,10 +56,10 @@ test('WelcomeMessage shows quick tips in narrow layout', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /Quick tips/);
-	t.regex(output!, /Use natural language/);
+	t.regex(output!, /Local-first AI coding in your terminal/);
+	t.regex(output!, /Ask for analysis, edits, commands, or plans/);
 	t.regex(output!, /\/help for commands/);
-	t.regex(output!, /Ctrl\+C to quit/);
+	t.regex(output!, /\/exit to quit/);
 
 	process.stdout.columns = originalColumns;
 });
@@ -104,7 +104,7 @@ test('WelcomeMessage shows welcome message for normal terminal', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /Welcome to OpenCub/);
+	t.regex(output!, /OpenCub/);
 	t.regex(output!, new RegExp(VERSION.replace(/\./g, '\\.')));
 
 	process.stdout.columns = originalColumns;
@@ -118,11 +118,10 @@ test('WelcomeMessage shows concise tips for normal terminal', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /Tips for getting started/);
-	t.regex(output!, /1\. Use natural language to describe your task\./);
-	t.regex(output!, /2\. Ask for file analysis, editing, bash commands and more\./);
-	t.regex(output!, /3\. Be specific for best results\./);
-	t.regex(output!, /4\. Type \/exit or press Ctrl\+C to quit\./);
+	t.regex(output!, /Try asking/);
+	t.regex(output!, /1\. Analyze this project and find the highest-risk issues\./);
+	t.regex(output!, /2\. Refactor the auth flow and update the related tests\./);
+	t.regex(output!, /3\. Explain how to run and debug this repository\./);
 
 	process.stdout.columns = originalColumns;
 });
@@ -135,7 +134,7 @@ test('WelcomeMessage shows help command for normal terminal', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /\/help for help/);
+	t.regex(output!, /\/help for actions/);
 
 	process.stdout.columns = originalColumns;
 });
@@ -165,8 +164,14 @@ test('WelcomeMessage shows verbose tips for wide terminal', t => {
 
 	const output = lastFrame();
 	t.truthy(output);
-	t.regex(output!, /1\. Use natural language to describe what you want to build\./);
-	t.regex(output!, /3\. Be specific as you would with another engineer for best results\./);
+	t.regex(
+		output!,
+		/1\. Analyze this project and find the highest-risk issues before release\./,
+	);
+	t.regex(
+		output!,
+		/3\. Explain how to run and debug this repository, including required environment variables\./,
+	);
 
 	process.stdout.columns = originalColumns;
 });
@@ -240,7 +245,7 @@ test('WelcomeMessage handles boundary at width 100', t => {
 	const output = lastFrame();
 	t.truthy(output);
 	// At width 100, should be wide
-	t.regex(output!, /as you would with another engineer/); // Wide tip
+	t.regex(output!, /including required environment variables/); // Wide tip
 
 	process.stdout.columns = originalColumns;
 });
