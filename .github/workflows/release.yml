@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should-publish: ${{ steps.version-check.outputs.should-publish }}
+      package-name: ${{ steps.version-check.outputs.package-name }}
       package-version: ${{ steps.version-check.outputs.package-version }}
       npm-version: ${{ steps.version-check.outputs.npm-version }}
     steps:
@@ -28,12 +29,14 @@ jobs:
       - name: Check version difference
         id: version-check
         run: |
-          # Get current package.json version
+          # Get current package.json package name and version
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "package-name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
           echo "package-version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
           # Get latest NPM version (handle case where package doesn't exist yet)
-          NPM_VERSION=$(npm view opencub version 2>/dev/null || echo "0.0.0")
+          NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
           echo "npm-version=$NPM_VERSION" >> $GITHUB_OUTPUT
 
           # Compare versions
@@ -61,6 +64,19 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+
+      - name: Verify NPM authentication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error title=Missing NPM_TOKEN::This release publishes to npm, but the repository secret NPM_TOKEN is not configured."
+            echo "Create an npm automation or granular access token with publish access to '${{ needs.check-version.outputs.package-name }}'."
+            echo "Then add it in GitHub: Settings > Secrets and variables > Actions > New repository secret > NPM_TOKEN."
+            exit 1
+          fi
+
+          npm whoami --registry=https://registry.npmjs.org
 
       - name: Install dependencies (including VS Code extension)
         run: pnpm install --frozen-lockfile
@@ -106,7 +122,7 @@ jobs:
           echo "✅ VS Code extension built: assets/opencub-vscode.vsix exists"
 
       - name: Publish to NPM
-        run: npm publish --access public
+        run: npm publish --access public --registry=https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -51,15 +51,15 @@ required API key or login flow for the provider you want to use.
 
 ### Install From npm
 
-Use this after `opencub` is published to npm:
+After the package is published to npm, install it globally:
 
 ```bash
 npm install -g opencub
 cub
 ```
 
-At the moment, the source install below is the reliable path for a fresh
-checkout.
+If npm returns `404 Not Found`, the package has not been published yet. Use the
+source install below.
 
 ### Run From Source
 
@@ -71,6 +71,22 @@ pnpm install --frozen-lockfile
 pnpm run build
 node dist/cli.js
 ```
+
+This runs OpenCub directly from the built source. It does not create a global
+`cub` command.
+
+### Create a Local `cub` Command
+
+Before the npm package is published, you can install this checkout globally on
+your own machine:
+
+```bash
+pnpm run build
+npm install -g .
+cub
+```
+
+Run this from the repository root. Re-run `pnpm run build` after source changes.
 
 ## Quick Start
 
