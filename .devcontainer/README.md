@@ -1,97 +1,203 @@
 # OpenCub Dev Container
 
-A reproducible, zero-setup development environment for [OpenCub](../README.md). Open the repository in any tool that understands the [Development Containers](https://containers.dev/) spec and you get a fully configured workspace in one click.
+This directory defines a reproducible development container for OpenCub. It is
+intended for contributors who want a clean Node.js 22 environment without
+installing project tooling directly on their host machine.
 
----
+The setup works with VS Code Dev Containers, compatible editors, GitHub
+Codespaces, and Docker Compose.
 
-## What's in the box
+## Included Tooling
 
-| Layer | Detail |
-|---|---|
+| Area | Details |
+| --- | --- |
 | Base image | `mcr.microsoft.com/devcontainers/base:ubuntu-22.04` |
-| Runtime | Node.js 22 (NodeSource), pnpm (latest), Biome (global) |
-| Shell | zsh + oh-my-zsh, with pnpm + Node on PATH |
-| Fonts | Fira Code (apt) and FiraCode Nerd Font (powerline glyphs) |
-| Extras | `jq`, `curl`, `wget`, `git`, `vim`, `unzip`, `build-essential`, `python3` |
-| User | `vscode` (non-root) at `/workspaces/opencub` |
-| VS Code extensions | Biome, TypeScript next, Prettier, GitLens |
-| Forwarded ports | `51820` (VS Code ↔ CLI WebSocket bridge) |
-
-The container is named `opencub-dev` and the pnpm store is persisted in a named volume (`opencub-pnpm-store`) for fast reinstalls.
-
----
+| Node.js | Node.js 22 from NodeSource |
+| Package manager | pnpm 11.0.9 |
+| Formatter/linter | Biome 2.3.10 globally, plus the project-local dependency |
+| Shell | zsh with oh-my-zsh for the `vscode` user |
+| Fonts | Fira Code and FiraCode Nerd Font |
+| System tools | `jq`, `curl`, `wget`, `git`, `vim`, `unzip`, `build-essential`, `python3`, `python3-pip` |
+| User | `vscode` |
+| Workspace | `/workspaces/opencub` |
+| Forwarded port | `51820` for the OpenCub VS Code bridge |
 
 ## Files
 
 | File | Purpose |
-|---|---|
-| `devcontainer.json` | Dev Containers manifest — image, features, VS Code settings, ports, mounts, lifecycle |
-| `Dockerfile` | Image definition (Node 22, pnpm, Biome, fonts, zsh) |
-| `docker-compose.yml` | Compose-based alternative for running outside a Dev Containers host |
-| `scripts/post-create.sh` | Post-create hook: `pnpm install`, build, husky, scaffold `.env`, print summary |
+| --- | --- |
+| [`devcontainer.json`](devcontainer.json) | Main Dev Containers configuration |
+| [`Dockerfile`](Dockerfile) | Image definition for Node, pnpm, Biome, fonts, and shell tooling |
+| [`docker-compose.yml`](docker-compose.yml) | Compose entry point for running the same image outside a Dev Containers host |
+| [`scripts/post-create.sh`](scripts/post-create.sh) | First-run setup script |
 
----
+## Use With VS Code, Cursor, or Windsurf
 
-## How to use it
-
-### VS Code / Cursor / Windsurf
-
-1. Install the **Dev Containers** extension.
-2. Open this repository.
-3. Run **Dev Containers: Reopen in Container**.
-4. Wait for the post-create script to install dependencies and build.
-5. Edit `.env` with your provider API keys.
-6. Run `pnpm run start` (or `cub` after `npm link`) to launch the CLI.
-
-### GitHub Codespaces
-
-Click **Code → Codespaces → Create codespace on main**. The same `devcontainer.json` is used.
-
-### Plain Docker Compose
-
-If you want the same image without a Dev Containers host:
+1. Install the Dev Containers extension.
+2. Open the OpenCub repository.
+3. Run `Dev Containers: Reopen in Container`.
+4. Wait for `scripts/post-create.sh` to finish.
+5. Add provider credentials to `.env` or configure `agents.config.json`.
+6. Start OpenCub:
 
 ```bash
-cd .devcontainer
-docker compose up -d
+pnpm run start
+```
+
+`pnpm run start` runs `node dist/cli.js`. The container does not install the
+`cub` command globally by default.
+
+## Use With GitHub Codespaces
+
+Create a codespace from the repository. Codespaces uses
+[`devcontainer.json`](devcontainer.json), runs the same post-create script, and
+opens the workspace at `/workspaces/opencub`.
+
+## Use With Docker Compose
+
+From the repository root:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml up -d
 docker exec -it opencub-dev zsh
 ```
 
-The repository is mounted into `/workspaces/opencub`; the pnpm store is cached in a named volume.
+Inside the container:
 
----
+```bash
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run start
+```
 
-## Lifecycle
+The compose file mounts the repository at `/workspaces/opencub` and persists
+the pnpm store in the `opencub-pnpm-store` Docker volume.
 
-On first create, [`scripts/post-create.sh`](scripts/post-create.sh) runs:
+## First-Run Script
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm run build`
-3. `pnpm run prepare` (husky)
-4. `pnpm test:format` + `pnpm test:types` (smoke; warnings are non-fatal)
-5. Copies `.env.example` → `.env` if missing
-6. Prints versions and next steps
-
-Re-run it any time with:
+The post-create script runs automatically for Dev Containers and Codespaces:
 
 ```bash
 bash .devcontainer/scripts/post-create.sh
 ```
 
----
+It performs these steps:
 
-## Customization
+1. Installs dependencies with `pnpm install --frozen-lockfile`.
+2. Builds the CLI with `pnpm run build`.
+3. Runs `pnpm run prepare` when Husky is installed.
+4. Runs `pnpm test:format` and `pnpm test:types` as setup checks.
+5. Copies `.env.example` to `.env` if `.env` does not exist.
+6. Prints Node.js, pnpm, and Biome versions.
 
-- **Node version.** Change `NODE_VERSION` in the `Dockerfile` and `node-version` in `.github/workflows/release.yml` together.
-- **Extra VS Code extensions.** Add to `customizations.vscode.extensions` in `devcontainer.json`.
-- **Git credentials.** Uncomment the `~/.gitconfig` mount in `docker-compose.yml` (or use the [Dev Containers Git credential forwarding](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials) docs for the VS Code path).
-- **Different port.** Change `forwardPorts` and the matching `ports` entry in `docker-compose.yml`. Make sure it also matches `opencub.serverPort` in the VS Code extension settings — see [`plugins/README.md`](../plugins/README.md).
+The format and type checks print warnings if they fail, but they do not block
+container creation. Fix those failures before committing code.
 
----
+## Common Commands
+
+```bash
+pnpm run build          # Build dist/cli.js
+pnpm run start          # Run the built CLI
+pnpm run dev            # TypeScript watch mode
+pnpm test:format        # Biome format check
+pnpm test:lint          # Biome lint
+pnpm test:types         # TypeScript type check
+pnpm test:ava           # AVA tests
+pnpm test:all           # Full local test script
+pnpm run build:vscode   # Build assets/opencub-vscode.vsix
+```
+
+For one-shot CLI testing:
+
+```bash
+node dist/cli.js --plain run "summarize this repository"
+```
+
+## VS Code Extension Port
+
+Port `51820` is forwarded by default. Use it when testing the VS Code companion
+extension with the CLI bridge:
+
+```bash
+pnpm run build
+node dist/cli.js --vscode --vscode-port 51820
+```
+
+See [../plugins/README.md](../plugins/README.md) for extension-specific setup.
+
+## Configuration
+
+Provider credentials can be set in `.env` or in OpenCub config files. The
+post-create script creates `.env` from `.env.example` when it is missing.
+
+Do not commit `.env`, `agents.config.json`, local credentials, generated logs,
+or personal editor settings.
+
+## Rebuilds And Updates
+
+Rebuild the container after changing:
+
+- `.devcontainer/Dockerfile`
+- `.devcontainer/devcontainer.json`
+- `.devcontainer/docker-compose.yml`
+- Node.js, pnpm, or system package requirements
+
+In VS Code, use `Dev Containers: Rebuild Container`.
+
+For Docker Compose:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml down
+docker compose -f .devcontainer/docker-compose.yml up -d --build
+```
+
+To clear the cached pnpm store:
+
+```bash
+docker volume rm opencub-pnpm-store
+```
 
 ## Troubleshooting
 
-- **`pnpm: command not found` inside the container.** The image installs pnpm globally, but a fresh shell may need a new login. Run `exec zsh` or open a new terminal.
-- **VS Code can't connect to the CLI.** Start the CLI with `cub --vscode` (or `cub --vscode --vscode-port=51820`) inside the container and confirm port `51820` is forwarded.
-- **Slow first install.** That's the cold pnpm store. Subsequent rebuilds reuse the `opencub-pnpm-store` volume and are much faster.
-- **Permission errors writing to `/workspaces/opencub`.** Ensure your host user owns the repository directory before mounting; the container user is `vscode` (UID auto-mapped by the common-utils feature).
+### `pnpm` is not found
+
+Open a new terminal in the container or run:
+
+```bash
+exec zsh
+```
+
+### The VS Code extension cannot connect
+
+Confirm the CLI bridge is running inside the container:
+
+```bash
+node dist/cli.js --vscode --vscode-port 51820
+```
+
+Also confirm the editor is forwarding port `51820`.
+
+### File permission errors
+
+The container runs as the `vscode` user. If mounted files are not writable,
+check ownership of the repository on the host and rebuild the container.
+
+### Docker Compose mounts the wrong files
+
+Run Compose from the repository root:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml up -d
+```
+
+The compose file expects `.devcontainer/docker-compose.yml` to be inside the
+repository and mounts `..` from that directory to `/workspaces/opencub`.
+
+### Container name already exists
+
+The container name is `opencub-dev`. Remove the old container and start again:
+
+```bash
+docker rm -f opencub-dev
+docker compose -f .devcontainer/docker-compose.yml up -d
+```

@@ -10,7 +10,7 @@ services:
 
     volumes:
       # Mount the project root to the workspace
-      - ../..:/workspaces/opencub:cached
+      - ..:/workspaces/opencub:cached
 
       # Persist pnpm store cache for faster reinstalls
       - opencub-pnpm-store:/home/vscode/.local/share/pnpm/store
@@ -21,6 +21,9 @@ services:
 
     # Override command to keep container running for development
     command: sleep infinity
+
+    # Start shells and commands from the repository root
+    working_dir: /workspaces/opencub
 
     # Network mode for MCP server connectivity
     # Using 'bridge' mode allows full network access for testing MCP servers

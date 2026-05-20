@@ -9,7 +9,8 @@ LABEL description="Development environment for OpenCub - local-first AI coding a
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
 	NODE_VERSION=22 \
-	PNPM_VERSION=latest \
+	PNPM_VERSION=11.0.9 \
+	BIOME_VERSION=2.3.10 \
 	# OpenCub-specific environment variables
 	NODE_ENV=development \
 	OPENCUB_LOG_LEVEL=debug \
@@ -27,8 +28,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
 # Install pnpm globally
 RUN npm install -g pnpm@${PNPM_VERSION}
 
-# Install Biome CLI globally for consistency
-RUN npm install -g @biomejs/biome
+# Install Biome CLI globally for convenience. Project scripts use the local
+# devDependency installed by pnpm.
+RUN npm install -g @biomejs/biome@${BIOME_VERSION}
 
 # Install additional development tools and fonts
 RUN apt-get update && \
@@ -53,22 +55,20 @@ RUN mkdir -p ~/.local/share/fonts && \
 	unzip -q /tmp/FiraCode.zip -d ~/.local/share/fonts && \
 	fc-cache -fv
 
-# Install oh-my-zsh for better terminal experience
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
-	# Add custom zsh configuration
-	echo 'export PATH="$HOME/.local/share/pnpm:$PATH"' >> /home/vscode/.zshrc && \
+# Install oh-my-zsh for the vscode user and configure the development shell
+RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /home/vscode/.oh-my-zsh && \
+	cp /home/vscode/.oh-my-zsh/templates/zshrc.zsh-template /home/vscode/.zshrc && \
 	echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> /home/vscode/.zshrc && \
-	echo 'eval "$(pnpm completions zsh)"' >> /home/vscode/.zshrc && \
-	# Add Node.js to PATH
-	echo 'export PATH="/usr/local/bin:$PATH"' >> /home/vscode/.zshrc
+	echo 'export PATH="$PNPM_HOME:/usr/local/bin:$PATH"' >> /home/vscode/.zshrc && \
+	echo 'eval "$(pnpm completions zsh 2>/dev/null)"' >> /home/vscode/.zshrc
 
 # Configure Git for the vscode user
-RUN git config --global --add safe.directory /workspaces/opencub && \
-	git config --global core.autocrlf input && \
-	git config --global core.fileMode false && \
-	git config --global init.defaultBranch main && \
-	git config --global user.email "vscode@localhost" && \
-	git config --global user.name "VS Code Dev Container"
+RUN HOME=/home/vscode git config --global --add safe.directory /workspaces/opencub && \
+	HOME=/home/vscode git config --global core.autocrlf input && \
+	HOME=/home/vscode git config --global core.fileMode false && \
+	HOME=/home/vscode git config --global init.defaultBranch main && \
+	HOME=/home/vscode git config --global user.email "vscode@localhost" && \
+	HOME=/home/vscode git config --global user.name "VS Code Dev Container"
 
 # Set up proper permissions for the vscode user
 RUN chown -R vscode:vscode /home/vscode

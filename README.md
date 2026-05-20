@@ -22,6 +22,7 @@ the `cub` command when installed as a package.
 - [Contributing Guide](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Dev Container](.devcontainer/README.md)
 - [VS Code Extension](plugins/README.md)
 
 ## What It Does
@@ -219,6 +220,11 @@ Use [`.env.example`](.env.example) and
 | `yolo` | Approve all tool calls automatically. Use only in trusted repositories. |
 
 ## Development
+
+For the easiest isolated development setup, use the included
+[Dev Container](.devcontainer/README.md). It provides Node.js 22, pnpm 11,
+Biome, project dependencies, fonts for terminal glyphs, and the forwarded port
+used by the VS Code extension bridge.
 
 Install dependencies and build:
 
