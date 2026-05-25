@@ -2,7 +2,7 @@
 	"name": "opencub-vscode",
 	"displayName": "OpenCub",
 	"description": "VS Code integration for OpenCub - local-first AI coding assistant",
-	"version": "0.3.0",
+	"version": "0.3.0-alpha.1",
 	"publisher": "BitopiaLabs",
 	"repository": {
 		"type": "git",

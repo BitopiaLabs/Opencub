@@ -1,7 +1,7 @@
 {
 	"name": "opencub",
 	"main": "dist/cli.js",
-	"version": "1.0.0",
+	"version": "0.1.0-alpha.1",
 	"description": "A local-first CLI coding agent with multi-provider support, built for local models and small open-weights models",
 	"keywords": [
 		"cli",

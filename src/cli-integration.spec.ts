@@ -29,15 +29,17 @@ export function runCliCommand(args: string[]): string {
 test('CLI integration: --version flag returns version number', t => {
 	const output = runCliCommand(['--version']);
 	
-	// Should return a valid version number (semver format)
-	t.regex(output, /^\d+\.\d+\.\d+$/);
+	// Should return a valid semver string, including optional pre-release tag
+	// (e.g. "1.2.3" or "0.1.0-alpha.1").
+	t.regex(output, /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
 });
 
 test('CLI integration: -v flag returns version number', t => {
 	const output = runCliCommand(['-v']);
 	
-	// Should return a valid version number (semver format)
-	t.regex(output, /^\d+\.\d+\.\d+$/);
+	// Should return a valid semver string, including optional pre-release tag
+	// (e.g. "1.2.3" or "0.1.0-alpha.1").
+	t.regex(output, /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
 });
 
 test('CLI integration: --help flag returns help text', t => {
@@ -86,8 +88,8 @@ test('CLI integration: version and help flags exit with code 0', t => {
 test('CLI integration: version flag takes precedence over other arguments', t => {
 	const output = runCliCommand(['--version', '--vscode', 'run', 'test']);
 	
-	// Should return version number, not start the app
-	t.regex(output, /^\d+\.\d+\.\d+$/);
+	// Should return version number (semver, optional pre-release), not start the app
+	t.regex(output, /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
 });
 
 test('CLI integration: help flag takes precedence over other arguments', t => {
