@@ -3,6 +3,16 @@ name: Release to NPM and GitHub
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and run all checks without publishing or releasing'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
@@ -108,6 +118,11 @@ jobs:
       - name: Security audit
         run: pnpm test:audit
 
+      - name: Semgrep security scan
+        uses: docker://semgrep/semgrep:latest
+        with:
+          args: semgrep scan --config auto --error
+
       - name: Verify build output
         run: |
           if [ ! -f "dist/cli.js" ]; then
@@ -122,17 +137,17 @@ jobs:
           echo "✅ VS Code extension built: assets/opencub-vscode.vsix exists"
 
       - name: Publish to NPM
+        if: github.event.inputs.dry_run != 'true'
         run: npm publish --access public --registry=https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event.inputs.dry_run != 'true'
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.package-version }}
-          release_name: opencub v${{ needs.check-version.outputs.package-version }}
+          name: opencub v${{ needs.check-version.outputs.package-version }}
           body: |
             ## Installation
             ```bash
@@ -145,9 +160,11 @@ jobs:
             ```
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Send Discord Notification
-        if: success()
+        if: success() && github.event.inputs.dry_run != 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
@@ -185,7 +202,7 @@ jobs:
 
   update-nix:
     needs: [check-version, publish]
-    if: needs.check-version.outputs.should-publish == 'true'
+    if: needs.check-version.outputs.should-publish == 'true' && github.event.inputs.dry_run != 'true'
     uses: ./.github/workflows/update-nix.yml
     with:
       version: ${{ needs.check-version.outputs.package-version }}
@@ -199,7 +216,14 @@ jobs:
     steps:
       - name: Notify result
         run: |
-          if [ "${{ needs.check-version.outputs.should-publish }}" == "true" ]; then
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            if [ "${{ needs.publish.result }}" == "success" ]; then
+              echo "✅ Dry run completed successfully for v${{ needs.check-version.outputs.package-version }} (no publish, no release)."
+            else
+              echo "❌ Dry run failed for v${{ needs.check-version.outputs.package-version }}"
+              exit 1
+            fi
+          elif [ "${{ needs.check-version.outputs.should-publish }}" == "true" ]; then
             if [ "${{ needs.publish.result }}" == "success" ]; then
               echo "🎉 Successfully published opencub v${{ needs.check-version.outputs.package-version }} to NPM and created GitHub release!"
               if [ "${{ needs.update-nix.result }}" == "success" ]; then
