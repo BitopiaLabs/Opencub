@@ -228,6 +228,61 @@ jobs:
           fi
         shell: bash
 
+      - name: Smoke-test CLI
+        run: |
+          node dist/cli.js --version
+          node dist/cli.js --help | grep -q "Usage:"
+          echo "✓ CLI smoke test passed"
+        shell: bash
+
+  # Cross-platform build + test on macOS and Windows.
+  # Linux is already covered by test-coverage and verify-build, so it is
+  # omitted here to avoid redundant work. Each OS runs independently
+  # (fail-fast: false) so one platform's failure still surfaces the others.
+  test-cross-platform:
+    name: Cross-Platform Build & Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: true
+      NODE_ENV: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Run unit tests
+        run: pnpm test:ava
+
+      - name: Smoke-test CLI
+        run: |
+          node dist/cli.js --version
+          node dist/cli.js --help | grep -q "Usage:"
+          echo "✓ CLI smoke test passed on $RUNNER_OS"
+
   # Package Audit and dependency analysis (runs once)
   package-audit:
     name: Package Audit Analysis

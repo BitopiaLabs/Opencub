@@ -34,7 +34,7 @@
 		"node": ">=22"
 	},
 	"scripts": {
-		"build": "tsc && tsc-alias && cp src/commands/contributors.json dist/commands/contributors.json && chmod +x dist/cli.js",
+		"build": "tsc && tsc-alias && node scripts/postbuild.mjs",
 		"build:credits": "./scripts/generate-credits.sh",
 		"dev": "tsc --watch",
 		"start": "node dist/cli.js",
