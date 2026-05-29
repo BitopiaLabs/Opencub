@@ -27,6 +27,7 @@ jobs:
       package-name: ${{ steps.version-check.outputs.package-name }}
       package-version: ${{ steps.version-check.outputs.package-version }}
       npm-version: ${{ steps.version-check.outputs.npm-version }}
+      dist-tag: ${{ steps.version-check.outputs.dist-tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,6 +49,19 @@ jobs:
           # Get latest NPM version (handle case where package doesn't exist yet)
           NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
           echo "npm-version=$NPM_VERSION" >> $GITHUB_OUTPUT
+
+          # Derive the npm dist-tag from the version string so pre-releases
+          # never take the `latest` tag. Stable versions (no pre-release
+          # suffix) publish to `latest`.
+          case "$PACKAGE_VERSION" in
+            *-alpha*) DIST_TAG="alpha" ;;
+            *-beta*)  DIST_TAG="beta" ;;
+            *-rc*)    DIST_TAG="rc" ;;
+            *-*)      DIST_TAG="next" ;;
+            *)        DIST_TAG="latest" ;;
+          esac
+          echo "dist-tag=$DIST_TAG" >> $GITHUB_OUTPUT
+          echo "📦 npm dist-tag resolved to: $DIST_TAG"
 
           # Compare versions
           if [ "$PACKAGE_VERSION" != "$NPM_VERSION" ]; then
@@ -76,6 +90,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Verify NPM authentication
+        if: github.event.inputs.dry_run != 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PACKAGE_NAME: ${{ needs.check-version.outputs.package-name }}
@@ -139,9 +154,10 @@ jobs:
 
       - name: Publish to NPM
         if: github.event.inputs.dry_run != 'true'
-        run: npm publish --access public --registry=https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ needs.check-version.outputs.dist-tag }}
+        run: npm publish --access public --tag "$DIST_TAG" --registry=https://registry.npmjs.org
 
       - name: Create GitHub Release
         if: github.event.inputs.dry_run != 'true'
@@ -152,7 +168,7 @@ jobs:
           body: |
             ## Installation
             ```bash
-            npm install -g opencub
+            npm install -g opencub@${{ needs.check-version.outputs.dist-tag }}
             ```
 
             ## Usage
@@ -160,7 +176,7 @@ jobs:
             cub
             ```
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.check-version.outputs.dist-tag != 'latest' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
